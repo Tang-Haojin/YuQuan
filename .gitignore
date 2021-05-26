@@ -3,6 +3,8 @@ out/
 .bsp/
 .idea/
 .idea_modules/
+.metals/
+.coursier/
 test_run_dir/
 
 build/
