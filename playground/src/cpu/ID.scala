@@ -49,51 +49,51 @@ class ID extends Module {
     io.valid_next := 0.U // invalid instruction
   }.otherwise {
     switch(instruction(6, 2)) {
-      is(0x00.U) { // IDEX (0b00000, I, load)
+      is("0b00000".U) { // IDEX (0b00000, I, load)
         instype := i
         ???
       }
-      is(0x04.U) { // IDEX (0b00100, I, computei)
+      is("0b00100".U) { // IDEX (0b00100, I, computei)
         instype := i
         ???
       }
-      is(0x05.U) { // IDEX (0b00101, U, auipc)
+      is("0b00101".U) { // IDEX (0b00101, U, auipc)
         instype := u
         ???
       }
-      is(0x06.U) { // IDEX (0b00110, I, computeiw)
+      is("0b00110".U) { // IDEX (0b00110, I, computeiw)
         instype := i
         ???
       }
-      is(0x08.U) { // IDEX (0b01000, S, store)
+      is("0b01000".U) { // IDEX (0b01000, S, store)
         instype := s
         ???
       }
-      is(0x0c.U) { // IDEX (0b01100, R, compute)
+      is("0b01100".U) { // IDEX (0b01100, R, compute)
         instype := r
         ???
       }
-      is(0x0d.U) { // IDEX (0b01101, U, lui)
+      is("0b01101".U) { // IDEX (0b01101, U, lui)
         instype := u
         ???
       }
-      is(0x0e.U) { // IDEX (0b01110, R, computew)
+      is("0b01110".U) { // IDEX (0b01110, R, computew)
         instype := r
         ???
       }
-      is(0x18.U) { // IDEX (0b11000, B, branch)
+      is("0b11000".U) { // IDEX (0b11000, B, branch)
         instype := b
         ???
       }
-      is(0x19.U) { // IDEX (0b11001, I, jalr)
+      is("0b11001".U) { // IDEX (0b11001, I, jalr)
         instype := i
         ???
       }
-      is(0x1b.U) { // IDEX (0b11011, J, jal)
+      is("0b11011".U) { // IDEX (0b11011, J, jal)
         instype := j
         ???
       }
-      is(0x1c.U) { // IDEX (0b11100, I, raise)
+      is("0b11100".U) { // IDEX (0b11100, I, raise)
         instype := i
         ???
       }
