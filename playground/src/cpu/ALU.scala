@@ -4,6 +4,7 @@ import chisel3._
 import chisel3.util._
 
 import cpu.Operators._
+import cpu.config.GeneralConfig._
 
 object Operators {
   val operators = Enum(8)
@@ -12,7 +13,7 @@ object Operators {
 
 class ALU(bitwidth: Int) extends Module {
   val io = IO(new Bundle {
-    val op     = Input (UInt(4.W)) // for extension ability
+    val op     = Input (UInt(AluTypeWidth.W)) // for extension ability
     val a      = Input (SInt(bitwidth.W))
     val b      = Input (SInt(bitwidth.W))
     val res    = Output(SInt(bitwidth.W))

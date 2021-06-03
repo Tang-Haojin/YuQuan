@@ -4,10 +4,8 @@ import chisel3._
 import cpu.config.GeneralConfig._
 import cpu.config._
 
-class AXIall extends AXI with AXIwa with AXIwd with AXIwr with AXIra with AXIrd
-
 // Write address channel signals
-trait AXIwa {
+class AXIwa extends Bundle {
   val AWID     = Output(UInt(4.W))
   val AWADDR   = Output(UInt(XLEN.W))
   val AWLEN    = Output(UInt(8.W))
@@ -24,7 +22,7 @@ trait AXIwa {
 }
 
 // Write data channel signals
-trait AXIwd {
+class AXIwd extends Bundle {
   val WID      = Output(UInt(0.W))
   val WDATA    = Output(UInt(XLEN.W))
   val WSTRB    = Output(UInt(4.W))
@@ -35,7 +33,7 @@ trait AXIwd {
 }
 
 // Write response channel signals
-trait AXIwr {
+class AXIwr extends Bundle {
   val BID      = Input (UInt(4.W))
   val BRESP    = Input (UInt(2.W))
   val BUSER    = Input (UInt(1.W))
@@ -44,7 +42,7 @@ trait AXIwr {
 }
 
 // Read address channel signals
-trait AXIra {
+class AXIra extends Bundle {
   val ARID     = Output(UInt(4.W))
   val ARADDR   = Output(UInt(XLEN.W))
   val ARLEN    = Output(UInt(8.W))
@@ -61,7 +59,7 @@ trait AXIra {
 }
 
 // Read data channel signals
-trait AXIrd {
+class AXIrd extends Bundle {
   val RID      = Input (UInt(4.W))
   val RDATA    = Input (UInt(XLEN.W))
   val RRESP    = Input (UInt(2.W))
@@ -72,17 +70,85 @@ trait AXIrd {
 }
 
 // for simple single-direction communication
-trait LastNext {
-  val last = Input (Bool())
-  val next = Output(Bool())
+class LastNext extends Bundle {
   val LVALID = Input(Bool())
   val LREADY = Output(Bool())
   val NVALID = Output(Bool())
   val NREADY = Input(Bool())
 }
 
-class AXI extends Bundle {
+class LastVR extends Bundle {
+  val VALID = Input(Bool())
+  val READY = Output(Bool())
+}
+
+class BASIC extends Bundle {
   // Global signal
   val ACLK     = Input (Clock())
   val ARESETn  = Input (Bool())
+}
+
+class AXIRaMux extends RawModule {
+  val io = IO(new Bundle {
+    val muxRaBasic     = new BASIC
+
+    val muxAxiRaIn0    = Flipped(new AXIra)
+    val muxAxiRaIn1    = Flipped(new AXIra)
+    val muxAxiRaOut    = new AXIra
+  })
+
+  withClockAndReset(io.muxRaBasic.ACLK, ~io.muxRaBasic.ARESETn) {
+    val selector = RegInit(0.B)
+
+    io.muxAxiRaIn0.ARREADY := 0.B
+    io.muxAxiRaIn1.ARREADY := 0.B
+
+    when(selector) {
+      io.muxAxiRaIn1 <> io.muxAxiRaOut
+    }.otherwise {
+      io.muxAxiRaIn0 <> io.muxAxiRaOut
+    }
+
+    when(~io.muxAxiRaOut.ARVALID || ~io.muxAxiRaOut.ARREADY) {
+      selector := ~selector
+    }
+  }
+}
+
+class AXIRdMux extends RawModule {
+  val io = IO(new Bundle {
+    val muxRdBasic     = new BASIC
+
+    val muxAxiRdIn0    = Flipped(new AXIrd)
+    val muxAxiRdIn1    = Flipped(new AXIrd)
+    val muxAxiRdOut    = new AXIrd
+  })
+
+  withClockAndReset(io.muxRdBasic.ACLK, ~io.muxRdBasic.ARESETn) {
+    val selector = RegInit(0.B)
+
+    io.muxAxiRdIn0.RID    := 0xf.U
+    io.muxAxiRdIn1.RID    := 0xf.U
+    io.muxAxiRdIn0.RDATA  := 0.U
+    io.muxAxiRdIn1.RDATA  := 0.U
+    io.muxAxiRdIn0.RRESP  := 0.U
+    io.muxAxiRdIn1.RRESP  := 0.U
+    io.muxAxiRdIn0.RLAST  := 0.B
+    io.muxAxiRdIn1.RLAST  := 0.B
+    io.muxAxiRdIn0.RUSER  := 0.U
+    io.muxAxiRdIn1.RUSER  := 0.U
+    io.muxAxiRdIn0.RVALID := 0.B
+    io.muxAxiRdIn1.RVALID := 0.B
+
+    when(selector) {
+      io.muxAxiRdIn1 <> io.muxAxiRdOut
+    }.otherwise {
+      io.muxAxiRdIn0 <> io.muxAxiRdOut
+    }
+
+    when(~io.muxAxiRdOut.RVALID || ~io.muxAxiRdOut.RREADY || 
+         (io.muxAxiRdOut.RID =/= selector.asUInt())) {
+      selector := ~selector
+    }
+  }
 }
