@@ -3,6 +3,9 @@ package cpu
 import chisel3._
 import chisel3.util._
 
+import meta.Booleans._
+import meta.PreProc._
+
 import cpu.axi.LastVR
 
 import cpu.register._
@@ -10,10 +13,8 @@ import cpu.config.GeneralConfig._
 import cpu.config.RegisterConfig._
 import cpu.ExecSpecials._
 import cpu.InstrTypes._
-
-import meta.Booleans._
-import meta.PreProc._
 import cpu.axi.BASIC
+
 
 object ExecSpecials {
   val specials = Enum(5)
@@ -23,6 +24,10 @@ object ExecSpecials {
 object InstrTypes {
   val instrtypes = Enum(6)
   val i::u::s::r::j::b::Nil = instrtypes
+}
+
+object IDLocal {
+  val XLEN = cpu.config.GeneralConfig.XLEN
 }
 
 class IDOutput extends Bundle {
@@ -39,7 +44,7 @@ class ID extends RawModule {
   val io = IO(new Bundle {
     val idBasic = new BASIC              // connected
     val idData = new IDOutput            // connected
-    val idGprsR = new GPRsR              // connected
+    val idGprsR = Flipped(new GPRsR)     // connected
     val idLastVR   = new LastVR          // connected
     val idNextVR   = Flipped(new LastVR) // connected
     val instr   = Input (UInt(XLEN.W))   // connected
@@ -62,6 +67,11 @@ class ID extends RawModule {
     val wireOp      = UInt(AluTypeWidth.W)
     val wireImm     = UInt(XLEN.W)
     val wireSpecial = UInt(3.W)
+    val wireRs1     = UInt(5.W)
+    val wireRs2     = UInt(5.W)
+    val wireDataRs1 = UInt(XLEN.W)
+    val wireDataRs2 = UInt(XLEN.W)
+    val wireFunt3   = UInt(3.W)
 
     val wireType    = UInt(3.W)
 
@@ -75,6 +85,13 @@ class ID extends RawModule {
     io.idData.special := special
 
     wireRd      := io.instr(11, 7)
+    wireRs1     := io.instr(19, 15)
+    wireRs2     := io.instr(24, 20)
+    io.idGprsR.raddr(0) := wireRs1
+    io.idGprsR.raddr(1) := wireRs2
+    wireDataRs1 := io.idGprsR.rdata(0)
+    wireDataRs2 := io.idGprsR.rdata(1)
+    wireFunt3   := io.instr(14, 12)
     wireNum1    := 0.U
     wireNum2    := 0.U
     wireOp      := 0.U
@@ -82,6 +99,7 @@ class ID extends RawModule {
     wireSpecial := 0.U
 
     wireType := 7.U
+    
 
     switch(io.instr(6, 2)) {
       is("b00000".U) { // IDEX (0b00000, I, load)
@@ -91,6 +109,31 @@ class ID extends RawModule {
       is("b00100".U) { // IDEX (0b00100, I, computei)
         wireType    := i
         wireSpecial := no
+        wireNum1    := wireDataRs1
+        wireNum2    := wireImm
+        switch(wireFunt3) {
+          is("b000".U) {
+            wireOp := Operators.add
+          }
+          is("b001".U) {
+
+          }
+          is("b010".U) {
+            wireOp := Operators.lts
+          }
+          is("b011".U) {
+            wireOp := Operators.ltu
+          }
+          is("b100".U) {
+            wireOp := Operators.xor
+          }
+          is("110".U) {
+            wireOp := Operators.or
+          }
+          is("111".U) {
+            wireOp := Operators.and
+          }
+        }
       }
       is("b00101".U) { // IDEX (0b00101, U, auipc)
         wireType    := u

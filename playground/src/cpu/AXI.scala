@@ -70,13 +70,6 @@ class AXIrd extends Bundle {
 }
 
 // for simple single-direction communication
-class LastNext extends Bundle {
-  val LVALID = Input(Bool())
-  val LREADY = Output(Bool())
-  val NVALID = Output(Bool())
-  val NREADY = Input(Bool())
-}
-
 class LastVR extends Bundle {
   val VALID = Input(Bool())
   val READY = Output(Bool())

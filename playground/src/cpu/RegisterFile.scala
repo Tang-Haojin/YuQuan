@@ -16,7 +16,7 @@ class GPRsR extends Bundle {
   val rdata = Output(Vec(readPortsNum, UInt(XLEN.W)))
 }
 
-class GPRs extends Module {
+class GPRs extends RawModule {
   val io = IO(new Bundle {
     val gprsBasic = new BASIC
     val gprsW     = new GPRsW

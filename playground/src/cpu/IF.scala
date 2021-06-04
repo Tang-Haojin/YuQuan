@@ -33,7 +33,7 @@ class IF extends RawModule {
   io.ifPcIo.wen       := 0.B
   io.ifPcIo.wdata     := 0.U
 
-  // Clk: Posedge trigger; Rst: Low level effectiveki
+  // Clk: Posedge trigger; Rst: Low level effective
   withClockAndReset(io.ifBasic.ACLK, ~io.ifBasic.ARESETn) {
     val ARVALID = RegInit(0.B)
     val NVALID  = RegInit(0.B)

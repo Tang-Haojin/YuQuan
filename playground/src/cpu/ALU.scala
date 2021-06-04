@@ -7,8 +7,8 @@ import cpu.Operators._
 import cpu.config.GeneralConfig._
 
 object Operators {
-  val operators = Enum(8)
-  val add::sub::and::or::xor::sll::sra::srl::Nil = operators
+  val operators = Enum(10)
+  val add::sub::and::or::xor::sll::sra::srl::lts::ltu::Nil = operators
 }
 
 class ALU(bitwidth: Int) extends Module {
@@ -34,5 +34,7 @@ class ALU(bitwidth: Int) extends Module {
     is(sll) { res := a << b(2, 0).asUInt }
     is(sra) { res := a >> b(2, 0).asUInt }
     is(srl) { res := (a.asUInt >> b(2, 0).asUInt).asSInt }
+    is(lts) { res := (a < b).asSInt }
+    is(ltu) { res := (a.asUInt < b.asUInt).asSInt }
   }
 }

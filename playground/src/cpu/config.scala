@@ -3,7 +3,6 @@ import meta.PreProc._
 import meta.Booleans._
 
 object GeneralConfig {
-  val XLEN = 64
   val AluTypeWidth = 4
 
   type RV32M = TRUE
@@ -11,9 +10,15 @@ object GeneralConfig {
   
   IF[RV64I] {
     type RV64M = TRUE
+    val XLEN = 64
+  }
+  
+  IF[![RV64I]#v] {
+    type RV64M = FALSE
+    val XLEN = 32
   }
 }
 
 object RegisterConfig {
-  val readPortsNum = 3
+  val readPortsNum = 2
 }

@@ -15,7 +15,7 @@ import meta.PreProc._
 class WB extends Module {
   val io = IO(new Bundle {
     val wbBasic = new BASIC              // connected
-    val wbGprsW = new GPRsW              // connected
+    val wbGprsW = Flipped(new GPRsW)     // connected
     val wbLastVR   = new LastVR          // connected
     val wbNextVR   = Flipped(new LastVR) // connected
     // ???
