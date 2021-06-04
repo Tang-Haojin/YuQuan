@@ -26,6 +26,11 @@ object InstrTypes {
   val i::u::s::r::j::b::Nil = instrtypes
 }
 
+object NumTypes {
+  val numtypes = Enum(4)
+  val non::rs1::rs2::imm::Nil = numtypes
+}
+
 object IDLocal {
   val XLEN = cpu.config.GeneralConfig.XLEN
 }
@@ -34,7 +39,7 @@ class IDOutput extends Bundle {
   val rd      = Output(UInt(5.W))
   val num1    = Output(UInt(XLEN.W))
   val num2    = Output(UInt(XLEN.W))
-  val imm     = Output(UInt(XLEN.W))
+  val num3    = Output(UInt(XLEN.W))
   val op      = Output(UInt(AluTypeWidth.W))
   val special = Output(UInt(3.W))
 }
@@ -55,170 +60,92 @@ class ID extends RawModule {
     val LREADY  = RegInit(0.B)
 
     val rd      = RegInit(0.U(5.W))
-    val num1    = RegInit(0.U(XLEN.W))
-    val num2    = RegInit(0.U(XLEN.W))
-    val imm     = RegInit(0.U(XLEN.W))
+    val (num1, num2, num3) = (RegInit(0.U(XLEN.W)), RegInit(0.U(XLEN.W)), RegInit(0.U(XLEN.W)))
     val op      = RegInit(0.U(AluTypeWidth.W))
     val special = RegInit(0.U(3.W))
 
-    val wireRd      = UInt(5.W)
-    val wireNum1    = UInt(XLEN.W)
-    val wireNum2    = UInt(XLEN.W)
-    val wireOp      = UInt(AluTypeWidth.W)
-    val wireImm     = UInt(XLEN.W)
-    val wireSpecial = UInt(3.W)
-    val wireRs1     = UInt(5.W)
-    val wireRs2     = UInt(5.W)
-    val wireDataRs1 = UInt(XLEN.W)
-    val wireDataRs2 = UInt(XLEN.W)
-    val wireFunt3   = UInt(3.W)
+    val wireRd      = Wire(UInt(5.W))
+    val (
+      wireNum1, wireNum2, wireNum3, wireImm
+    ) = (
+      Wire(UInt(XLEN.W)), Wire(UInt(XLEN.W)), Wire(UInt(XLEN.W)), Wire(UInt(XLEN.W))
+    )
+    val wireOp      = Wire(UInt(AluTypeWidth.W))
+    val wireSpecial = Wire(UInt(3.W))
+    val (wireRs1, wireRs2) = (Wire(UInt(5.W)), Wire(UInt(5.W)))
+    val (wireDataRs1, wireDataRs2) = (Wire(UInt(XLEN.W)), Wire(UInt(XLEN.W)))
+    val wireFunt3   = Wire(UInt(3.W))
 
-    val wireType    = UInt(3.W)
+    val wireType    = Wire(UInt(3.W))
 
-    io.idNextVR.VALID  := NVALID
-    io.idLastVR.READY  := LREADY
+    io.idNextVR.VALID := NVALID
+    io.idLastVR.READY := LREADY
     io.idData.rd      := rd
     io.idData.num1    := num1
     io.idData.num2    := num2
-    io.idData.imm     := imm
+    io.idData.num3    := num3
     io.idData.op      := op
     io.idData.special := special
 
-    wireRd      := io.instr(11, 7)
-    wireRs1     := io.instr(19, 15)
-    wireRs2     := io.instr(24, 20)
+    wireRd              := io.instr(11, 7)
+    wireRs1             := io.instr(19, 15)
+    wireRs2             := io.instr(24, 20)
     io.idGprsR.raddr(0) := wireRs1
     io.idGprsR.raddr(1) := wireRs2
-    wireDataRs1 := io.idGprsR.rdata(0)
-    wireDataRs2 := io.idGprsR.rdata(1)
-    wireFunt3   := io.instr(14, 12)
-    wireNum1    := 0.U
-    wireNum2    := 0.U
-    wireOp      := 0.U
-    wireImm     := 0.U
-    wireSpecial := 0.U
+    wireDataRs1         := io.idGprsR.rdata(0)
+    wireDataRs2         := io.idGprsR.rdata(1)
+    wireFunt3           := io.instr(14, 12)
+    wireNum1            := 0.U
+    wireNum2            := 0.U
+    wireNum3            := 0.U
+    wireImm             := 0.U
+    wireSpecial         := 0.U
 
     wireType := 7.U
-    
 
-    switch(io.instr(6, 2)) {
-      is("b00000".U) { // IDEX (0b00000, I, load)
-        wireType    := i
-        wireSpecial := ld
-      }
-      is("b00100".U) { // IDEX (0b00100, I, computei)
-        wireType    := i
-        wireSpecial := no
-        wireNum1    := wireDataRs1
-        wireNum2    := wireImm
-        switch(wireFunt3) {
-          is("b000".U) {
-            wireOp := Operators.add
-          }
-          is("b001".U) {
+    val decoded = ListLookup(
+      io.instr,
+      List(7.U, 0.U, 0.U, 0.U, 0.U, 0.B),
+      RVI.table
+    )
 
-          }
-          is("b010".U) {
-            wireOp := Operators.lts
-          }
-          is("b011".U) {
-            wireOp := Operators.ltu
-          }
-          is("b100".U) {
-            wireOp := Operators.xor
-          }
-          is("110".U) {
-            wireOp := Operators.or
-          }
-          is("111".U) {
-            wireOp := Operators.and
-          }
+    val instrValid = (decoded(0) =/= 7.U)
+
+    wireOp := decoded(0)
+
+    val numList = List((wireNum1, decoded(1)), (wireNum2, decoded(2)), (wireNum3, decoded(3)))
+    for (num <- numList) {
+      switch(num._2) {
+        is(NumTypes.rs1) {
+          num._1 := wireDataRs1
+        }
+        is(NumTypes.rs2) {
+          num._1 := wireDataRs2
+        }
+        is(NumTypes.imm) {
+          num._1 := wireImm
         }
       }
-      is("b00101".U) { // IDEX (0b00101, U, auipc)
-        wireType    := u
-        wireSpecial := auipc
-      }
-      is("b01000".U) { // IDEX (0b01000, S, store)
-        wireType    := s
-        wireSpecial := st
-      }
-      is("b01100".U) { // IDEX (0b01100, R, compute)
-        wireType := r
-      }
-      is("b01101".U) { // IDEX (0b01101, U, lui)
-        wireType := u
-      }
-      is("b01110".U) { // IDEX (0b01110, R, computew)
-        wireType := r
-      }
-      is("b11000".U) { // IDEX (0b11000, B, branch)
-        wireType := b
-      }
-      is("b11001".U) { // IDEX (0b11001, I, jalr)
-        wireType := i
-      }
-      is("b11011".U) { // IDEX (0b11011, J, jal)
-        wireType := j
-      }
-      is("b11100".U) { // IDEX (0b11100, I, raise)
-        wireType := i
-      }
     }
 
-IF[RV64I] {
-
-    switch(io.instr(6, 2)) {
-      is("b00110".U) { // IDEX (0b00110, I, computeiw)
-        wireType    := i
-        wireSpecial := no
-      }
-    }
-
-}
-
-    switch(wireType) {
+    switch(decoded(0)) {
       is(i) {
         wireImm := Cat(Fill(XLEN - 12, io.instr(31)), io.instr(31, 20))
       }
-      is(s) {
-        wireImm := Cat(Seq(
-          Fill(XLEN - 12, io.instr(31)), 
-          io.instr(31, 25), 
-          io.instr(11, 7)
-        ))
-      }
-      is(b) {
-        wireImm := Cat(Seq(
-          Fill(XLEN - 12, io.instr(31)),
-          io.instr(7),
-          io.instr(30, 25),
-          io.instr(11, 8),
-          0.U(1.W)
-        ))
-      }
-      is(u) {
-        wireImm := Cat(Seq(
-          Fill(XLEN - 32, io.instr(31)),
-          io.instr(31, 12),
-          0.U(12.W)
-        ))
-      }
-      is(j) {
-        wireImm := Cat(Seq(
-          Fill(XLEN - 20, io.instr(31)),
-          io.instr(19, 12),
-          io.instr(20),
-          io.instr(30, 21),
-          0.U(1.W)
-        ))
-      }
     }
 
-    when(io.idLastVR.VALID && io.idLastVR.READY) { // let's start working
-      LREADY := 0.B
-      num1   := io.instr(19, 15)
-      rd     := io.instr(11,  7)
+    when(io.idNextVR.VALID && io.idNextVR.READY) { // ready to trans instr to the next level
+      NVALID  := 0.B
+      LREADY  := 1.B
+    }.elsewhen(io.idLastVR.VALID && io.idLastVR.READY && instrValid) { // let's start working
+      NVALID  := 1.B
+      LREADY  := 0.B
+      rd      := wireRd
+      num1    := wireNum1
+      num2    := wireNum2
+      num3    := wireNum3
+      op      := wireOp
+      special := wireSpecial
     }
   }
 }

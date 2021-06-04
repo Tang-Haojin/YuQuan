@@ -16,7 +16,7 @@ class IF extends RawModule {
     val ifAxiRd  = new AXIrd            // connected
     val ifLastVR = new LastVR           // connected
     val ifNextVR = Flipped(new LastVR)  // connected
-    val ifPcIo   = new PCIO             // connected
+    val ifPcIo   = Flipped(new PCIO)    // connected
     val instr    = Output(UInt(XLEN.W)) // connected
   })
   
@@ -41,12 +41,12 @@ class IF extends RawModule {
     val RREADY  = RegInit(0.B)
     val instr   = RegInit(0.U(XLEN.W))
 
-    io.ifAxiRa.ARVALID   := ARVALID
-    io.ifNextVR.VALID := NVALID
-    io.ifAxiRd.RREADY    := RREADY
-    io.ifLastVR.READY := LREADY
-    io.instr             := instr
-    io.ifAxiRa.ARADDR    := io.ifPcIo.rdata
+    io.ifAxiRa.ARVALID := ARVALID
+    io.ifNextVR.VALID  := NVALID
+    io.ifAxiRd.RREADY  := RREADY
+    io.ifLastVR.READY  := LREADY
+    io.instr           := instr
+    io.ifAxiRa.ARADDR  := io.ifPcIo.rdata
 
     when(io.ifNextVR.VALID && io.ifNextVR.READY) { // ready to trans instr to the next level
       NVALID  := 0.B
@@ -65,6 +65,4 @@ class IF extends RawModule {
       ARVALID := 1.B
     }
   }
-
-
 }

@@ -7,16 +7,8 @@ object GeneralConfig {
 
   type RV32M = TRUE
   type RV64I = TRUE
-  
-  IF[RV64I] {
-    type RV64M = TRUE
-    val XLEN = 64
-  }
-  
-  IF[![RV64I]#v] {
-    type RV64M = FALSE
-    val XLEN = 32
-  }
+  type RV64M = TRUE
+  val XLEN = 64
 }
 
 object RegisterConfig {
