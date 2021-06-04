@@ -29,7 +29,7 @@ object ALUtest extends ChiselUtestTester {
 
   val tests = Tests {
     test("ALU") {
-      testCircuit(new cpu.ALU(64)) { c =>
+      testCircuit(new cpu.ALU) { c =>
         testValues.foreach { i => 
           c.io.op.poke(i._1)
           c.io.a.poke(i._2.S)

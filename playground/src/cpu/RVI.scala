@@ -10,6 +10,6 @@ object RVI {
   
   val table = Array(
     //          |    Type    |    num1     |    num2     |    num3     |    ALUType   | WB |
-    ADDI -> List(InstrTypes.i, NumTypes.rs1, NumTypes.imm, NumTypes.non, Operators.add, 1.B)
+    ADDI -> List(InstrTypes.i, NumTypes.rs1, NumTypes.imm, NumTypes.non, Operators.add, 1.U)
   )
 }

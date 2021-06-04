@@ -11,12 +11,12 @@ object Operators {
   val add::sub::and::or::xor::sll::sra::srl::lts::ltu::Nil = operators
 }
 
-class ALU(bitwidth: Int) extends Module {
+class ALU extends Module {
   val io = IO(new Bundle {
     val op     = Input (UInt(AluTypeWidth.W)) // for extension ability
-    val a      = Input (SInt(bitwidth.W))
-    val b      = Input (SInt(bitwidth.W))
-    val res    = Output(SInt(bitwidth.W))
+    val a      = Input (SInt(XLEN.W))
+    val b      = Input (SInt(XLEN.W))
+    val res    = Output(SInt(XLEN.W))
   })
   val op  = io.op
   val a   = io.a

@@ -83,26 +83,26 @@ class BASIC extends Bundle {
 
 class AXIRaMux extends RawModule {
   val io = IO(new Bundle {
-    val muxRaBasic     = new BASIC
+    val basic     = new BASIC
 
-    val muxAxiRaIn0    = Flipped(new AXIra)
-    val muxAxiRaIn1    = Flipped(new AXIra)
-    val muxAxiRaOut    = new AXIra
+    val axiRaIn0    = Flipped(new AXIra)
+    val axiRaIn1    = Flipped(new AXIra)
+    val axiRaOut    = new AXIra
   })
 
-  withClockAndReset(io.muxRaBasic.ACLK, ~io.muxRaBasic.ARESETn) {
+  withClockAndReset(io.basic.ACLK, ~io.basic.ARESETn) {
     val selector = RegInit(0.B)
 
-    io.muxAxiRaIn0.ARREADY := 0.B
-    io.muxAxiRaIn1.ARREADY := 0.B
+    io.axiRaIn0.ARREADY := 0.B
+    io.axiRaIn1.ARREADY := 0.B
 
     when(selector) {
-      io.muxAxiRaIn1 <> io.muxAxiRaOut
+      io.axiRaIn1 <> io.axiRaOut
     }.otherwise {
-      io.muxAxiRaIn0 <> io.muxAxiRaOut
+      io.axiRaIn0 <> io.axiRaOut
     }
 
-    when(~io.muxAxiRaOut.ARVALID || ~io.muxAxiRaOut.ARREADY) {
+    when(~io.axiRaOut.ARVALID || ~io.axiRaOut.ARREADY) {
       selector := ~selector
     }
   }
@@ -110,37 +110,37 @@ class AXIRaMux extends RawModule {
 
 class AXIRdMux extends RawModule {
   val io = IO(new Bundle {
-    val muxRdBasic     = new BASIC
+    val basic     = new BASIC
 
-    val muxAxiRdIn0    = Flipped(new AXIrd)
-    val muxAxiRdIn1    = Flipped(new AXIrd)
-    val muxAxiRdOut    = new AXIrd
+    val axiRdIn0    = Flipped(new AXIrd)
+    val axiRdIn1    = Flipped(new AXIrd)
+    val axiRdOut    = new AXIrd
   })
 
-  withClockAndReset(io.muxRdBasic.ACLK, ~io.muxRdBasic.ARESETn) {
+  withClockAndReset(io.basic.ACLK, ~io.basic.ARESETn) {
     val selector = RegInit(0.B)
 
-    io.muxAxiRdIn0.RID    := 0xf.U
-    io.muxAxiRdIn1.RID    := 0xf.U
-    io.muxAxiRdIn0.RDATA  := 0.U
-    io.muxAxiRdIn1.RDATA  := 0.U
-    io.muxAxiRdIn0.RRESP  := 0.U
-    io.muxAxiRdIn1.RRESP  := 0.U
-    io.muxAxiRdIn0.RLAST  := 0.B
-    io.muxAxiRdIn1.RLAST  := 0.B
-    io.muxAxiRdIn0.RUSER  := 0.U
-    io.muxAxiRdIn1.RUSER  := 0.U
-    io.muxAxiRdIn0.RVALID := 0.B
-    io.muxAxiRdIn1.RVALID := 0.B
+    io.axiRdIn0.RID    := 0xf.U
+    io.axiRdIn1.RID    := 0xf.U
+    io.axiRdIn0.RDATA  := 0.U
+    io.axiRdIn1.RDATA  := 0.U
+    io.axiRdIn0.RRESP  := 0.U
+    io.axiRdIn1.RRESP  := 0.U
+    io.axiRdIn0.RLAST  := 0.B
+    io.axiRdIn1.RLAST  := 0.B
+    io.axiRdIn0.RUSER  := 0.U
+    io.axiRdIn1.RUSER  := 0.U
+    io.axiRdIn0.RVALID := 0.B
+    io.axiRdIn1.RVALID := 0.B
 
     when(selector) {
-      io.muxAxiRdIn1 <> io.muxAxiRdOut
+      io.axiRdIn1 <> io.axiRdOut
     }.otherwise {
-      io.muxAxiRdIn0 <> io.muxAxiRdOut
+      io.axiRdIn0 <> io.axiRdOut
     }
 
-    when(~io.muxAxiRdOut.RVALID || ~io.muxAxiRdOut.RREADY || 
-         (io.muxAxiRdOut.RID =/= selector.asUInt())) {
+    when(~io.axiRdOut.RVALID || ~io.axiRdOut.RREADY || 
+         (io.axiRdOut.RID =/= selector.asUInt())) {
       selector := ~selector
     }
   }

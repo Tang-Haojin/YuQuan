@@ -7,12 +7,12 @@ import cpu.axi._
 
 class CPU extends RawModule {
 	val io = IO(new Bundle {
-    val topBasic = new BASIC
-    val topAxiWa = new AXIwa
-    val topAxiWd = new AXIwd
-    val topAxiWr = new AXIwr
-    val topAxiRa = new AXIra
-    val topAxiRd = new AXIrd
+    val basic = new BASIC
+    val axiWa = new AXIwa
+    val axiWd = new AXIwd
+    val axiWr = new AXIwr
+    val axiRa = new AXIra
+    val axiRd = new AXIrd
   })
 
   val modulePC       = Module(new PC)
@@ -26,37 +26,39 @@ class CPU extends RawModule {
   val moduleMEM = Module(new MEM)
   val moduleWB  = Module(new WB)
 
-  io.topBasic <> moduleAXIRaMux.io.muxRaBasic
-  io.topBasic <> moduleAXIRdMux.io.muxRdBasic
-  io.topBasic <> moduleIF.io.ifBasic
-  io.topBasic <> moduleID.io.idBasic
-  io.topBasic <> moduleEX.io.exBasic
-  io.topBasic <> moduleMEM.io.memBasic
-  io.topBasic <> moduleWB.io.wbBasic
+  io.basic <> moduleAXIRaMux.io.basic
+  io.basic <> moduleAXIRdMux.io.basic
+  io.basic <> moduleIF.io.basic
+  io.basic <> moduleID.io.basic
+  io.basic <> moduleEX.io.exBasic
+  io.basic <> moduleMEM.io.basic
+  io.basic <> moduleWB.io.basic
 
-  moduleIF.io.ifAxiRa   <> moduleAXIRaMux.io.muxAxiRaIn0
-  moduleMEM.io.memAxiRa <> moduleAXIRaMux.io.muxAxiRaIn1
-  io.topAxiRa           <> moduleAXIRaMux.io.muxAxiRaOut
+  moduleIF.io.axiRa  <> moduleAXIRaMux.io.axiRaIn0
+  moduleMEM.io.axiRa <> moduleAXIRaMux.io.axiRaIn1
+  io.axiRa           <> moduleAXIRaMux.io.axiRaOut
 
-  moduleIF.io.ifAxiRd   <> moduleAXIRdMux.io.muxAxiRdIn0
-  moduleMEM.io.memAxiRd <> moduleAXIRdMux.io.muxAxiRdIn1
-  io.topAxiRd           <> moduleAXIRdMux.io.muxAxiRdOut
+  moduleIF.io.axiRd  <> moduleAXIRdMux.io.axiRdIn0
+  moduleMEM.io.axiRd <> moduleAXIRdMux.io.axiRdIn1
+  io.axiRd           <> moduleAXIRdMux.io.axiRdOut
 
-  io.topAxiWa <> moduleMEM.io.memAxiWa
-  io.topAxiWd <> moduleMEM.io.memAxiWd
-  io.topAxiWr <> moduleMEM.io.memAxiWr
+  io.axiWa <> moduleMEM.io.axiWa
+  io.axiWd <> moduleMEM.io.axiWd
+  io.axiWr <> moduleMEM.io.axiWr
 
-  moduleIF.io.ifPcIo  <> modulePC.io
+  moduleIF.io.pcIo  <> modulePC.io
+
+  moduleID.io.gprsR <> moduleGPRs.io.gprsR
+  moduleWB.io.gprsW <> moduleGPRs.io.gprsW
+
   moduleIF.io.instr   <> moduleID.io.instr
+  moduleID.io.output  <> moduleEX.io.input
+  moduleEX.io.output  <> moduleMEM.io.input
+  moduleMEM.io.output <> moduleWB.io.input
 
-  moduleID.io.idGprsR <> moduleGPRs.io.gprsR
-  moduleWB.io.wbGprsW <> moduleGPRs.io.gprsW
-
-  moduleID.io.idData  <> moduleEX.io.exData
-
-  moduleIF.io.ifNextVR   <> moduleID.io.idLastVR
-  moduleID.io.idNextVR   <> moduleEX.io.exLastVR
-  moduleEX.io.exNextVR   <> moduleMEM.io.memLastVR
-  moduleMEM.io.memNextVR <> moduleWB.io.wbLastVR
-  moduleWB.io.wbNextVR   <> moduleIF.io.ifLastVR
+  moduleIF.io.nextVR  <> moduleID.io.lastVR
+  moduleID.io.nextVR  <> moduleEX.io.lastVR
+  moduleEX.io.nextVR  <> moduleMEM.io.lastVR
+  moduleMEM.io.nextVR <> moduleWB.io.lastVR
+  moduleWB.io.nextVR  <> moduleIF.io.lastVR
 }
