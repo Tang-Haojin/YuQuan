@@ -18,12 +18,12 @@ class GPRsR extends Bundle {
 
 class GPRs extends RawModule {
   val io = IO(new Bundle {
-    val gprsBasic = new BASIC
-    val gprsW     = new GPRsW
-    val gprsR     = new GPRsR
+    val basic = new BASIC
+    val gprsW = new GPRsW
+    val gprsR = new GPRsR
   })
 
-  withClockAndReset(io.gprsBasic.ACLK, ~io.gprsBasic.ARESETn) {
+  withClockAndReset(io.basic.ACLK, ~io.basic.ARESETn) {
     val regs = RegInit(VecInit(Seq.fill(32)(0.U(XLEN.W))))
 
     when(io.gprsW.wen && io.gprsW.waddr =/= 0.U) {
@@ -42,14 +42,17 @@ class PCIO extends Bundle {
   val rdata = Output(UInt(XLEN.W))
 }
 
-class PC extends Module {
-  val io = IO(new PCIO)
+class PC extends RawModule {
+  val io = IO(new Bundle {
+    val basic = new BASIC
+    val pcIo  = new PCIO
+  })
 
-  val reg = RegInit(0.U(XLEN.W))
-
-  when(io.wen) {
-    reg := io.wdata
+  withClockAndReset(io.basic.ACLK, ~io.basic.ARESETn) {
+    val reg = RegInit(0.U(XLEN.W))
+    when(io.pcIo.wen) {
+      reg := io.pcIo.wdata
+    }
+    io.pcIo.rdata := reg
   }
-
-  io.rdata := reg
 }

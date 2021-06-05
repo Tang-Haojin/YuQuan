@@ -9,9 +9,6 @@ import cpu.register._
 import cpu.config.GeneralConfig._
 import cpu.config.RegisterConfig._
 
-import meta.Booleans._
-import meta.PreProc._
-
 class MEMOutput extends Bundle {
   val rd   = Output(UInt(5.W))
   val data = Output(UInt(XLEN.W))

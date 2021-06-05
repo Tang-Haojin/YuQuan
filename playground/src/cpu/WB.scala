@@ -9,9 +9,6 @@ import cpu.register._
 import cpu.config.GeneralConfig._
 import cpu.config.RegisterConfig._
 
-import meta.Booleans._
-import meta.PreProc._
-
 class WB extends RawModule {
   val io = IO(new Bundle {
     val basic  = new BASIC           // connected
@@ -19,10 +16,27 @@ class WB extends RawModule {
     val lastVR = new LastVR          // connected
     val nextVR = Flipped(new LastVR) // connected
     val input  = Flipped(new MEMOutput)
-    // ???
   })
 
+  io.gprsW.wen   := 0.B
+  io.gprsW.waddr := io.input.rd
+  io.gprsW.wdata := io.input.data
+
   withClockAndReset(io.basic.ACLK, ~io.basic.ARESETn) {
-    
+    val NVALID  = RegInit(0.B); io.nextVR.VALID  := NVALID
+    val LREADY  = RegInit(0.B); io.lastVR.READY  := LREADY
+
+    // FSM with a little simple combinational logic
+    when(io.nextVR.VALID && io.nextVR.READY) { // ready to announce the next level
+      NVALID  := 0.B
+      LREADY  := 1.B
+      io.gprsW.wen := 0.B
+    }.elsewhen(io.lastVR.VALID && io.lastVR.READY) { // ready to start fetching instr
+      LREADY  := 0.B
+      NVALID  := 1.B
+      io.gprsW.wen := (io.input.rd === 0.U)
+    }.otherwise {
+      io.gprsW.wen := 0.B
+    }
   }
 }

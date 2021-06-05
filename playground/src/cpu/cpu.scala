@@ -33,6 +33,8 @@ class CPU extends RawModule {
   io.basic <> moduleEX.io.basic
   io.basic <> moduleMEM.io.basic
   io.basic <> moduleWB.io.basic
+  io.basic <> modulePC.io.basic
+  io.basic <> moduleGPRs.io.basic
 
   moduleIF.io.axiRa  <> moduleAXIRaMux.io.axiRaIn0
   moduleMEM.io.axiRa <> moduleAXIRaMux.io.axiRaIn1
@@ -46,7 +48,7 @@ class CPU extends RawModule {
   io.axiWd <> moduleMEM.io.axiWd
   io.axiWr <> moduleMEM.io.axiWr
 
-  moduleIF.io.pcIo  <> modulePC.io
+  moduleIF.io.pcIo  <> modulePC.io.pcIo
 
   moduleID.io.gprsR <> moduleGPRs.io.gprsR
   moduleWB.io.gprsW <> moduleGPRs.io.gprsW
