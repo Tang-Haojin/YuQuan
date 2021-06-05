@@ -30,7 +30,7 @@ class CPU extends RawModule {
   io.basic <> moduleAXIRdMux.io.basic
   io.basic <> moduleIF.io.basic
   io.basic <> moduleID.io.basic
-  io.basic <> moduleEX.io.exBasic
+  io.basic <> moduleEX.io.basic
   io.basic <> moduleMEM.io.basic
   io.basic <> moduleWB.io.basic
 

@@ -129,6 +129,7 @@ class ID extends RawModule {
       wireRd := 0.U
     }
 
+    // FSM
     when(io.nextVR.VALID && io.nextVR.READY) { // ready to trans instr to the next level
       NVALID  := 0.B
       LREADY  := 1.B

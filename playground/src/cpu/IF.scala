@@ -27,6 +27,7 @@ class IF extends RawModule {
   io.axiRa.ARLOCK   := 0.U // since we do not use it yet
   io.axiRa.ARCACHE  := 0.U // since we do not use it yet
   io.axiRa.ARPROT   := 0.U // since we do not use it yet
+  io.axiRa.ARADDR   := io.pcIo.rdata
   io.axiRa.ARQOS    := DontCare
   io.axiRa.ARUSER   := DontCare
   io.axiRa.ARREGION := DontCare
@@ -46,8 +47,8 @@ class IF extends RawModule {
     io.axiRd.RREADY  := RREADY
     io.lastVR.READY  := LREADY
     io.instr         := instr
-    io.axiRa.ARADDR  := io.pcIo.rdata
 
+    // FSM
     when(io.nextVR.VALID && io.nextVR.READY) { // ready to trans instr to the next level
       NVALID  := 0.B
       LREADY  := 1.B

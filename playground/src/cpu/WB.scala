@@ -12,7 +12,7 @@ import cpu.config.RegisterConfig._
 import meta.Booleans._
 import meta.PreProc._
 
-class WB extends Module {
+class WB extends RawModule {
   val io = IO(new Bundle {
     val basic  = new BASIC           // connected
     val gprsW  = Flipped(new GPRsW)  // connected
@@ -21,4 +21,8 @@ class WB extends Module {
     val input  = Flipped(new MEMOutput)
     // ???
   })
+
+  withClockAndReset(io.basic.ACLK, ~io.basic.ARESETn) {
+    
+  }
 }

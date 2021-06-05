@@ -13,7 +13,7 @@ class AXIwa extends Bundle {
   val AWBURST  = Output(UInt(2.W))
   val AWLOCK   = Output(UInt(2.W))
   val AWCACHE  = Output(UInt(4.W))
-  val AWPORT   = Output(UInt(3.W))
+  val AWPROT   = Output(UInt(3.W))
   val AWQOS    = Output(UInt(4.W))
   val AWREGION = Output(UInt(4.W))
   val AWUSER   = Output(UInt(1.W))
