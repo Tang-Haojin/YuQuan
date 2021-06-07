@@ -25,7 +25,7 @@ class AXIwa extends Bundle {
 class AXIwd extends Bundle {
   val WID      = Output(UInt(0.W))
   val WDATA    = Output(UInt(XLEN.W))
-  val WSTRB    = Output(UInt(4.W))
+  val WSTRB    = Output(UInt((XLEN / 8).W))
   val WLAST    = Output(Bool())
   val WUSER    = Output(UInt(1.W))
   val WVALID   = Output(Bool())
@@ -81,67 +81,59 @@ class BASIC extends Bundle {
   val ARESETn  = Input (Bool())
 }
 
-class AXIRaMux extends RawModule {
+class AXIRaMux extends Module {
   val io = IO(new Bundle {
-    val basic     = new BASIC
-
     val axiRaIn0    = Flipped(new AXIra)
     val axiRaIn1    = Flipped(new AXIra)
     val axiRaOut    = new AXIra
   })
 
-  withClockAndReset(io.basic.ACLK, ~io.basic.ARESETn) {
-    val selector = RegInit(0.B)
+  val selector = RegInit(0.B)
 
-    io.axiRaIn0.ARREADY := 0.B
-    io.axiRaIn1.ARREADY := 0.B
+  io.axiRaIn0.ARREADY := 0.B
+  io.axiRaIn1.ARREADY := 0.B
 
-    when(selector) {
-      io.axiRaIn1 <> io.axiRaOut
-    }.otherwise {
-      io.axiRaIn0 <> io.axiRaOut
-    }
+  when(selector) {
+    io.axiRaIn1 <> io.axiRaOut
+  }.otherwise {
+    io.axiRaIn0 <> io.axiRaOut
+  }
 
-    when(~io.axiRaOut.ARVALID || ~io.axiRaOut.ARREADY) {
-      selector := ~selector
-    }
+  when(~io.axiRaOut.ARVALID || ~io.axiRaOut.ARREADY) {
+    selector := ~selector
   }
 }
 
-class AXIRdMux extends RawModule {
+class AXIRdMux extends Module {
   val io = IO(new Bundle {
-    val basic     = new BASIC
-
     val axiRdIn0    = Flipped(new AXIrd)
     val axiRdIn1    = Flipped(new AXIrd)
     val axiRdOut    = new AXIrd
   })
 
-  withClockAndReset(io.basic.ACLK, ~io.basic.ARESETn) {
-    val selector = RegInit(0.B)
+  val selector = RegInit(0.B)
 
-    io.axiRdIn0.RID    := 0xf.U
-    io.axiRdIn1.RID    := 0xf.U
-    io.axiRdIn0.RDATA  := 0.U
-    io.axiRdIn1.RDATA  := 0.U
-    io.axiRdIn0.RRESP  := 0.U
-    io.axiRdIn1.RRESP  := 0.U
-    io.axiRdIn0.RLAST  := 0.B
-    io.axiRdIn1.RLAST  := 0.B
-    io.axiRdIn0.RUSER  := 0.U
-    io.axiRdIn1.RUSER  := 0.U
-    io.axiRdIn0.RVALID := 0.B
-    io.axiRdIn1.RVALID := 0.B
+  io.axiRdIn0.RID    := 0xf.U
+  io.axiRdIn1.RID    := 0xf.U
+  io.axiRdIn0.RDATA  := 0.U
+  io.axiRdIn1.RDATA  := 0.U
+  io.axiRdIn0.RRESP  := 0.U
+  io.axiRdIn1.RRESP  := 0.U
+  io.axiRdIn0.RLAST  := 0.B
+  io.axiRdIn1.RLAST  := 0.B
+  io.axiRdIn0.RUSER  := 0.U
+  io.axiRdIn1.RUSER  := 0.U
+  io.axiRdIn0.RVALID := 0.B
+  io.axiRdIn1.RVALID := 0.B
 
-    when(selector) {
-      io.axiRdIn1 <> io.axiRdOut
-    }.otherwise {
-      io.axiRdIn0 <> io.axiRdOut
-    }
+  when(selector) {
+    io.axiRdIn1 <> io.axiRdOut
+  }.otherwise {
+    io.axiRdIn0 <> io.axiRdOut
+  }
 
-    when(~io.axiRdOut.RVALID || ~io.axiRdOut.RREADY || 
-         (io.axiRdOut.RID =/= selector.asUInt())) {
-      selector := ~selector
-    }
+  when(~io.axiRdOut.RVALID || ~io.axiRdOut.RREADY || 
+       (io.axiRdOut.RID =/= selector.asUInt())) {
+    selector := ~selector
   }
 }

@@ -14,9 +14,8 @@ class MEMOutput extends Bundle {
   val data = Output(UInt(XLEN.W))
 }
 
-class MEM extends RawModule {
+class MEM extends Module {
   val io = IO(new Bundle {
-    val basic  = new BASIC             // connected
     val axiWa  = new AXIwa             // connected
     val axiWd  = new AXIwd             // connected
     val axiWr  = new AXIwr             // connected
@@ -58,66 +57,64 @@ class MEM extends RawModule {
   io.axiWd.WSTRB := DontCare
   io.axiWd.WUSER := DontCare
 
-  withClockAndReset(io.basic.ACLK, ~io.basic.ARESETn) {
-    val NVALID  = RegInit(0.B); io.nextVR.VALID  := NVALID
-    val LREADY  = RegInit(0.B); io.lastVR.READY  := LREADY
+  val NVALID  = RegInit(0.B); io.nextVR.VALID  := NVALID
+  val LREADY  = RegInit(1.B); io.lastVR.READY  := LREADY
 
-    val ARVALID = RegInit(0.B); io.axiRa.ARVALID := ARVALID
-    val RREADY  = RegInit(0.B); io.axiRd.RREADY  := RREADY
-    val AWVALID = RegInit(0.B); io.axiWa.AWVALID := AWVALID
-    val WVALID  = RegInit(0.B); io.axiWd.WVALID  := WVALID
-    val BREADY  = RegInit(0.B); io.axiWr.BREADY  := BREADY
+  val ARVALID = RegInit(0.B); io.axiRa.ARVALID := ARVALID
+  val RREADY  = RegInit(0.B); io.axiRd.RREADY  := RREADY
+  val AWVALID = RegInit(0.B); io.axiWa.AWVALID := AWVALID
+  val WVALID  = RegInit(0.B); io.axiWd.WVALID  := WVALID
+  val BREADY  = RegInit(0.B); io.axiWr.BREADY  := BREADY
 
-    val rd      = RegInit(0.U(5.W));    io.output.rd   := rd
-    val data    = RegInit(0.U(XLEN.W)); io.output.data := data
+  val rd      = RegInit(0.U(5.W));    io.output.rd   := rd
+  val data    = RegInit(0.U(XLEN.W)); io.output.data := data
 
-    // FSM
-    when(io.nextVR.VALID && io.nextVR.READY) { // ready to announce the next level
-      NVALID  := 0.B
-      LREADY  := 1.B
-    }.elsewhen(io.axiWr.BVALID && io.axiWr.BREADY) {
-      when(io.axiWr.BID === 1.U) {
-        BREADY := 0.B
-        NVALID := 1.B
-      }
-    }.elsewhen((io.axiWa.AWVALID && io.axiWa.AWREADY) &&
-               (io.axiWd.WVALID && io.axiWd.WREADY)) {
-      AWVALID := 0.B
-      WVALID  := 0.B
-      BREADY  := 1.B
-    }.elsewhen((io.axiWa.AWVALID && io.axiWa.AWREADY) && ~io.axiWd.WVALID) {
-      AWVALID := 0.B
-      BREADY  := 1.B
-    }.elsewhen((io.axiWd.WVALID && io.axiWd.WREADY) && ~io.axiWa.AWVALID) {
-      WVALID  := 0.B
-      BREADY  := 1.B
-    }.elsewhen(io.axiWa.AWVALID && io.axiWa.AWREADY) {
-      AWVALID := 0.B
-    }.elsewhen(io.axiWd.WVALID && io.axiWd.WREADY) {
-      WVALID  := 0.B
-    }.elsewhen(io.axiRd.RVALID && io.axiRd.RREADY) { // ready to receive data from BUS
-      when(io.axiRd.RID === 1.U) { // remember to check the transaction ID
-        RREADY := 0.B
-        NVALID := 1.B
-        data   := io.axiRd.RDATA
-      }
-    }.elsewhen(io.axiRa.ARVALID && io.axiRa.ARREADY) { // ready to send request to BUS
-      ARVALID := 0.B
-      RREADY  := 1.B
-    }.elsewhen(io.lastVR.VALID && io.lastVR.READY) {
-      LREADY := 0.B
-      rd     := io.input.rd
-      data   := io.input.data
-      when(io.input.isMem) {
-        when(io.input.isLd) {
-          ARVALID := 1.B
-        }.otherwise {
-          AWVALID := 1.B
-          WVALID  := 1.B
-        }
+  // FSM
+  when(io.nextVR.VALID && io.nextVR.READY) { // ready to announce the next level
+    NVALID  := 0.B
+    LREADY  := 1.B
+  }.elsewhen(io.axiWr.BVALID && io.axiWr.BREADY) {
+    when(io.axiWr.BID === 1.U) {
+      BREADY := 0.B
+      NVALID := 1.B
+    }
+  }.elsewhen((io.axiWa.AWVALID && io.axiWa.AWREADY) &&
+             (io.axiWd.WVALID && io.axiWd.WREADY)) {
+    AWVALID := 0.B
+    WVALID  := 0.B
+    BREADY  := 1.B
+  }.elsewhen((io.axiWa.AWVALID && io.axiWa.AWREADY) && ~io.axiWd.WVALID) {
+    AWVALID := 0.B
+    BREADY  := 1.B
+  }.elsewhen((io.axiWd.WVALID && io.axiWd.WREADY) && ~io.axiWa.AWVALID) {
+    WVALID  := 0.B
+    BREADY  := 1.B
+  }.elsewhen(io.axiWa.AWVALID && io.axiWa.AWREADY) {
+    AWVALID := 0.B
+  }.elsewhen(io.axiWd.WVALID && io.axiWd.WREADY) {
+    WVALID  := 0.B
+  }.elsewhen(io.axiRd.RVALID && io.axiRd.RREADY) { // ready to receive data from BUS
+    when(io.axiRd.RID === 1.U) { // remember to check the transaction ID
+      RREADY := 0.B
+      NVALID := 1.B
+      data   := io.axiRd.RDATA
+    }
+  }.elsewhen(io.axiRa.ARVALID && io.axiRa.ARREADY) { // ready to send request to BUS
+    ARVALID := 0.B
+    RREADY  := 1.B
+  }.elsewhen(io.lastVR.VALID && io.lastVR.READY) {
+    LREADY := 0.B
+    rd     := io.input.rd
+    data   := io.input.data
+    when(io.input.isMem) {
+      when(io.input.isLd) {
+        ARVALID := 1.B
       }.otherwise {
-        NVALID := 1.B
+        AWVALID := 1.B
+        WVALID  := 1.B
       }
+    }.otherwise {
+      NVALID := 1.B
     }
   }
 }

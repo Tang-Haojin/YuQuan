@@ -8,3 +8,7 @@ object GeneralConfig {
 object RegisterConfig {
   val readPortsNum = 2
 }
+
+object Debug {
+  val showReg = true
+}

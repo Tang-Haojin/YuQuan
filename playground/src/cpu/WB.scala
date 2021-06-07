@@ -9,9 +9,8 @@ import cpu.register._
 import cpu.config.GeneralConfig._
 import cpu.config.RegisterConfig._
 
-class WB extends RawModule {
+class WB extends Module {
   val io = IO(new Bundle {
-    val basic  = new BASIC           // connected
     val gprsW  = Flipped(new GPRsW)  // connected
     val lastVR = new LastVR          // connected
     val nextVR = Flipped(new LastVR) // connected
@@ -22,21 +21,19 @@ class WB extends RawModule {
   io.gprsW.waddr := io.input.rd
   io.gprsW.wdata := io.input.data
 
-  withClockAndReset(io.basic.ACLK, ~io.basic.ARESETn) {
-    val NVALID  = RegInit(0.B); io.nextVR.VALID  := NVALID
-    val LREADY  = RegInit(0.B); io.lastVR.READY  := LREADY
+  val NVALID  = RegInit(0.B); io.nextVR.VALID := NVALID
+  val LREADY  = RegInit(1.B); io.lastVR.READY := LREADY
 
-    // FSM with a little simple combinational logic
-    when(io.nextVR.VALID && io.nextVR.READY) { // ready to announce the next level
-      NVALID  := 0.B
-      LREADY  := 1.B
-      io.gprsW.wen := 0.B
-    }.elsewhen(io.lastVR.VALID && io.lastVR.READY) { // ready to start fetching instr
-      LREADY  := 0.B
-      NVALID  := 1.B
-      io.gprsW.wen := (io.input.rd === 0.U)
-    }.otherwise {
-      io.gprsW.wen := 0.B
-    }
+  // FSM with a little simple combinational logic
+  when(io.nextVR.VALID && io.nextVR.READY) { // ready to announce the next level
+    NVALID  := 0.B
+    LREADY  := 1.B
+    io.gprsW.wen := 0.B
+  }.elsewhen(io.lastVR.VALID && io.lastVR.READY) { // ready to start fetching instr
+    LREADY  := 0.B
+    NVALID  := 1.B
+    io.gprsW.wen := (io.input.rd === 0.U)
+  }.otherwise {
+    io.gprsW.wen := 0.B
   }
 }

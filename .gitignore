@@ -5,6 +5,7 @@ out/
 .idea_modules/
 .metals/
 .coursier/
+.vscode/
 test_run_dir/
 
 build/

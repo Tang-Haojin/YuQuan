@@ -15,6 +15,25 @@ class CPU extends RawModule {
     val axiRd = new AXIrd
   })
 
+  withClockAndReset(io.basic.ACLK, ~io.basic.ARESETn) {
+    val cpu = Module(new InternalCPU)
+    io.axiWa <> cpu.io.axiWa
+    io.axiWd <> cpu.io.axiWd
+    io.axiWr <> cpu.io.axiWr
+    io.axiRa <> cpu.io.axiRa
+    io.axiRd <> cpu.io.axiRd
+  }
+}
+
+class InternalCPU extends Module {
+	val io = IO(new Bundle {
+    val axiWa = new AXIwa
+    val axiWd = new AXIwd
+    val axiWr = new AXIwr
+    val axiRa = new AXIra
+    val axiRd = new AXIrd
+  })
+
   val modulePC       = Module(new PC)
   val moduleGPRs     = Module(new GPRs)
   val moduleAXIRaMux = Module(new AXIRaMux)
@@ -25,16 +44,6 @@ class CPU extends RawModule {
   val moduleEX  = Module(new EX)
   val moduleMEM = Module(new MEM)
   val moduleWB  = Module(new WB)
-
-  io.basic <> moduleAXIRaMux.io.basic
-  io.basic <> moduleAXIRdMux.io.basic
-  io.basic <> moduleIF.io.basic
-  io.basic <> moduleID.io.basic
-  io.basic <> moduleEX.io.basic
-  io.basic <> moduleMEM.io.basic
-  io.basic <> moduleWB.io.basic
-  io.basic <> modulePC.io.basic
-  io.basic <> moduleGPRs.io.basic
 
   moduleIF.io.axiRa  <> moduleAXIRaMux.io.axiRaIn0
   moduleMEM.io.axiRa <> moduleAXIRaMux.io.axiRaIn1

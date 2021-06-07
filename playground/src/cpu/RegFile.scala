@@ -4,6 +4,7 @@ import chisel3._
 import cpu.axi._
 import cpu.config.GeneralConfig._
 import cpu.config.RegisterConfig._
+import cpu.config.Debug._
 
 class GPRsW extends Bundle {
   val wen   = Input (Bool())
@@ -16,22 +17,25 @@ class GPRsR extends Bundle {
   val rdata = Output(Vec(readPortsNum, UInt(XLEN.W)))
 }
 
-class GPRs extends RawModule {
+class GPRs extends Module {
   val io = IO(new Bundle {
-    val basic = new BASIC
     val gprsW = new GPRsW
     val gprsR = new GPRsR
   })
 
-  withClockAndReset(io.basic.ACLK, ~io.basic.ARESETn) {
-    val regs = RegInit(VecInit(Seq.fill(32)(0.U(XLEN.W))))
+  val regs = RegInit(VecInit(Seq.fill(32)(0.U(XLEN.W))))
 
-    when(io.gprsW.wen && io.gprsW.waddr =/= 0.U) {
-      regs(io.gprsW.waddr) := io.gprsW.wdata
-    }
+  when(io.gprsW.wen && io.gprsW.waddr =/= 0.U) {
+    regs(io.gprsW.waddr) := io.gprsW.wdata
+  }
 
-    for (i <- 0 until readPortsNum) {
-      io.gprsR.rdata(i) := regs(io.gprsR.raddr(i))
+  for (i <- 0 until readPortsNum) {
+    io.gprsR.rdata(i) := regs(io.gprsR.raddr(i))
+  }
+
+  if (showReg) {
+    for (i <- 0 until 32) {
+      printf("\tx%d\t%x\n", i.U, regs(i.U))
     }
   }
 }
@@ -42,17 +46,14 @@ class PCIO extends Bundle {
   val rdata = Output(UInt(XLEN.W))
 }
 
-class PC extends RawModule {
+class PC extends Module {
   val io = IO(new Bundle {
-    val basic = new BASIC
     val pcIo  = new PCIO
   })
 
-  withClockAndReset(io.basic.ACLK, ~io.basic.ARESETn) {
-    val reg = RegInit(0.U(XLEN.W))
-    when(io.pcIo.wen) {
-      reg := io.pcIo.wdata
-    }
-    io.pcIo.rdata := reg
+  val reg = RegInit(0.U(XLEN.W))
+  when(io.pcIo.wen) {
+    reg := io.pcIo.wdata
   }
+  io.pcIo.rdata := reg
 }

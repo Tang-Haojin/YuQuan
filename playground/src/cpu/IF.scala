@@ -9,9 +9,8 @@ import cpu.config.GeneralConfig._
 import cpu.config.RegisterConfig._
 
 // instruction fetching module
-class IF extends RawModule {
+class IF extends Module {
   val io = IO(new Bundle {
-    val basic  = new BASIC            // connected
     val axiRa  = new AXIra            // connected
     val axiRd  = new AXIrd            // connected
     val lastVR = new LastVR           // connected
@@ -34,36 +33,33 @@ class IF extends RawModule {
   io.pcIo.wen       := 0.B
   io.pcIo.wdata     := 0.U
 
-  // Clk: Posedge trigger; Rst: Low level effective
-  withClockAndReset(io.basic.ACLK, ~io.basic.ARESETn) {
-    val ARVALID = RegInit(0.B)
-    val NVALID  = RegInit(0.B)
-    val LREADY  = RegInit(0.B)
-    val RREADY  = RegInit(0.B)
-    val instr   = RegInit(0.U(XLEN.W))
+  val ARVALID = RegInit(0.B)
+  val NVALID  = RegInit(0.B)
+  val LREADY  = RegInit(1.B)
+  val RREADY  = RegInit(0.B)
+  val instr   = RegInit(0.U(XLEN.W))
 
-    io.axiRa.ARVALID := ARVALID
-    io.nextVR.VALID  := NVALID
-    io.axiRd.RREADY  := RREADY
-    io.lastVR.READY  := LREADY
-    io.instr         := instr
+  io.axiRa.ARVALID := ARVALID
+  io.nextVR.VALID  := NVALID
+  io.axiRd.RREADY  := RREADY
+  io.lastVR.READY  := LREADY
+  io.instr         := instr
 
-    // FSM
-    when(io.nextVR.VALID && io.nextVR.READY) { // ready to trans instr to the next level
-      NVALID  := 0.B
-      LREADY  := 1.B
-    }.elsewhen(io.axiRd.RVALID && io.axiRd.RREADY) { // ready to receive instr from BUS
-      when(io.axiRd.RID === 0.U) { // remember to check the transaction ID
-        RREADY := 0.B
-        NVALID := 1.B
-        instr  := io.axiRd.RDATA
-      }
-    }.elsewhen(io.axiRa.ARVALID && io.axiRa.ARREADY) { // ready to send request to BUS
-      ARVALID := 0.B
-      RREADY  := 1.B
-    }.elsewhen(io.lastVR.VALID && io.lastVR.READY) { // ready to start fetching instr
-      LREADY  := 0.B
-      ARVALID := 1.B
+  // FSM
+  when(io.nextVR.VALID && io.nextVR.READY) { // ready to trans instr to the next level
+    NVALID  := 0.B
+    LREADY  := 1.B
+  }.elsewhen(io.axiRd.RVALID && io.axiRd.RREADY) { // ready to receive instr from BUS
+    when(io.axiRd.RID === 0.U) { // remember to check the transaction ID
+      RREADY := 0.B
+      NVALID := 1.B
+      instr  := io.axiRd.RDATA
     }
+  }.elsewhen(io.axiRa.ARVALID && io.axiRa.ARREADY) { // ready to send request to BUS
+    ARVALID := 0.B
+    RREADY  := 1.B
+  }.elsewhen(io.lastVR.VALID && io.lastVR.READY) { // ready to start fetching instr
+    LREADY  := 0.B
+    ARVALID := 1.B
   }
 }
