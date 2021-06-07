@@ -1,6 +1,7 @@
 # mill
 out/
 .bsp/
+.bloop/
 .idea/
 .idea_modules/
 .metals/

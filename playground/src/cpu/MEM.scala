@@ -8,6 +8,7 @@ import cpu.axi._
 import cpu.register._
 import cpu.config.GeneralConfig._
 import cpu.config.RegisterConfig._
+import cpu.config.Debug._
 
 class MEMOutput extends Bundle {
   val rd   = Output(UInt(5.W))
@@ -116,5 +117,14 @@ class MEM extends Module {
     }.otherwise {
       NVALID := 1.B
     }
+  }
+
+  if (debugIO && false) {
+    printf("mem_last_ready   = %d\n", io.lastVR.READY )
+    printf("mem_last_valid   = %d\n", io.lastVR.VALID )
+    printf("mem_next_ready   = %d\n", io.nextVR.READY )
+    printf("mem_next_valid   = %d\n", io.nextVR.VALID )
+    printf("io.output.rd     = %d\n", io.output.rd    )
+    printf("io.output.data   = %d\n", io.output.data  )
   }
 }

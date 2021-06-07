@@ -5,6 +5,8 @@ import chisel3.util._
 
 import cpu.axi._
 import cpu.config.GeneralConfig._
+import chisel3.util.experimental.loadMemoryFromFile
+import chisel3.util.experimental.loadMemoryFromFileInline
 
 class RAM extends RawModule {
   val io = IO(new Bundle {
@@ -16,9 +18,9 @@ class RAM extends RawModule {
     val axiRd = Flipped(new AXIrd)
   })
 
-  val vecDataIn  = Wire(Vec(XLEN / 8, UInt(8.W)))
-  val vecDataOut = Wire(Vec(XLEN / 8, UInt(8.W)))
-  val mask       = Wire(Vec(XLEN / 8, Bool()))
+  // val vecDataIn  = Wire(Vec(XLEN / 8, UInt(8.W)))
+  // val vecDataOut = Wire(Vec(XLEN / 8, UInt(8.W)))
+  // val mask       = Wire(Vec(XLEN / 8, Bool()))
 
   io.axiWr.BID := 1.U // since only cpu requests writing now
   io.axiWr.BRESP := DontCare
@@ -30,7 +32,8 @@ class RAM extends RawModule {
 
 
   withClockAndReset(io.basic.ACLK, ~io.basic.ARESETn) {
-    val syncRAM = SyncReadMem(1024, Vec(XLEN / 8, UInt(8.W)))
+    val syncRAM = SyncReadMem(1024, UInt(XLEN.W))
+    loadMemoryFromFileInline(syncRAM, "mem.txt")
 
     val AWREADY = RegInit(1.B); io.axiWa.AWREADY := AWREADY
     val WREADY  = RegInit(1.B); io.axiWd.WREADY  := WREADY
@@ -45,13 +48,16 @@ class RAM extends RawModule {
     val AWADDR = RegInit(0.U(XLEN.W))
     val WDATA  = RegInit(0.U(XLEN.W))
     
-    for (i <- 0 until XLEN / 8) {
+/*     for (i <- 0 until XLEN / 8) {
       vecDataIn (i)  := WDATA(8 * i + 7, 8 * i)
-      io.axiRd.RDATA := Cat(vecDataOut.reverse);
+      io.axiRd.RDATA := Cat(vecDataOut);
       mask      (i)  := io.axiWd.WSTRB(i).asBool
     }
 
-    vecDataOut := syncRAM.read(ARADDR)
+    vecDataOut := syncRAM.read(ARADDR) */
+    io.axiRd.RDATA := syncRAM.read(ARADDR)
+
+    // printf("slave: io.axiRd.RDATA = %x\n", io.axiRd.RDATA)
 
     when(io.axiRd.RVALID && io.axiRd.RREADY) {
       RVALID  := 0.B
@@ -79,7 +85,7 @@ class RAM extends RawModule {
     when(~io.axiWa.AWREADY && ~io.axiWd.WREADY) {
       AWREADY := 1.B
       WREADY  := 1.B
-      syncRAM.write(AWADDR, vecDataIn, mask)
+      syncRAM.write(AWADDR, WDATA)
       BVALID  := 1.B
     }
 

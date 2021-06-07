@@ -8,6 +8,7 @@ import cpu.axi._
 import cpu.register._
 import cpu.config.GeneralConfig._
 import cpu.config.RegisterConfig._
+import cpu.config.Debug._
 
 class WB extends Module {
   val io = IO(new Bundle {
@@ -21,8 +22,8 @@ class WB extends Module {
   io.gprsW.waddr := io.input.rd
   io.gprsW.wdata := io.input.data
 
-  val NVALID  = RegInit(0.B); io.nextVR.VALID := NVALID
-  val LREADY  = RegInit(1.B); io.lastVR.READY := LREADY
+  val NVALID  = RegInit(1.B); io.nextVR.VALID := NVALID
+  val LREADY  = RegInit(0.B); io.lastVR.READY := LREADY
 
   // FSM with a little simple combinational logic
   when(io.nextVR.VALID && io.nextVR.READY) { // ready to announce the next level
@@ -32,8 +33,16 @@ class WB extends Module {
   }.elsewhen(io.lastVR.VALID && io.lastVR.READY) { // ready to start fetching instr
     LREADY  := 0.B
     NVALID  := 1.B
-    io.gprsW.wen := (io.input.rd === 0.U)
+    io.gprsW.wen := (io.input.rd =/= 0.U)
   }.otherwise {
     io.gprsW.wen := 0.B
+  }
+
+  if (debugIO && false) {
+    printf("wb_last_ready    = %d\n", io.lastVR.READY )
+    printf("wb_last_valid    = %d\n", io.lastVR.VALID )
+    printf("wb_next_ready    = %d\n", io.nextVR.READY )
+    printf("wb_next_valid    = %d\n", io.nextVR.VALID )
+    printf("io.gprsW.wen     = %d\n", io.gprsW.wen    )
   }
 }

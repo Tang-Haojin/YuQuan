@@ -35,7 +35,9 @@ class GPRs extends Module {
 
   if (showReg) {
     for (i <- 0 until 32) {
-      printf("\tx%d\t%x\n", i.U, regs(i.U))
+      if (!partialReg || (partialReg && showRegList(i))) {
+        printf("\tx%d\t%x\n", i.U, regs(i.U))
+      }
     }
   }
 }
@@ -56,4 +58,8 @@ class PC extends Module {
     reg := io.pcIo.wdata
   }
   io.pcIo.rdata := reg
+
+  if (showReg) {
+    printf("\tPC\t%x\n", reg)
+  }
 }

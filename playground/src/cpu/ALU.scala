@@ -7,13 +7,13 @@ import cpu.Operators._
 import cpu.config.GeneralConfig._
 
 object Operators {
-  val operators = Enum(10)
-  val add::sub::and::or::xor::sll::sra::srl::lts::ltu::Nil = operators
+  val operators = Enum(11)
+  val err::add::sub::and::or::xor::sll::sra::srl::lts::ltu::Nil = operators
 }
 
 class ALU extends Module {
   val io = IO(new Bundle {
-    val op     = Input (UInt(AluTypeWidth.W)) // for extension ability
+    val op     = Input (UInt(AluTypeWidth.W))
     val a      = Input (SInt(XLEN.W))
     val b      = Input (SInt(XLEN.W))
     val res    = Output(SInt(XLEN.W))

@@ -29,8 +29,11 @@ clean:
 	-rm -rf $(BUILD_DIR)
 
 sim:
-	mill -i __.sim.runMain Elaborate -td $(BUILD_DIR)/sim
+	@mkdir $(BUILD_DIR) >>/dev/null 2>&1 | echo >>/dev/null 2>&1
+	@mkdir $(BUILD_DIR)/sim >>/dev/null 2>&1 | echo >>/dev/null 2>&1
 	ln -f $(ROOT_DIR)/sim/src/sim_main.cpp $(BUILD_DIR)/sim/sim_main.cpp
-	cd $(BUILD_DIR)/sim && verilator -cc TestTop.v --top-module TestTop --exe --build sim_main.cpp
+	ln -f $(ROOT_DIR)/sim/src/mem.txt $(BUILD_DIR)/sim/mem.txt
+	mill -i __.sim.runMain Elaborate -td $(BUILD_DIR)/sim
+	cd $(BUILD_DIR)/sim && verilator -cc TestTop.v --top-module TestTop --exe --build sim_main.cpp && ./obj_dir/VTestTop
 
 .PHONY: test verilog help compile bsp reformat checkformat clean sim

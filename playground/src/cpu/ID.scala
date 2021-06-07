@@ -8,6 +8,7 @@ import cpu.axi._
 import cpu.register._
 import cpu.config.GeneralConfig._
 import cpu.config.RegisterConfig._
+import cpu.config.Debug._
 import cpu.ExecSpecials._
 import cpu.InstrTypes._
 
@@ -43,7 +44,7 @@ class ID extends Module {
     val gprsR  = Flipped(new GPRsR)   // connected
     val lastVR = new LastVR           // connected
     val nextVR = Flipped(new LastVR)  // connected
-    val instr  = Input (UInt(XLEN.W)) // connected
+    val instr  = Input (UInt(32.W))   // connected
   })
 
   val NVALID  = RegInit(0.B)
@@ -66,7 +67,7 @@ class ID extends Module {
   val wireSpecial = WireDefault(0.U(3.W))
   val wireType    = WireDefault(7.U(3.W))
   val wireRd      = Wire(UInt(5.W))
-  val wireOp      = Wire(UInt(AluTypeWidth.W)); wireOp    := decoded(0)
+  val wireOp      = Wire(UInt(AluTypeWidth.W)); wireOp    := decoded(4)
   val wireFunt3   = Wire(UInt(3.W));            wireFunt3 := io.instr(14, 12)
 
   val (wireNum1, wireNum2, wireNum3, wireImm) = (
@@ -136,5 +137,19 @@ class ID extends Module {
     num3    := wireNum3
     op      := wireOp
     special := wireSpecial
+  }
+
+  if (debugIO && false) {
+    printf("id_last_ready     = %d\n", io.lastVR.READY  )
+    printf("id_last_valid     = %d\n", io.lastVR.VALID  )
+    printf("id_next_ready     = %d\n", io.nextVR.READY  )
+    printf("id_next_valid     = %d\n", io.nextVR.VALID  )
+    printf("io.instr          = %x\n", io.instr         )
+    printf("io.output.rd      = %d\n", io.output.rd     )
+    printf("io.output.num1    = %d\n", io.output.num1   )
+    printf("io.output.num2    = %d\n", io.output.num2   )
+    printf("io.output.num3    = %d\n", io.output.num3   )
+    printf("io.output.op      = %d\n", io.output.op     )
+    printf("io.output.special = %d\n", io.output.special)
   }
 }

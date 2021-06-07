@@ -8,6 +8,7 @@ import cpu.axi._
 import cpu.register._
 import cpu.config.GeneralConfig._
 import cpu.config.RegisterConfig._
+import cpu.config.Debug._
 
 class EXOutput extends Bundle {
   val rd     = Output(UInt(5.W))
@@ -70,5 +71,18 @@ class EX extends Module {
     isMem  := wireIsMem
     isLd   := wireIsLd
     addr   := wireAddr
+  }
+
+  if (debugIO && false) {
+    printf("ex_last_ready    = %d\n", io.lastVR.READY )
+    printf("ex_last_valid    = %d\n", io.lastVR.VALID )
+    printf("ex_next_ready    = %d\n", io.nextVR.READY )
+    printf("ex_next_valid    = %d\n", io.nextVR.VALID )
+    printf("io.output.rd     = %d\n", io.output.rd    )
+    printf("io.output.data   = %d\n", io.output.data  )
+    printf("io.output.isJump = %d\n", io.output.isJump)
+    printf("io.output.isMem  = %d\n", io.output.isMem )
+    printf("io.output.isLd   = %d\n", io.output.isLd  )
+    printf("io.output.addr   = %d\n", io.output.addr  )
   }
 }
