@@ -23,7 +23,7 @@ class ALU extends Module {
   val b   = io.b
   val res = io.res
 
-  res := 0.S
+  res := a
     
   switch(op) {
     is(add) { res := a + b }

@@ -5,7 +5,6 @@ import chisel3.util._
 
 import cpu.axi._
 import cpu.config.GeneralConfig._
-import chisel3.util.experimental.loadMemoryFromFile
 import chisel3.util.experimental.loadMemoryFromFileInline
 
 class RAM extends RawModule {
@@ -17,10 +16,6 @@ class RAM extends RawModule {
     val axiRa = Flipped(new AXIra)
     val axiRd = Flipped(new AXIrd)
   })
-
-  // val vecDataIn  = Wire(Vec(XLEN / 8, UInt(8.W)))
-  // val vecDataOut = Wire(Vec(XLEN / 8, UInt(8.W)))
-  // val mask       = Wire(Vec(XLEN / 8, Bool()))
 
   io.axiWr.BID := 1.U // since only cpu requests writing now
   io.axiWr.BRESP := DontCare
@@ -47,11 +42,10 @@ class RAM extends RawModule {
     val ARADDR = RegInit(0.U(XLEN.W))
     val AWADDR = RegInit(0.U(XLEN.W))
     val WDATA  = RegInit(0.U(XLEN.W))
+    val WSTRB  = RegInit(0.U((XLEN / 8).W))
     
     io.axiRd.RDATA := 
       Cat((for { a <- 0 until XLEN / 8 } yield syncRAM.read(ARADDR + a.U)).reverse)
-
-    // printf("slave: io.axiRd.RDATA = %x\n", io.axiRd.RDATA)
 
     when(io.axiRd.RVALID && io.axiRd.RREADY) {
       RVALID  := 0.B
@@ -73,13 +67,18 @@ class RAM extends RawModule {
 
     when(io.axiWd.WVALID && io.axiWd.WREADY) {
       WDATA  := io.axiWd.WDATA
+      WSTRB  := io.axiWd.WSTRB
       WREADY := 0.B
     }
 
     when(~io.axiWa.AWREADY && ~io.axiWd.WREADY) {
       AWREADY := 1.B
       WREADY  := 1.B
-      syncRAM.write(AWADDR, WDATA)
+      for (i <- 0 until XLEN / 8) {
+        when(WSTRB(i)) {
+          syncRAM.write(AWADDR + i.U, WDATA(i * 8 + 7, i * 8))
+        }
+      }
       BVALID  := 1.B
     }
 

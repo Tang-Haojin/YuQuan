@@ -64,7 +64,7 @@ class IF extends Module {
     ARVALID := 1.B
   }
 
-  if (debugIO && false) {
+  if (debugIO & false) {
     printf("if_last_ready = %d\n", io.lastVR.READY)
     printf("if_last_valid = %d\n", io.lastVR.VALID)
     printf("if_next_ready = %d\n", io.nextVR.READY)

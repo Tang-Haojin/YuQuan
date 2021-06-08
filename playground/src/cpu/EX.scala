@@ -9,14 +9,15 @@ import cpu.register._
 import cpu.config.GeneralConfig._
 import cpu.config.RegisterConfig._
 import cpu.config.Debug._
+import cpu.ExecSpecials._
 
 class EXOutput extends Bundle {
   val rd     = Output(UInt(5.W))
   val data   = Output(UInt(XLEN.W))
-  val isJump = Output(Bool())
   val isMem  = Output(Bool())
   val isLd   = Output(Bool())
   val addr   = Output(UInt(XLEN.W))
+  val mask   = Output(UInt(2.W))
 }
 
 class EX extends Module {
@@ -36,31 +37,45 @@ class EX extends Module {
 
   val rd     = RegInit(0.U(5.W))
   val data   = RegInit(0.U(XLEN.W))
-  val isJump = RegInit(0.B)
   val isMem  = RegInit(0.B)
   val isLd   = RegInit(0.B)
   val addr   = RegInit(0.U(XLEN.W))
+  val mask   = RegInit(0.U((XLEN / 8).W))
 
-  val wireRd     = Wire(UInt(5.W)); wireRd := io.input.rd
-  val wireData   = Wire(UInt(XLEN.W))
-  val wireIsJump = WireDefault(0.B)
-  val wireIsMem  = WireDefault(0.B)
-  val wireIsLd   = WireDefault(0.B)
-  val wireAddr   = WireDefault(0.U(XLEN.W))
+  val wireRd    = Wire(UInt(5.W))
+  val wireData  = Wire(UInt(XLEN.W))
+  val wireSpec  = Wire(UInt(XLEN.W))
+  val wireIsMem = Wire(Bool())
+  val wireIsLd  = Wire(Bool())
+  val wireAddr  = Wire(UInt(XLEN.W));
+  val wireMask  = Wire(UInt((XLEN / 8).W))
 
-  io.output.rd     := rd
-  io.output.data   := data
-  io.output.isJump := isJump
-  io.output.isMem  := isMem
-  io.output.isLd   := isLd
-  io.output.addr   := addr
+  wireRd    := io.input.rd
+  wireIsMem := (io.input.special === ld || io.input.special === st)
+  wireIsLd  := (io.input.special === ld)
+  wireAddr  := io.input.num3 + io.input.num4
+  wireMask  := io.input.num2
 
-  val alu = Module(new ALU)
-  
-  wireData := alu.res.asUInt
-  alu.a    := io.input.num1.asSInt
-  alu.b    := io.input.num2.asSInt
-  alu.op   := io.input.op
+  io.output.rd    := rd
+  io.output.data  := data
+  io.output.isMem := isMem
+  io.output.isLd  := isLd
+  io.output.addr  := addr
+  io.output.mask  := mask
+
+  val alu1_2 = Module(new ALU)
+  val alu1_3 = Module(new ALU)
+
+  wireData  := alu1_2.res.asUInt
+  alu1_2.a  := io.input.num1.asSInt
+  alu1_2.b  := io.input.num2.asSInt
+  alu1_2.op := io.input.op1_2
+
+  wireSpec  := alu1_3.res.asUInt
+  alu1_3.a  := io.input.num1.asSInt
+  alu1_3.b  := io.input.num3.asSInt
+  alu1_3.op := io.input.op1_3
+
 
   // FSM
   when(io.nextVR.VALID && io.nextVR.READY) { // ready to trans result to the next level
@@ -71,13 +86,22 @@ class EX extends Module {
     LREADY := 0.B
     rd     := wireRd
     data   := wireData
-    isJump := wireIsJump
     isMem  := wireIsMem
     isLd   := wireIsLd
     addr   := wireAddr
+    mask   := wireMask
 
     io.pcIo.wen   := 1.B
     io.pcIo.wdata := io.pcIo.rdata + 4.U
+
+    switch(io.input.special) {
+      is(ExecSpecials.jump) {
+        io.pcIo.wdata := wireSpec
+      }
+      is(ExecSpecials.jalr) {
+        io.pcIo.wdata := Cat((io.input.num3 + io.input.num4)(XLEN - 1, 1), 0.U)
+      }
+    }
   }
 
   if (debugIO && false) {
@@ -87,7 +111,6 @@ class EX extends Module {
     printf("ex_next_valid    = %d\n", io.nextVR.VALID )
     printf("io.output.rd     = %d\n", io.output.rd    )
     printf("io.output.data   = %d\n", io.output.data  )
-    printf("io.output.isJump = %d\n", io.output.isJump)
     printf("io.output.isMem  = %d\n", io.output.isMem )
     printf("io.output.isLd   = %d\n", io.output.isLd  )
     printf("io.output.addr   = %d\n", io.output.addr  )

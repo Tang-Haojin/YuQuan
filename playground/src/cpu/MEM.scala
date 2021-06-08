@@ -55,7 +55,7 @@ class MEM extends Module {
   io.axiWd.WID   := 1.U
   io.axiWd.WLAST := 1.B // since we do not enable burst yet
   io.axiWd.WDATA := io.input.data
-  io.axiWd.WSTRB := DontCare
+  io.axiWd.WSTRB := 0.U
   io.axiWd.WUSER := DontCare
 
   val NVALID  = RegInit(0.B); io.nextVR.VALID  := NVALID
@@ -69,6 +69,24 @@ class MEM extends Module {
 
   val rd      = RegInit(0.U(5.W));    io.output.rd   := rd
   val data    = RegInit(0.U(XLEN.W)); io.output.data := data
+
+  switch(io.input.mask) {
+    is(0.U) {
+      io.axiWd.WSTRB := "b00000001".U
+    }
+    is(1.U) {
+      io.axiWd.WSTRB := "b00000011".U
+    }
+    is(2.U) {
+      io.axiWd.WSTRB := "b00001111".U
+    }
+    is(3.U) {
+      io.axiWd.WSTRB := (
+        if (XLEN == 64) "b11111111".U
+        else            "b00000000".U
+      )
+    }
+  }
 
   // FSM
   when(io.nextVR.VALID && io.nextVR.READY) { // ready to announce the next level
