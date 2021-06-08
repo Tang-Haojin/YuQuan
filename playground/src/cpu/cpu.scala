@@ -60,6 +60,8 @@ class InternalCPU extends Module {
   io.axiWr <> moduleMEM.io.axiWr
 
   moduleIF.io.pcIo  <> modulePC.io.pcIo
+  moduleID.io.pcIo  <> modulePC.io.pcIo
+  moduleEX.io.pcIo  <> modulePC.io.pcIo
 
   moduleID.io.gprsR <> moduleGPRs.io.gprsR
   moduleWB.io.gprsW <> moduleGPRs.io.gprsW

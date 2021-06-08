@@ -14,7 +14,7 @@ import cpu.InstrTypes._
 
 
 object ExecSpecials {
-  val specials = Enum(5)
+  val specials = Enum(6)
   val no::ld::st::jump::branch::auipc::Nil = specials
 }
 
@@ -24,8 +24,8 @@ object InstrTypes {
 }
 
 object NumTypes {
-  val numtypes = Enum(4)
-  val non::rs1::rs2::imm::Nil = numtypes
+  val numtypes = Enum(5)
+  val non::rs1::rs2::imm::pc::Nil = numtypes
 }
 
 class IDOutput extends Bundle {
@@ -40,12 +40,16 @@ class IDOutput extends Bundle {
 // instruction decoding module
 class ID extends Module {
   val io = IO(new Bundle {
+    val pcIo   = Flipped(new PCIO)    // connected
     val output = new IDOutput         // connected
     val gprsR  = Flipped(new GPRsR)   // connected
     val lastVR = new LastVR           // connected
     val nextVR = Flipped(new LastVR)  // connected
     val instr  = Input (UInt(32.W))   // connected
   })
+
+  io.pcIo.wen   := 0.B
+  io.pcIo.wdata := 0.U
 
   val NVALID  = RegInit(0.B)
   val LREADY  = RegInit(1.B)
@@ -109,12 +113,18 @@ class ID extends Module {
       is(NumTypes.imm) {
         num._1 := wireImm
       }
+      is(NumTypes.pc) {
+        num._1 := io.pcIo.rdata
+      }
     }
   }
 
   switch(decoded(0)) {
     is(i) {
       wireImm := Cat(Fill(XLEN - 12, io.instr(31)), io.instr(31, 20))
+    }
+    is(u) {
+      wireImm := Cat(Fill(XLEN - 32, io.instr(31)), io.instr(31, 12), Fill(12, 0.U))
     }
   }
   

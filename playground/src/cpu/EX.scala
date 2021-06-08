@@ -21,11 +21,15 @@ class EXOutput extends Bundle {
 
 class EX extends Module {
   val io = IO(new Bundle {
+    val pcIo   = Flipped(new PCIO)     // connected
     val input  = Flipped(new IDOutput) // connected
     val lastVR = new LastVR            // connected
     val nextVR = Flipped(new LastVR)   // connected
     val output = new EXOutput
   })
+
+  io.pcIo.wen   := 0.B
+  io.pcIo.wdata := 0.U
 
   val NVALID = RegInit(0.B); io.nextVR.VALID := NVALID
   val LREADY = RegInit(1.B); io.lastVR.READY := LREADY
@@ -71,6 +75,9 @@ class EX extends Module {
     isMem  := wireIsMem
     isLd   := wireIsLd
     addr   := wireAddr
+
+    io.pcIo.wen   := 1.B
+    io.pcIo.wdata := io.pcIo.rdata + 4.U
   }
 
   if (debugIO && false) {

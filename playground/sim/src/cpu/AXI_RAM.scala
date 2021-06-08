@@ -32,7 +32,7 @@ class RAM extends RawModule {
 
 
   withClockAndReset(io.basic.ACLK, ~io.basic.ARESETn) {
-    val syncRAM = SyncReadMem(1024, UInt(XLEN.W))
+    val syncRAM = SyncReadMem(1024, UInt(8.W))
     loadMemoryFromFileInline(syncRAM, "mem.txt")
 
     val AWREADY = RegInit(1.B); io.axiWa.AWREADY := AWREADY
@@ -43,19 +43,13 @@ class RAM extends RawModule {
 
     val RpreValid = RegInit(0.B);
 
-    val RID = RegInit(0.U(4.W)); io.axiRd.RID := RID
+    val RID    = RegInit(0.U(4.W)); io.axiRd.RID := RID
     val ARADDR = RegInit(0.U(XLEN.W))
     val AWADDR = RegInit(0.U(XLEN.W))
     val WDATA  = RegInit(0.U(XLEN.W))
     
-/*     for (i <- 0 until XLEN / 8) {
-      vecDataIn (i)  := WDATA(8 * i + 7, 8 * i)
-      io.axiRd.RDATA := Cat(vecDataOut);
-      mask      (i)  := io.axiWd.WSTRB(i).asBool
-    }
-
-    vecDataOut := syncRAM.read(ARADDR) */
-    io.axiRd.RDATA := syncRAM.read(ARADDR)
+    io.axiRd.RDATA := 
+      Cat((for { a <- 0 until XLEN / 8 } yield syncRAM.read(ARADDR + a.U)).reverse)
 
     // printf("slave: io.axiRd.RDATA = %x\n", io.axiRd.RDATA)
 
