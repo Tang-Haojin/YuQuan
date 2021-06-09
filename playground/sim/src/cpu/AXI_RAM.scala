@@ -55,13 +55,13 @@ class RAM extends RawModule {
       RVALID    := 1.B
     }.elsewhen(io.axiRa.ARVALID && io.axiRa.ARREADY) {
       RID := io.axiRa.ARID
-      ARADDR := io.axiRa.ARADDR
+      ARADDR := io.axiRa.ARADDR - MEMBase.U
       ARREADY := 0.B
       RpreValid := 1.B
     }
 
     when(io.axiWa.AWVALID && io.axiWa.AWREADY) {
-      AWADDR  := io.axiWa.AWADDR
+      AWADDR  := io.axiWa.AWADDR - MEMBase.U
       AWREADY := 0.B
     }
 

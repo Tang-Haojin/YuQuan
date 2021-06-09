@@ -14,13 +14,13 @@ import cpu.InstrTypes._
 
 
 object ExecSpecials {
-  val specials = Enum(6)
-  val non::ld::st::jump::jalr::branch::Nil = specials
+  val specials = Enum(7)
+  val non::ld::st::jump::jalr::branch::trap::Nil = specials
 }
 
 object InstrTypes {
-  val instrtypes = Enum(6)
-  val i::u::s::r::j::b::Nil = instrtypes
+  val instrtypes = Enum(7)
+  val i::u::s::r::j::b::t::Nil = instrtypes
 }
 
 object NumTypes {
@@ -105,6 +105,7 @@ class ID extends Module {
   io.output.special := special
   io.gprsR.raddr(0) := wireRs1
   io.gprsR.raddr(1) := wireRs2
+  io.gprsR.raddr(2) := 10.U
 
   val numList = List(
     (wireNum1, decoded(1)), (wireNum2, decoded(2)),
@@ -161,6 +162,9 @@ class ID extends Module {
         io.instr(31, 25),
         io.instr(11, 7 )
       )
+    }
+    is(t) {
+      wireImm := io.gprsR.rdata(2)
     }
   }
   

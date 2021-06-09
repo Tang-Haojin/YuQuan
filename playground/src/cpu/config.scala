@@ -3,10 +3,11 @@ package cpu.config
 object GeneralConfig {
   val AluTypeWidth = 4
   val XLEN = 64
+  val MEMBase = 0x80100000L
 }
 
 object RegisterConfig {
-  val readPortsNum = 2
+  val readPortsNum = 3
 }
 
 object Debug {
@@ -14,8 +15,8 @@ object Debug {
   val showReg     = true
   val partialReg  = true
   val showRegList
-    = List(false, false, true , false, false, false, false, false,
-           false, false, false, false, false, false, false, false,
+    = List(false, true , true , false, false, false, false, false,
+           true , false, true , false, false, false, false, false,
            false, false, false, false, false, false, false, false,
            false, false, false, false, false, false, false, false)
 }

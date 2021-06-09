@@ -53,7 +53,7 @@ class PC extends Module {
     val pcIo  = new PCIO
   })
 
-  val reg = RegInit(0.U(XLEN.W))
+  val reg = RegInit(MEMBase.U(XLEN.W))
   when(io.pcIo.wen) {
     reg := io.pcIo.wdata
   }

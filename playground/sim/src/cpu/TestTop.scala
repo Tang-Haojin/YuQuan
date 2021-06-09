@@ -12,13 +12,12 @@ import cpu.config.GeneralConfig._
 import chisel3.internal.firrtl.Node
 
 class TestTop extends Module {
-  val io = IO(new Bundle {
-    val data = Output(UInt(8.W))
-  })
+  val io = IO(new DEBUG)
+
   val cpu = Module(new CPU)
   val mem = Module(new RAM)
 
-  io.data := cpu.io.axiRa.ARID
+  io <> cpu.io.debug
 
   cpu.io.axiWa <> mem.io.axiWa
   cpu.io.axiWd <> mem.io.axiWd

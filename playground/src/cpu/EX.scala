@@ -12,12 +12,13 @@ import cpu.config.Debug._
 import cpu.ExecSpecials._
 
 class EXOutput extends Bundle {
-  val rd     = Output(UInt(5.W))
-  val data   = Output(UInt(XLEN.W))
-  val isMem  = Output(Bool())
-  val isLd   = Output(Bool())
-  val addr   = Output(UInt(XLEN.W))
-  val mask   = Output(UInt(2.W))
+  val rd    = Output(UInt(5.W))
+  val data  = Output(UInt(XLEN.W))
+  val isMem = Output(Bool())
+  val isLd  = Output(Bool())
+  val addr  = Output(UInt(XLEN.W))
+  val mask  = Output(UInt(2.W))
+  val exit  = Output(Bool())
 }
 
 class EX extends Module {
@@ -41,6 +42,7 @@ class EX extends Module {
   val isLd   = RegInit(0.B)
   val addr   = RegInit(0.U(XLEN.W))
   val mask   = RegInit(0.U((XLEN / 8).W))
+  val exit   = RegInit(0.B)
 
   val wireRd    = Wire(UInt(5.W))
   val wireData  = Wire(UInt(XLEN.W))
@@ -49,12 +51,14 @@ class EX extends Module {
   val wireIsLd  = Wire(Bool())
   val wireAddr  = Wire(UInt(XLEN.W));
   val wireMask  = Wire(UInt((XLEN / 8).W))
+  val wireExit  = Wire(Bool())
 
   wireRd    := io.input.rd
   wireIsMem := (io.input.special === ld || io.input.special === st)
   wireIsLd  := (io.input.special === ld)
   wireAddr  := io.input.num3 + io.input.num4
   wireMask  := io.input.num2
+  wireExit  := (io.input.special === trap)
 
   io.output.rd    := rd
   io.output.data  := data
@@ -62,6 +66,7 @@ class EX extends Module {
   io.output.isLd  := isLd
   io.output.addr  := addr
   io.output.mask  := mask
+  io.output.exit  := exit
 
   val alu1_2 = Module(new ALU)
   val alu1_3 = Module(new ALU)
@@ -90,15 +95,16 @@ class EX extends Module {
     isLd   := wireIsLd
     addr   := wireAddr
     mask   := wireMask
+    exit   := wireExit
 
     io.pcIo.wen   := 1.B
     io.pcIo.wdata := io.pcIo.rdata + 4.U
 
     switch(io.input.special) {
-      is(ExecSpecials.jump) {
+      is(jump) {
         io.pcIo.wdata := wireSpec
       }
-      is(ExecSpecials.jalr) {
+      is(jalr) {
         io.pcIo.wdata := Cat((io.input.num3 + io.input.num4)(XLEN - 1, 1), 0.U)
       }
     }

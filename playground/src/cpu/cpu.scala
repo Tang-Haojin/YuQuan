@@ -6,6 +6,13 @@ import chisel3.util._
 import cpu.register._
 import cpu.axi._
 import cpu.config.Debug._
+import cpu.config.GeneralConfig._
+
+class DEBUG extends Bundle {
+  val exit = Output(Bool())
+  val data = Output(UInt(XLEN.W))
+  val pc   = Output(UInt(XLEN.W))
+}
 
 class CPU extends RawModule {
 	val io = IO(new Bundle {
@@ -15,6 +22,9 @@ class CPU extends RawModule {
     val axiWr = new AXIwr
     val axiRa = new AXIra
     val axiRd = new AXIrd
+    val debug = 
+    if(debugIO) new DEBUG
+    else        null
   })
 
   withClockAndReset(io.basic.ACLK, ~io.basic.ARESETn) {
@@ -24,6 +34,7 @@ class CPU extends RawModule {
     io.axiWr <> cpu.io.axiWr
     io.axiRa <> cpu.io.axiRa
     io.axiRd <> cpu.io.axiRd
+    if (debugIO) io.debug <> cpu.io.debug
   }
 }
 
@@ -34,6 +45,9 @@ class InternalCPU extends Module {
     val axiWr = new AXIwr
     val axiRa = new AXIra
     val axiRd = new AXIrd
+    val debug = 
+    if(debugIO) new DEBUG
+    else        null
   })
 
   val modulePC       = Module(new PC)
@@ -76,4 +90,10 @@ class InternalCPU extends Module {
   moduleEX.io.nextVR  <> moduleMEM.io.lastVR
   moduleMEM.io.nextVR <> moduleWB.io.lastVR
   moduleWB.io.nextVR  <> moduleIF.io.lastVR
+
+  if (debugIO) {
+    io.debug.exit := moduleEX.io.output.exit
+    io.debug.data := moduleEX.io.output.data
+    io.debug.pc   := modulePC.io.pcIo.rdata
+  }
 }
