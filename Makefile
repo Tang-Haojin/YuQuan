@@ -33,6 +33,10 @@ sim:
 	@mkdir $(BUILD_DIR)/sim >>/dev/null 2>&1 | echo >>/dev/null 2>&1
 	ln -f $(ROOT_DIR)/sim/src/sim_main.cpp $(BUILD_DIR)/sim/sim_main.cpp
 	ln -f $(ROOT_DIR)/sim/src/mem.txt $(BUILD_DIR)/sim/mem.txt
+ifneq ($(BIN),)
+	@rm -f $(BUILD_DIR)/sim/mem.txt
+	@xxd -g 1 $(ROOT_DIR)/sim/bin/$(BIN)-riscv64-nemu.bin | grep -oP "(?<=: ).*(?=  )" >$(BUILD_DIR)/sim/mem.txt
+endif
 	mill -i __.sim.runMain Elaborate -td $(BUILD_DIR)/sim
 	cd $(BUILD_DIR)/sim && verilator -cc TestTop.v --top-module TestTop --exe --build sim_main.cpp && ./obj_dir/VTestTop
 

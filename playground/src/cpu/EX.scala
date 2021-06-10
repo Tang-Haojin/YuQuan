@@ -11,6 +11,11 @@ import cpu.config.RegisterConfig._
 import cpu.config.Debug._
 import cpu.ExecSpecials._
 
+object ExitReasons {
+  val reasons = Enum(3)
+  val non::trap::inv::Nil = reasons
+}
+
 class EXOutput extends Bundle {
   val rd    = Output(UInt(5.W))
   val data  = Output(UInt(XLEN.W))
@@ -18,7 +23,7 @@ class EXOutput extends Bundle {
   val isLd  = Output(Bool())
   val addr  = Output(UInt(XLEN.W))
   val mask  = Output(UInt(2.W))
-  val exit  = Output(Bool())
+  val exit  = Output(UInt(3.W))
 }
 
 class EX extends Module {
@@ -41,8 +46,8 @@ class EX extends Module {
   val isMem  = RegInit(0.B)
   val isLd   = RegInit(0.B)
   val addr   = RegInit(0.U(XLEN.W))
-  val mask   = RegInit(0.U((XLEN / 8).W))
-  val exit   = RegInit(0.B)
+  val mask   = RegInit(0.U(2.W))
+  val exit   = RegInit(0.U(3.W))
 
   val wireRd    = Wire(UInt(5.W))
   val wireData  = Wire(UInt(XLEN.W))
@@ -50,15 +55,15 @@ class EX extends Module {
   val wireIsMem = Wire(Bool())
   val wireIsLd  = Wire(Bool())
   val wireAddr  = Wire(UInt(XLEN.W));
-  val wireMask  = Wire(UInt((XLEN / 8).W))
-  val wireExit  = Wire(Bool())
+  val wireMask  = Wire(UInt(2.W))
+  val wireExit  = Wire(UInt(3.W))
 
   wireRd    := io.input.rd
   wireIsMem := (io.input.special === ld || io.input.special === st)
   wireIsLd  := (io.input.special === ld)
   wireAddr  := io.input.num3 + io.input.num4
-  wireMask  := io.input.num2
-  wireExit  := (io.input.special === trap)
+  wireMask  := io.input.op1_3
+  wireExit  := ExitReasons.non
 
   io.output.rd    := rd
   io.output.data  := data
@@ -72,6 +77,9 @@ class EX extends Module {
   val alu1_3 = Module(new ALU)
 
   wireData  := alu1_2.res.asUInt
+  when(io.input.special === word) {
+    wireData := Cat(Fill(32, alu1_2.res(31)), alu1_2.res(31, 0))
+  }
   alu1_2.a  := io.input.num1.asSInt
   alu1_2.b  := io.input.num2.asSInt
   alu1_2.op := io.input.op1_2
@@ -81,6 +89,14 @@ class EX extends Module {
   alu1_3.b  := io.input.num3.asSInt
   alu1_3.op := io.input.op1_3
 
+  switch(io.input.special) {
+    is(trap) {
+      wireExit := ExitReasons.trap
+    }
+    is(inv) {
+      wireExit := ExitReasons.inv
+    }
+  }
 
   // FSM
   when(io.nextVR.VALID && io.nextVR.READY) { // ready to trans result to the next level
@@ -106,6 +122,11 @@ class EX extends Module {
       }
       is(jalr) {
         io.pcIo.wdata := Cat((io.input.num3 + io.input.num4)(XLEN - 1, 1), 0.U)
+      }
+      is(branch) {
+        when(wireData === 1.U) {
+          io.pcIo.wdata := io.pcIo.rdata + io.input.num3
+        }
       }
     }
   }

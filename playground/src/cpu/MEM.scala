@@ -27,6 +27,8 @@ class MEM extends Module {
     val input  = Flipped(new EXOutput)
     val output = new MEMOutput
   })
+
+  val mask = WireDefault(0.U(8.W))
   
   io.axiRa.ARID     := 1.U // 1 for MEM
   io.axiRa.ARLEN    := 0.U // (ARLEN + 1) AXI Burst per AXI Transfer (a.k.a. AXI Beat)
@@ -55,7 +57,7 @@ class MEM extends Module {
   io.axiWd.WID   := 1.U
   io.axiWd.WLAST := 1.B // since we do not enable burst yet
   io.axiWd.WDATA := io.input.data
-  io.axiWd.WSTRB := 0.U
+  io.axiWd.WSTRB := mask
   io.axiWd.WUSER := DontCare
 
   val NVALID  = RegInit(0.B); io.nextVR.VALID  := NVALID
@@ -72,18 +74,18 @@ class MEM extends Module {
 
   switch(io.input.mask) {
     is(0.U) {
-      io.axiWd.WSTRB := "b00000001".U
+      mask := "b00000001".U
     }
     is(1.U) {
-      io.axiWd.WSTRB := "b00000011".U
+      mask := "b00000011".U
     }
     is(2.U) {
-      io.axiWd.WSTRB := "b00001111".U
+      mask := "b00001111".U
     }
     is(3.U) {
-      io.axiWd.WSTRB := (
-        if (XLEN == 64) "b11111111".U
-        else            "b00000000".U
+      mask := (
+if(XLEN == 64)"b11111111".U
+else          "b00000000".U
       )
     }
   }
@@ -102,6 +104,7 @@ class MEM extends Module {
     AWVALID := 0.B
     WVALID  := 0.B
     BREADY  := 1.B
+    // printf("io.axiWd.WDATA: %x\n", io.axiWd.WDATA)
   }.elsewhen((io.axiWa.AWVALID && io.axiWa.AWREADY) && ~io.axiWd.WVALID) {
     AWVALID := 0.B
     BREADY  := 1.B
@@ -116,7 +119,7 @@ class MEM extends Module {
     when(io.axiRd.RID === 1.U) { // remember to check the transaction ID
       RREADY := 0.B
       NVALID := 1.B
-      data   := io.axiRd.RDATA
+      data   := io.axiRd.RDATA & Cat((for { a <- 0 until XLEN / 8 } yield Fill(8, mask(a))).reverse)
     }
   }.elsewhen(io.axiRa.ARVALID && io.axiRa.ARREADY) { // ready to send request to BUS
     ARVALID := 0.B

@@ -12,8 +12,8 @@ object RegisterConfig {
 
 object Debug {
   val debugIO     = true
-  val showReg     = true
-  val partialReg  = true
+  val showReg     = false
+  val partialReg  = false
   val showRegList
     = List(false, true , true , false, false, false, false, false,
            true , false, true , false, false, false, false, false,

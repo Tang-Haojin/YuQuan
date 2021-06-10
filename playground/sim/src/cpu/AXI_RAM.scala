@@ -27,7 +27,7 @@ class RAM extends RawModule {
 
 
   withClockAndReset(io.basic.ACLK, ~io.basic.ARESETn) {
-    val syncRAM = SyncReadMem(1024, UInt(8.W))
+    val syncRAM = SyncReadMem(65536, UInt(8.W))
     loadMemoryFromFileInline(syncRAM, "mem.txt")
 
     val AWREADY = RegInit(1.B); io.axiWa.AWREADY := AWREADY
@@ -50,6 +50,7 @@ class RAM extends RawModule {
     when(io.axiRd.RVALID && io.axiRd.RREADY) {
       RVALID  := 0.B
       ARREADY := 1.B
+      // printf("RDATA: %x\n", io.axiRd.RDATA)
     }.elsewhen(RpreValid) {
       RpreValid := 0.B
       RVALID    := 1.B
@@ -69,6 +70,7 @@ class RAM extends RawModule {
       WDATA  := io.axiWd.WDATA
       WSTRB  := io.axiWd.WSTRB
       WREADY := 0.B
+      // printf("WDATA: %x\n", io.axiWd.WDATA)
     }
 
     when(~io.axiWa.AWREADY && ~io.axiWd.WREADY) {

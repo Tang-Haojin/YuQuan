@@ -9,7 +9,7 @@ import cpu.config.Debug._
 import cpu.config.GeneralConfig._
 
 class DEBUG extends Bundle {
-  val exit = Output(Bool())
+  val exit = Output(UInt(3.W))
   val data = Output(UInt(XLEN.W))
   val pc   = Output(UInt(XLEN.W))
 }
@@ -95,5 +95,10 @@ class InternalCPU extends Module {
     io.debug.exit := moduleEX.io.output.exit
     io.debug.data := moduleEX.io.output.data
     io.debug.pc   := modulePC.io.pcIo.rdata
+  }
+
+  if (showReg) {
+    moduleGPRs.io.debug.showReg := (moduleWB.io.nextVR.READY && moduleWB.io.nextVR.VALID)
+    modulePC.io.debug.showReg   := (moduleWB.io.nextVR.READY && moduleWB.io.nextVR.VALID)
   }
 }

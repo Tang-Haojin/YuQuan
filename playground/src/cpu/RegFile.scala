@@ -21,6 +21,9 @@ class GPRs extends Module {
   val io = IO(new Bundle {
     val gprsW = new GPRsW
     val gprsR = new GPRsR
+    val debug = if (showReg) new Bundle {
+      val showReg = Input(Bool())
+    } else null
   })
 
   val regs = RegInit(VecInit(Seq.fill(32)(0.U(XLEN.W))))
@@ -34,9 +37,11 @@ class GPRs extends Module {
   }
 
   if (showReg) {
-    for (i <- 0 until 32) {
-      if (!partialReg || (partialReg && showRegList(i))) {
-        printf("\tx%d\t%x\n", i.U, regs(i.U))
+    when(io.debug.showReg) {
+      for (i <- 0 until 32) {
+        if (!partialReg || (partialReg && showRegList(i))) {
+          printf("\tx%d\t%x\n", i.U, regs(i.U))
+        }
       }
     }
   }
@@ -51,6 +56,9 @@ class PCIO extends Bundle {
 class PC extends Module {
   val io = IO(new Bundle {
     val pcIo  = new PCIO
+    val debug = if (showReg) new Bundle {
+      val showReg = Input(Bool())
+    } else null
   })
 
   val reg = RegInit(MEMBase.U(XLEN.W))
@@ -60,6 +68,8 @@ class PC extends Module {
   io.pcIo.rdata := reg
 
   if (showReg) {
-    printf("\tPC\t%x\n", reg)
+    when(io.debug.showReg) {
+      printf("\n\tPC\t%x\n", reg)
+    }
   }
 }

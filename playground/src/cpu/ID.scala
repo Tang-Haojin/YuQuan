@@ -14,8 +14,8 @@ import cpu.InstrTypes._
 
 
 object ExecSpecials {
-  val specials = Enum(7)
-  val non::ld::st::jump::jalr::branch::trap::Nil = specials
+  val specials = Enum(9)
+  val non::ld::st::jump::jalr::branch::trap::inv::word::Nil = specials
 }
 
 object InstrTypes {
@@ -36,7 +36,7 @@ class IDOutput extends Bundle {
   val num4    = Output(UInt(XLEN.W))
   val op1_2   = Output(UInt(AluTypeWidth.W))
   val op1_3   = Output(UInt(AluTypeWidth.W))
-  val special = Output(UInt(3.W))
+  val special = Output(UInt(5.W))
 }
 
 // instruction decoding module
@@ -58,7 +58,7 @@ class ID extends Module {
   val rd      = RegInit(0.U(5.W))
   val op1_2   = RegInit(0.U(AluTypeWidth.W))
   val op1_3   = RegInit(0.U(AluTypeWidth.W))
-  val special = RegInit(0.U(3.W))
+  val special = RegInit(0.U(5.W))
 
   val (num1, num2, num3, num4) = (
     RegInit(0.U(XLEN.W)), RegInit(0.U(XLEN.W)),
@@ -67,12 +67,11 @@ class ID extends Module {
   
   val decoded = ListLookup(
     io.instr,
-    List(7.U, 0.U, 0.U, 0.U, 0.U, 0.U, 0.U, 0.U, 0.U),
+    List(7.U, 0.U, 0.U, 0.U, 0.U, 0.U, 0.U, 0.U, inv),
     RVI.table
   )
 
-  val instrValid  = (decoded(0) =/= 7.U)
-  val wireSpecial = WireDefault(0.U(3.W))
+  val wireSpecial = WireDefault(0.U(5.W))
   val wireType    = WireDefault(7.U(3.W))
   val wireRd      = Wire(UInt(5.W))
   val wireOp1_2   = Wire(UInt(AluTypeWidth.W)); wireOp1_2 := decoded(5)
@@ -163,6 +162,15 @@ class ID extends Module {
         io.instr(11, 7 )
       )
     }
+    is(b) {
+      wireImm := Cat(
+        Fill(XLEN - 12, io.instr(31)),
+        io.instr(7),
+        io.instr(30, 25),
+        io.instr(11, 8 ),
+        0.U
+      )
+    }
     is(t) {
       wireImm := io.gprsR.rdata(2)
     }
@@ -178,7 +186,7 @@ class ID extends Module {
   when(io.nextVR.VALID && io.nextVR.READY) { // ready to trans instr to the next level
     NVALID  := 0.B
     LREADY  := 1.B
-  }.elsewhen(io.lastVR.VALID && io.lastVR.READY && instrValid) { // let's start working
+  }.elsewhen(io.lastVR.VALID && io.lastVR.READY) { // let's start working
     NVALID  := 1.B
     LREADY  := 0.B
     rd      := wireRd
