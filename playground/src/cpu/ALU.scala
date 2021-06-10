@@ -34,9 +34,9 @@ class ALU extends Module {
     is(sll) { res := a << b(2, 0).asUInt }
     is(sra) { res := a >> b(2, 0).asUInt }
     is(srl) { res := (a.asUInt >> b(2, 0).asUInt).asSInt }
-    is(lts) { res := (a < b).asSInt }
-    is(ltu) { res := (a.asUInt < b.asUInt).asSInt }
-    is(equ) { res := (a === b).asSInt }
-    is(neq) { res := (a =/= b).asSInt }
+    is(lts) { res := Cat(Fill(XLEN - 1, 0.U), (a < b)).asSInt }
+    is(ltu) { res := Cat(Fill(XLEN - 1, 0.U), (a.asUInt < b.asUInt)).asSInt }
+    is(equ) { res := Cat(Fill(XLEN - 1, 0.U), (a === b)).asSInt }
+    is(neq) { res := Cat(Fill(XLEN - 1, 0.U), (a =/= b)).asSInt }
   }
 }

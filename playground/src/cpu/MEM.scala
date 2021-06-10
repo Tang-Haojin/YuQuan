@@ -28,7 +28,10 @@ class MEM extends Module {
     val output = new MEMOutput
   })
 
-  val mask = WireDefault(0.U(8.W))
+  val wireMask = WireDefault(0.U(8.W))
+  val wireSign = WireDefault(0.B)
+  val mask     = RegInit(0.U(8.W))
+  val sign     = RegInit(0.B)
   
   io.axiRa.ARID     := 1.U // 1 for MEM
   io.axiRa.ARLEN    := 0.U // (ARLEN + 1) AXI Burst per AXI Transfer (a.k.a. AXI Beat)
@@ -74,19 +77,35 @@ class MEM extends Module {
 
   switch(io.input.mask) {
     is(0.U) {
-      mask := "b00000001".U
+      wireMask := "b00000001".U
+      wireSign := 1.B
     }
     is(1.U) {
-      mask := "b00000011".U
+      wireMask := "b00000011".U
+      wireSign := 1.B
     }
     is(2.U) {
-      mask := "b00001111".U
+      wireMask := "b00001111".U
+      wireSign := 1.B
     }
     is(3.U) {
-      mask := (
-if(XLEN == 64)"b11111111".U
-else          "b00000000".U
+      wireMask := (
+    if(XLEN == 64)"b11111111".U
+    else          "b00000000".U
       )
+      wireSign := 1.B
+    }
+    is(4.U) {
+      wireMask := "b00000001".U
+      wireSign := 0.B
+    }
+    is(5.U) {
+      wireMask := "b00000011".U
+      wireSign := 0.B
+    }
+    is(6.U) {
+      wireMask := "b00001111".U
+      wireSign := 0.B
     }
   }
 
@@ -119,7 +138,26 @@ else          "b00000000".U
     when(io.axiRd.RID === 1.U) { // remember to check the transaction ID
       RREADY := 0.B
       NVALID := 1.B
-      data   := io.axiRd.RDATA & Cat((for { a <- 0 until XLEN / 8 } yield Fill(8, mask(a))).reverse)
+      when(sign === 0.B) {
+        data := io.axiRd.RDATA & Cat((for { a <- 0 until XLEN / 8 } yield Fill(8, mask(a))).reverse)
+      }.otherwise {
+        switch(mask) {
+          is("b00000001".U) {
+            data := Cat(Fill(XLEN - 8, io.axiRd.RDATA(7)), io.axiRd.RDATA(7, 0))
+          }
+          is("b00000011".U) {
+            data := Cat(Fill(XLEN - 16, io.axiRd.RDATA(15)), io.axiRd.RDATA(15, 0))
+          }
+          is("b00001111".U) {
+            data := Cat(Fill(XLEN - 32, io.axiRd.RDATA(31)), io.axiRd.RDATA(31, 0))
+          }
+        }
+      }
+      data   := (
+        io.axiRd.RDATA & 
+        Cat((for { a <- 0 until XLEN / 8 } yield Fill(8, mask(a))).reverse)
+      ) |
+        Cat((for { a <- 0 until XLEN / 8 } yield Fill(8, !mask(a) & sign)).reverse)
     }
   }.elsewhen(io.axiRa.ARVALID && io.axiRa.ARREADY) { // ready to send request to BUS
     ARVALID := 0.B
@@ -128,6 +166,8 @@ else          "b00000000".U
     LREADY := 0.B
     rd     := io.input.rd
     data   := io.input.data
+    mask   := wireMask
+    sign   := wireSign
     when(io.input.isMem) {
       when(io.input.isLd) {
         ARVALID := 1.B

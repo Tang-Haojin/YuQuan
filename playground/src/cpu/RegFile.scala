@@ -40,7 +40,7 @@ class GPRs extends Module {
     when(io.debug.showReg) {
       for (i <- 0 until 32) {
         if (!partialReg || (partialReg && showRegList(i))) {
-          printf("\tx%d\t%x\n", i.U, regs(i.U))
+          printf("\t%c%c%c\t%x\n", regNames.regNames(i)(0).U, regNames.regNames(i)(1).U, regNames.regNames(i)(2).U, regs(i.U))
         }
       }
     }
@@ -72,4 +72,13 @@ class PC extends Module {
       printf("\n\tPC\t%x\n", reg)
     }
   }
+}
+
+object regNames {
+  val regNames = List(
+    "$0 ", "ra ", "sp ", "gp ", "tp ", "t0 ", "t1 ", "t2 ",
+    "s0 ", "s1 ", "a0 ", "a1 ", "a2 ", "a3 ", "a4 ", "a5 ",
+    "a6 ", "a7 ", "s2 ", "s3 ", "s4 ", "s5 ", "s6 ", "s7 ",
+    "s8 ", "s9 ", "s10", "s11", "t3 ", "t4 ", "t5 ", "t6 "
+  )
 }

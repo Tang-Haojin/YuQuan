@@ -22,7 +22,7 @@ class EXOutput extends Bundle {
   val isMem = Output(Bool())
   val isLd  = Output(Bool())
   val addr  = Output(UInt(XLEN.W))
-  val mask  = Output(UInt(2.W))
+  val mask  = Output(UInt(3.W))
   val exit  = Output(UInt(3.W))
 }
 
@@ -46,7 +46,7 @@ class EX extends Module {
   val isMem  = RegInit(0.B)
   val isLd   = RegInit(0.B)
   val addr   = RegInit(0.U(XLEN.W))
-  val mask   = RegInit(0.U(2.W))
+  val mask   = RegInit(0.U(3.W))
   val exit   = RegInit(0.U(3.W))
 
   val wireRd    = Wire(UInt(5.W))
@@ -55,7 +55,7 @@ class EX extends Module {
   val wireIsMem = Wire(Bool())
   val wireIsLd  = Wire(Bool())
   val wireAddr  = Wire(UInt(XLEN.W));
-  val wireMask  = Wire(UInt(2.W))
+  val wireMask  = Wire(UInt(3.W))
   val wireExit  = Wire(UInt(3.W))
 
   wireRd    := io.input.rd
