@@ -7,8 +7,8 @@ import cpu.Operators._
 import cpu.config.GeneralConfig._
 
 object Operators {
-  val operators = Enum(16)
-  val err::add::sub::and::or::xor::sll::sra::srl::lts::ltu::equ::neq::sllw::srlw::sraw::Nil = operators
+  val operators = Enum(17)
+  val err::add::sub::and::or::xor::sll::sra::srl::lts::ltu::equ::neq::sllw::srlw::sraw::ges::Nil = operators
 }
 
 class ALU extends Module {
@@ -41,5 +41,6 @@ class ALU extends Module {
     is(sllw) { res := a << b(4, 0).asUInt }
     is(srlw) { res := (Cat(Fill(XLEN - 32, 0.U), a(31, 0)) >> b(4, 0).asUInt).asSInt }
     is(sraw) { res := (Cat(Fill(XLEN - 32, a(31)), a(31, 0)) >> b(4, 0).asUInt).asSInt }
+    is(ges)  { res := Cat(Fill(XLEN - 1, 0.U), (a >= b)).asSInt }
   }
 }
