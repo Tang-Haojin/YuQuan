@@ -1,7 +1,7 @@
 package cpu.config
 
 object GeneralConfig {
-  val AluTypeWidth = 4
+  val AluTypeWidth = 5
   val XLEN = 64
   val MEMBase = 0x80100000L
 }
