@@ -29,3 +29,13 @@ To generate Verilog:
 ```bash
 make verilog
 ```
+
+To run simple test:
+```bash
+make sim
+```
+
+To load program from bin and run test, copy `$BIN-riscv64-nemu.bin` to `playground/sim/bin/`, and run:
+```bash
+make BIN=$BIN sim
+```

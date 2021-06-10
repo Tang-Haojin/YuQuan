@@ -31,6 +31,9 @@ object RVI {
               else
               BitPat("b0000000_00000_00000_000_00000_0000000")
   def LD    = BitPat("b???????_?????_?????_011_?????_0000011")
+  def BLT   = BitPat("b???????_?????_?????_100_?????_1100011")
+  def SLT   = BitPat("b0000000_?????_?????_010_?????_0110011")
+  def ANDI  = BitPat("b???????_?????_?????_111_?????_0010011")
 
   def TRAP  = BitPat("b???????_?????_?????_???_?????_1101011")
   def ERR   = BitPat("b0000000_00000_00000_000_00000_0000000")
@@ -47,10 +50,13 @@ object RVI {
     ADDW  -> List(InstrTypes.r, rs1 , rs2 , non , non , add , non , 1.U, ExecSpecials.word  ),
     SUB   -> List(InstrTypes.r, rs1 , rs2 , non , non , sub , non , 1.U, ExecSpecials.non   ),
     SLTIU -> List(InstrTypes.i, rs1 , imm , non , non , ltu , non , 1.U, ExecSpecials.non   ),
-    BEQ   -> List(InstrTypes.b, rs1 , rs2 , imm , non , equ , non , 1.U, ExecSpecials.branch),
-    BNE   -> List(InstrTypes.b, rs1 , rs2 , imm , non , neq , non , 1.U, ExecSpecials.branch),
+    BEQ   -> List(InstrTypes.b, rs1 , rs2 , imm , non , equ , non , 0.U, ExecSpecials.branch),
+    BNE   -> List(InstrTypes.b, rs1 , rs2 , imm , non , neq , non , 0.U, ExecSpecials.branch),
     ADDIW -> List(InstrTypes.i, rs1 , imm , non , non , add , non , 1.U, ExecSpecials.word  ),
     LD    -> List(InstrTypes.i, non , non , rs1 , imm , non , 3.U , 1.U, ExecSpecials.ld    ),
+    BLT   -> List(InstrTypes.b, rs1 , rs2 , imm , non , lts , non , 0.U, ExecSpecials.branch),
+    SLT   -> List(InstrTypes.r, rs1 , rs2 , non , non , lts , non , 1.U, ExecSpecials.non   ),
+    ANDI  -> List(InstrTypes.i, rs1 , imm , non , non , and , non , 1.U, ExecSpecials.non   ),
     TRAP  -> List(InstrTypes.t, imm , non , non , non , add , non , 0.U, ExecSpecials.trap  )
   )
 }
