@@ -68,6 +68,18 @@ object RVI {
               BitPat("b000000?_?????_?????_101_?????_0010011")
               else
               BitPat("b0000000_?????_?????_101_?????_0010011")
+  def SRLIW = if (XLEN == 64)
+              BitPat("b000000?_?????_?????_101_?????_0011011")
+              else
+              BitPat("b0000000_00000_00000_000_00000_0000000")
+  def SRAW  = if (XLEN == 64)
+              BitPat("b0100000_?????_?????_101_?????_0111011")
+              else
+              BitPat("b0000000_00000_00000_000_00000_0000000")
+  def SRLW  = if (XLEN == 64)
+              BitPat("b0000000_?????_?????_101_?????_0111011")
+              else
+              BitPat("b0000000_00000_00000_000_00000_0000000")
 
   def TRAP  = BitPat("b???????_?????_?????_???_?????_1101011")
   def ERR   = BitPat("b0000000_00000_00000_000_00000_0000000")
@@ -107,6 +119,9 @@ object RVI {
     SLLI  -> List(InstrTypes.i, rs1 , imm , non , non , sll , non , 1.U, ExecSpecials.non   ),
     SUBW  -> List(InstrTypes.r, rs1 , rs2 , non , non , sub , non , 1.U, ExecSpecials.word  ),
     SRLI  -> List(InstrTypes.i, rs1 , imm , non , non , srl , non , 1.U, ExecSpecials.non   ),
+    SRLIW -> List(InstrTypes.i, rs1 , imm , non , non , srlw, non , 1.U, ExecSpecials.word  ),
+    SRAW  -> List(InstrTypes.r, rs1 , rs2 , non , non , sraw, non , 1.U, ExecSpecials.word  ),
+    SRLW  -> List(InstrTypes.r, rs1 , rs2 , non , non , srlw, non , 1.U, ExecSpecials.word  ),
     TRAP  -> List(InstrTypes.t, imm , non , non , non , add , non , 0.U, ExecSpecials.trap  )
   )
 }
