@@ -93,7 +93,7 @@ class MEM extends Module {
     if(XLEN == 64)"b11111111".U
     else          "b00000000".U
       )
-      wireSign := 1.B
+      wireSign := 0.B
     }
     is(4.U) {
       wireMask := "b00000001".U
@@ -139,6 +139,7 @@ class MEM extends Module {
       RREADY := 0.B
       NVALID := 1.B
       when(sign === 0.B) {
+        // printf("data: %x\tmask: %b\n", io.axiRd.RDATA, mask)
         data := io.axiRd.RDATA & Cat((for { a <- 0 until XLEN / 8 } yield Fill(8, mask(a))).reverse)
       }.otherwise {
         switch(mask) {
@@ -153,11 +154,6 @@ class MEM extends Module {
           }
         }
       }
-      data   := (
-        io.axiRd.RDATA & 
-        Cat((for { a <- 0 until XLEN / 8 } yield Fill(8, mask(a))).reverse)
-      ) |
-        Cat((for { a <- 0 until XLEN / 8 } yield Fill(8, !mask(a) & sign)).reverse)
     }
   }.elsewhen(io.axiRa.ARVALID && io.axiRa.ARREADY) { // ready to send request to BUS
     ARVALID := 0.B
