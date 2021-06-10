@@ -83,6 +83,16 @@ object RVI {
   def BGE   = BitPat("b???????_?????_?????_101_?????_1100011")
   def SW    = BitPat("b???????_?????_?????_010_?????_0100011")
   def LUI   = BitPat("b???????_?????_?????_???_?????_0110111")
+  def SLLIW = if (XLEN == 64)
+              BitPat("b000000?_?????_?????_001_?????_0011011")
+              else
+              BitPat("b0000000_00000_00000_000_00000_0000000")
+  def SRAIW = if (XLEN == 64)
+              BitPat("b010000?_?????_?????_101_?????_0011011")
+              else
+              BitPat("b0000000_00000_00000_000_00000_0000000")
+  def BGEU  = BitPat("b???????_?????_?????_111_?????_1100011")
+  def XOR   = BitPat("b0000000_?????_?????_100_?????_0110011")
 
   def TRAP  = BitPat("b???????_?????_?????_???_?????_1101011")
   def ERR   = BitPat("b0000000_00000_00000_000_00000_0000000")
@@ -128,6 +138,10 @@ object RVI {
     BGE   -> List(InstrTypes.b, rs1 , rs2 , imm , non , ges , non , 0.U, ExecSpecials.branch),
     SW    -> List(InstrTypes.s, rs2 , non , rs1 , imm , add , 2.U , 0.U, ExecSpecials.st    ),
     LUI   -> List(InstrTypes.u, non , imm , non , non , add , non , 1.U, ExecSpecials.non   ),
+    SLLIW -> List(InstrTypes.i, rs1 , imm , non , non , sllw, non , 1.U, ExecSpecials.word  ),
+    SRAIW -> List(InstrTypes.i, rs1 , imm , non , non , sraw, non , 1.U, ExecSpecials.word  ),
+    BGEU  -> List(InstrTypes.b, rs1 , rs2 , imm , non , geu , non , 0.U, ExecSpecials.branch),
+    XOR   -> List(InstrTypes.r, rs1 , rs2 , non , non , xor , non , 1.U, ExecSpecials.non   ),
     TRAP  -> List(InstrTypes.t, imm , non , non , non , add , non , 0.U, ExecSpecials.trap  )
   )
 }
