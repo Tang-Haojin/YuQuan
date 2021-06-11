@@ -148,7 +148,11 @@ class ID extends Module {
       wireImm := Cat(Fill(XLEN - 12, io.instr(31)), io.instr(31, 20))
     }
     is(u) {
-      wireImm := Cat(Fill(XLEN - 32, io.instr(31)), io.instr(31, 12), Fill(12, 0.U))
+      wireImm := Cat(
+        if (XLEN == 64) Fill(XLEN - 32, io.instr(31)) else 0.U,
+        io.instr(31, 12),
+        Fill(12, 0.U)
+      )
     }
     is(j) {
       wireImm := Cat(

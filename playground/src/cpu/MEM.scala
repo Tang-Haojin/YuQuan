@@ -150,7 +150,7 @@ class MEM extends Module {
             data := Cat(Fill(XLEN - 16, io.axiRd.RDATA(15)), io.axiRd.RDATA(15, 0))
           }
           is("b00001111".U) {
-            data := Cat(Fill(XLEN - 32, io.axiRd.RDATA(31)), io.axiRd.RDATA(31, 0))
+            data := Cat(if (XLEN == 64) Fill(XLEN - 32, io.axiRd.RDATA(31)) else 0.U, io.axiRd.RDATA(31, 0))
           }
         }
       }

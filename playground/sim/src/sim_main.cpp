@@ -1,6 +1,12 @@
 #include "obj_dir/VTestTop.h"
 #include "verilated.h"
 
+#ifdef riscv32
+#define PCFMT "\33[0m at pc = 0x%08x\n\n"
+#else
+#define PCFMT "\33[0m at pc = 0x%016lx\n\n"
+#endif
+
 int main(int argc, char **argv, char **env) {
   Verilated::commandArgs(argc, argv);
   VTestTop *top = new VTestTop;
@@ -21,15 +27,15 @@ int main(int argc, char **argv, char **env) {
         printf("\33[1;31mHIT BAD TRAP");
       else
         printf("\33[1;32mHIT GOOD TRAP");
-      printf("\33[0m at pc = 0x%016lx\n\n", top->io_pc - 4);
+      printf(PCFMT, top->io_pc - 4);
       break;
     }
     else if (top->io_exit == 2) {
       printf("debug: Exit after %d clock cycles.\n", i / 2);
       printf("debug: ");
         printf("\33[1;31mINVALID INSTRUCTION");
-      printf("\33[0m at pc = 0x%016lx\n\n", top->io_pc - 4);
-      break;
+        printf(PCFMT, top->io_pc - 4);
+        break;
     }
   }
   delete top;

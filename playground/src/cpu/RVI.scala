@@ -44,12 +44,12 @@ object RVI {
   else         BitPat("b0100000_?????_?????_101_?????_0010011")
   def ADD    = BitPat("b0000000_?????_?????_000_?????_0110011")
   def SUB    = BitPat("b0100000_?????_?????_000_?????_0110011")
-  def SLL    = null
+  def SLL    = BitPat("b0000000_?????_?????_001_?????_0110011")
   def SLT    = BitPat("b0000000_?????_?????_010_?????_0110011")
   def SLTU   = BitPat("b0000000_?????_?????_011_?????_0110011")
   def XOR    = BitPat("b0000000_?????_?????_100_?????_0110011")
-  def SRL    = null
-  def SRA    = null
+  def SRL    = BitPat("b0000000_?????_?????_101_?????_0110011")
+  def SRA    = BitPat("b0100000_?????_?????_101_?????_0110011")
   def OR     = BitPat("b0000000_?????_?????_110_?????_0110011")
   def AND    = BitPat("b0000000_?????_?????_111_?????_0110011")
   def FENCE  = null
@@ -127,12 +127,12 @@ object RVI {
     SRAI  -> List(InstrTypes.i, rs1 , imm , non , non , sra , non , 1.U, ExecSpecials.non   ),
     ADD   -> List(InstrTypes.r, rs1 , rs2 , non , non , add , non , 1.U, ExecSpecials.non   ),
     SUB   -> List(InstrTypes.r, rs1 , rs2 , non , non , sub , non , 1.U, ExecSpecials.non   ),
-
+    SLL   -> List(InstrTypes.r, rs1 , rs2 , non , non , sll , non , 1.U, ExecSpecials.non   ),
     SLT   -> List(InstrTypes.r, rs1 , rs2 , non , non , lts , non , 1.U, ExecSpecials.non   ),
     SLTU  -> List(InstrTypes.r, rs1 , rs2 , non , non , ltu , non , 1.U, ExecSpecials.non   ),
     XOR   -> List(InstrTypes.r, rs1 , rs2 , non , non , xor , non , 1.U, ExecSpecials.non   ),
-
-
+    SRL   -> List(InstrTypes.r, rs1 , rs2 , non , non , srl , non , 1.U, ExecSpecials.non   ),
+    SRA   -> List(InstrTypes.r, rs1 , rs2 , non , non , sra , non , 1.U, ExecSpecials.non   ),
     OR    -> List(InstrTypes.r, rs1 , rs2 , non , non , or  , non , 1.U, ExecSpecials.non   ),
     AND   -> List(InstrTypes.r, rs1 , rs2 , non , non , and , non , 1.U, ExecSpecials.non   ),
 

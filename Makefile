@@ -1,6 +1,9 @@
 BUILD_DIR = ./build
 ROOT_DIR = $(shell cat build.sc | grep -oP "(?<=object ).*(?= extends ScalaModule)")
 SUB_DIR = $(shell cd $(ROOT_DIR); ls -d */ | tr -d / | grep -v src; cd ..)
+ifeq ($(ISA),)
+ISA = riscv64
+endif
 
 test:
 	mill -i __.test
@@ -35,9 +38,9 @@ sim:
 	ln -f $(ROOT_DIR)/sim/src/mem.txt $(BUILD_DIR)/sim/mem.txt
 ifneq ($(BIN),)
 	@rm -f $(BUILD_DIR)/sim/mem.txt
-	@xxd -g 1 $(ROOT_DIR)/sim/bin/$(BIN)-riscv64-nemu.bin | grep -oP "(?<=: ).*(?=  )" >$(BUILD_DIR)/sim/mem.txt
+	@xxd -g 1 $(ROOT_DIR)/sim/bin/$(BIN)-$(ISA)-nemu.bin | grep -oP "(?<=: ).*(?=  )" >$(BUILD_DIR)/sim/mem.txt
 endif
 	mill -i __.sim.runMain Elaborate -td $(BUILD_DIR)/sim
-	@cd $(BUILD_DIR)/sim && verilator -cc TestTop.v --top-module TestTop --exe --build sim_main.cpp >/dev/null && ./obj_dir/VTestTop
+	@cd $(BUILD_DIR)/sim && verilator -cc TestTop.v --top-module TestTop --exe --build sim_main.cpp -CFLAGS -D$(ISA) -Wno-WIDTH >/dev/null && ./obj_dir/VTestTop
 
 .PHONY: test verilog help compile bsp reformat checkformat clean sim

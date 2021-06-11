@@ -76,18 +76,18 @@ class EX extends Module {
   val alu1_2 = Module(new ALU)
   val alu1_3 = Module(new ALU)
 
-  wireData  := alu1_2.res.asUInt
+  wireData  := alu1_2.io.res.asUInt
   when(io.input.special === word) {
-    wireData := Cat(Fill(32, alu1_2.res(31)), alu1_2.res(31, 0))
+    wireData := Cat(Fill(32, alu1_2.io.res(31)), alu1_2.io.res(31, 0))
   }
-  alu1_2.a  := io.input.num1.asSInt
-  alu1_2.b  := io.input.num2.asSInt
-  alu1_2.op := io.input.op1_2
+  alu1_2.io.a  := io.input.num1.asSInt
+  alu1_2.io.b  := io.input.num2.asSInt
+  alu1_2.io.op := io.input.op1_2
 
-  wireSpec  := alu1_3.res.asUInt
-  alu1_3.a  := io.input.num1.asSInt
-  alu1_3.b  := io.input.num3.asSInt
-  alu1_3.op := io.input.op1_3
+  wireSpec     := alu1_3.io.res.asUInt
+  alu1_3.io.a  := io.input.num1.asSInt
+  alu1_3.io.b  := io.input.num3.asSInt
+  alu1_3.io.op := io.input.op1_3
 
   switch(io.input.special) {
     is(trap) {

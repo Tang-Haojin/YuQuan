@@ -1,20 +1,16 @@
-Chisel Project Template
+Nutshell-xs Project (Temporary name)
 =======================
-
-Another version of the [Chisel template](https://github.com/ucb-bar/chisel-template) supporting mill.
-mill is another Scala/Java build tool without obscure DSL like SBT. It is much faster than SBT.
 
 Contents at a glance:
 
 * `.gitignore` - helps Git ignore junk like generated files, build products, and temporary files.
 * `build.sc` - instructs mill to build the Chisel project
 * `Makefile` - rules to call mill
-* `playground/src/GCD.scala` - GCD source file
-* `playground/src/DecoupledGCD.scala` - another GCD source file
-* `playground/src/Elaborate.scala` - wrapper file to call chisel command with the GCD module
-* `playground/test/src/GCDSpec.scala` - GCD tester
-
-Feel free to rename or delete files under `playground/` or use them as a reference/template.
+* `playground/src` - source directory
+* `playground/src/Elaborate.scala` - wrapper file to call chisel command with the target module
+* `playground/test/src` - tester directory
+* `playground/sim/src` - simulation directory
+* `playground/sim/Elaborate.scala` - wrapper file to call chisel command with the simulation module
 
 ## Getting Started
 
@@ -35,7 +31,8 @@ To run simple test:
 make sim
 ```
 
-To load program from bin and run test, copy `$BIN-riscv64-nemu.bin` to `playground/sim/bin/`, and run:
+To load program from bin and run test, copy `$BIN-$ISA-nemu.bin` to `playground/sim/bin/`, and run:
 ```bash
-make BIN=$BIN sim
+make BIN=$BIN ISA=$ISA sim
 ```
+If `ISA` is not specified, it defaults to riscv64.
