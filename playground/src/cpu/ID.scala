@@ -28,6 +28,10 @@ object NumTypes {
   val non::rs1::rs2::imm::four::pc::fun3::Nil = numtypes
 }
 
+object RVInstr {
+  val table = RVI.table ++ (if (HasRVM) RVM.table else Nil)
+}
+
 class IDOutput extends Bundle {
   val rd      = Output(UInt(5.W))
   val num1    = Output(UInt(XLEN.W))
@@ -68,7 +72,7 @@ class ID extends Module {
   val decoded = ListLookup(
     io.instr,
     List(7.U, 0.U, 0.U, 0.U, 0.U, 0.U, 0.U, 0.U, inv),
-    RVI.table
+    RVInstr.table
   )
 
   val wireSpecial = WireDefault(0.U(5.W))

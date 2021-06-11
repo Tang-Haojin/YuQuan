@@ -38,6 +38,6 @@ ifneq ($(BIN),)
 	@xxd -g 1 $(ROOT_DIR)/sim/bin/$(BIN)-riscv64-nemu.bin | grep -oP "(?<=: ).*(?=  )" >$(BUILD_DIR)/sim/mem.txt
 endif
 	mill -i __.sim.runMain Elaborate -td $(BUILD_DIR)/sim
-	cd $(BUILD_DIR)/sim && verilator -cc TestTop.v --top-module TestTop --exe --build sim_main.cpp && ./obj_dir/VTestTop
+	@cd $(BUILD_DIR)/sim && verilator -cc TestTop.v --top-module TestTop --exe --build sim_main.cpp >/dev/null && ./obj_dir/VTestTop
 
 .PHONY: test verilog help compile bsp reformat checkformat clean sim
