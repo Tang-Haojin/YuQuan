@@ -1,9 +1,6 @@
 BUILD_DIR = ./build
 ROOT_DIR = $(shell cat build.sc | grep -oP "(?<=object ).*(?= extends ScalaModule)")
 SUB_DIR = $(shell cd $(ROOT_DIR); ls -d */ | tr -d / | grep -v src; cd ..)
-ifeq ($(ISA),)
-ISA = riscv64
-endif
 
 test:
 	mill -i __.test
@@ -44,3 +41,10 @@ endif
 	@cd $(BUILD_DIR)/sim && verilator -cc TestTop.v --top-module TestTop --exe --build sim_main.cpp -CFLAGS -D$(ISA) -Wno-WIDTH >/dev/null && ./obj_dir/VTestTop
 
 .PHONY: test verilog help compile bsp reformat checkformat clean sim
+
+ifeq ($(ISA),)
+ISA = riscv64
+endif
+ifeq ($(ISA), riscv32)
+export XLEN = 32
+endif
