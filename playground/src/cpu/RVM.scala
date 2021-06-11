@@ -10,13 +10,25 @@ import cpu.config.GeneralConfig._
 
 object RVM {
   def MUL    = BitPat("b0000001_?????_?????_000_?????_0110011")
-  def MULW   = BitPat("b0000001_?????_?????_000_?????_0111011")
-  def DIVW   = BitPat("b0000001_?????_?????_100_?????_0111011")
+  def MULW   = 
+  if(XLEN==64) BitPat("b0000001_?????_?????_000_?????_0111011")
+  else         BitPat("b0000000_00000_00000_000_00000_0000000")
+  def DIVW   =
+  if(XLEN==64) BitPat("b0000001_?????_?????_100_?????_0111011")
+  else         BitPat("b0000000_00000_00000_000_00000_0000000")
+  def REMW   =
+  if(XLEN==64) BitPat("b0000001_?????_?????_110_?????_0111011")
+  else         BitPat("b0000000_00000_00000_000_00000_0000000")
+  def REM    = BitPat("b0000001_?????_?????_110_?????_0110011")
+  def DIV    = BitPat("b0000001_?????_?????_100_?????_0110011")
 
   val table = Array(
     //            |    Type    |num1 |num2 |num3 |num4 |op1_2|op1_3| WB |     Special        |
     MUL    -> List(InstrTypes.r, rs1 , rs2 , non , non , mul , non , 1.U, ExecSpecials.non   ),
     MULW   -> List(InstrTypes.r, rs1 , rs2 , non , non , mul , non , 1.U, ExecSpecials.word  ),
-    DIVW   -> List(InstrTypes.r, rs1 , rs2 , non , non , divw, non , 1.U, ExecSpecials.word  )
+    DIVW   -> List(InstrTypes.r, rs1 , rs2 , non , non , divw, non , 1.U, ExecSpecials.word  ),
+    REMW   -> List(InstrTypes.r, rs1 , rs2 , non , non , remw, non , 1.U, ExecSpecials.word  ),
+    REM    -> List(InstrTypes.r, rs1 , rs2 , non , non , rem , non , 1.U, ExecSpecials.non   ),
+    DIV    -> List(InstrTypes.r, rs1 , rs2 , non , non , div , non , 1.U, ExecSpecials.non   )
   )
 }

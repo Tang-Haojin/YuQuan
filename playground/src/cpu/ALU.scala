@@ -7,12 +7,12 @@ import cpu.Operators._
 import cpu.config.GeneralConfig._
 
 object Operators {
-  var operators = Enum(20)
+  var operators = Enum(23)
   val err::add::sub::and::or::xor::sll::sra::Nil = operators.take(8)
   operators = operators.drop(8)
   val srl::lts::ltu::equ::neq::sllw::srlw::sraw::Nil = operators.take(8)
   operators = operators.drop(8)
-  val ges::geu::mul::divw::Nil = operators
+  val ges::geu::mul::divw::remw::rem::div::Nil = operators
 }
 
 class ALU extends Module {
@@ -49,5 +49,8 @@ class ALU extends Module {
     is(geu)  { res := Cat(Fill(XLEN - 1, 0.U), (a.asUInt >= b.asUInt)).asSInt }
     is(mul)  { res := a * b }
     is(divw) { res := (a(31, 0) / b(31, 0)).asSInt }
+    is(remw) { res := (a(31, 0) % b(31, 0)).asSInt }
+    is(rem)  { res := (a.asUInt % b.asUInt).asSInt }
+    is(div)  { res := (a.asUInt / b.asUInt).asSInt }
   }
 }
