@@ -81,6 +81,16 @@ class ID extends Module {
   val wireOp1_2   = Wire(UInt(AluTypeWidth.W)); wireOp1_2 := decoded(5)
   val wireOp1_3   = Wire(UInt(AluTypeWidth.W)); wireOp1_3 := decoded(6)
   val wireFunt3   = Wire(UInt(3.W));            wireFunt3 := io.instr(14, 12)
+  val wireData    = Wire(UInt(XLEN.W))
+
+  val alu1_2 = Module(new ALU)
+  wireData  := alu1_2.io.res.asUInt
+  when(io.output.special === word) {
+    wireData := Cat(Fill(32, alu1_2.io.res(31)), alu1_2.io.res(31, 0))
+  }
+  alu1_2.io.a  := io.output.num1.asSInt
+  alu1_2.io.b  := io.output.num2.asSInt
+  alu1_2.io.op := io.output.op1_2
 
   val (wireNum1, wireNum2, wireNum3, wireNum4, wireImm) = (
     WireDefault(0.U(XLEN.W)), WireDefault(0.U(XLEN.W)),
@@ -194,6 +204,25 @@ class ID extends Module {
   when(io.nextVR.VALID && io.nextVR.READY) { // ready to trans instr to the next level
     NVALID  := 0.B
     LREADY  := 1.B
+    
+    io.pcIo.wen   := 1.B
+    io.pcIo.wdata := io.pcIo.rdata + 4.U
+    switch(io.output.special) {
+      is(jump) {
+        io.pcIo.wen   := 1.B
+        io.pcIo.wdata := io.output.num1 + io.output.num3
+      }
+      is(jalr) {
+        io.pcIo.wen   := 1.B
+        io.pcIo.wdata := Cat((io.output.num3 + io.output.num4)(XLEN - 1, 1), 0.U)
+      }
+      is(branch) {
+        when(wireData === 1.U) {
+          io.pcIo.wen   := 1.B
+          io.pcIo.wdata := io.pcIo.rdata + io.output.num3
+        }
+      }
+    }
   }.elsewhen(io.lastVR.VALID && io.lastVR.READY) { // let's start working
     NVALID  := 1.B
     LREADY  := 0.B

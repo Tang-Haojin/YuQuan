@@ -28,15 +28,11 @@ class EXOutput extends Bundle {
 
 class EX extends Module {
   val io = IO(new Bundle {
-    val pcIo   = Flipped(new PCIO)
     val input  = Flipped(new IDOutput)
     val lastVR = new LastVR
     val nextVR = Flipped(new LastVR)
     val output = new EXOutput
   })
-
-  io.pcIo.wen   := 0.B
-  io.pcIo.wdata := 0.U
 
   val NVALID = RegInit(0.B); io.nextVR.VALID := NVALID
   val LREADY = RegInit(1.B); io.lastVR.READY := LREADY
@@ -51,7 +47,6 @@ class EX extends Module {
 
   val wireRd    = Wire(UInt(5.W))
   val wireData  = Wire(UInt(XLEN.W))
-  val wireSpec  = Wire(UInt(XLEN.W))
   val wireIsMem = Wire(Bool())
   val wireIsLd  = Wire(Bool())
   val wireAddr  = Wire(UInt(XLEN.W));
@@ -74,7 +69,6 @@ class EX extends Module {
   io.output.exit  := exit
 
   val alu1_2 = Module(new ALU)
-  val alu1_3 = Module(new ALU)
 
   wireData  := alu1_2.io.res.asUInt
   when(io.input.special === word) {
@@ -83,11 +77,6 @@ class EX extends Module {
   alu1_2.io.a  := io.input.num1.asSInt
   alu1_2.io.b  := io.input.num2.asSInt
   alu1_2.io.op := io.input.op1_2
-
-  wireSpec     := alu1_3.io.res.asUInt
-  alu1_3.io.a  := io.input.num1.asSInt
-  alu1_3.io.b  := io.input.num3.asSInt
-  alu1_3.io.op := io.input.op1_3
 
   switch(io.input.special) {
     is(trap) {
@@ -112,23 +101,6 @@ class EX extends Module {
     addr   := wireAddr
     mask   := wireMask
     exit   := wireExit
-
-    io.pcIo.wen   := 1.B
-    io.pcIo.wdata := io.pcIo.rdata + 4.U
-
-    switch(io.input.special) {
-      is(jump) {
-        io.pcIo.wdata := wireSpec
-      }
-      is(jalr) {
-        io.pcIo.wdata := Cat((io.input.num3 + io.input.num4)(XLEN - 1, 1), 0.U)
-      }
-      is(branch) {
-        when(wireData === 1.U) {
-          io.pcIo.wdata := io.pcIo.rdata + io.input.num3
-        }
-      }
-    }
   }
 
   if (debugIO && false) {
