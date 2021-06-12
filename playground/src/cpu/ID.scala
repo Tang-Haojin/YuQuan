@@ -46,16 +46,15 @@ class IDOutput extends Bundle {
 // instruction decoding module
 class ID extends Module {
   val io = IO(new Bundle {
-    val pcIo   = Flipped(new PCIO)
+    val pc     = Input (UInt(XLEN.W))
     val output = new IDOutput
     val gprsR  = Flipped(new GPRsR)
     val lastVR = new LastVR
     val nextVR = Flipped(new LastVR)
     val instr  = Input (UInt(32.W))
+    val jmpBch = Output(Bool())
+    val jbAddr = Output(UInt(XLEN.W))
   })
-
-  io.pcIo.wen   := 0.B
-  io.pcIo.wdata := 0.U
 
   val NVALID  = RegInit(0.B)
   val LREADY  = RegInit(1.B)
@@ -140,7 +139,7 @@ class ID extends Module {
         num._1 := 4.U
       }
       is(NumTypes.pc) {
-        num._1 := io.pcIo.rdata
+        num._1 := io.pc - 4.U
       }
       is(NumTypes.non) {
         num._1 := 0.U
@@ -200,29 +199,29 @@ class ID extends Module {
     wireRd := 0.U
   }
 
+  io.jmpBch := 0.B
+  io.jbAddr := 0.U
+  switch(io.output.special) {
+    is(jump) {
+      io.jmpBch := 1.B
+      io.jbAddr := io.output.num1 + io.output.num3
+    }
+    is(jalr) {
+      io.jmpBch := 1.B
+      io.jbAddr := Cat((io.output.num3 + io.output.num4)(XLEN - 1, 1), 0.U)
+    }
+    is(branch) {
+      when(wireData === 1.U) {
+        io.jmpBch := 1.B
+        io.jbAddr := io.pc + io.output.num3 - 4.U
+      }
+    }
+  }
+
   // FSM
   when(io.nextVR.VALID && io.nextVR.READY) { // ready to trans instr to the next level
     NVALID  := 0.B
     LREADY  := 1.B
-    
-    io.pcIo.wen   := 1.B
-    io.pcIo.wdata := io.pcIo.rdata + 4.U
-    switch(io.output.special) {
-      is(jump) {
-        io.pcIo.wen   := 1.B
-        io.pcIo.wdata := io.output.num1 + io.output.num3
-      }
-      is(jalr) {
-        io.pcIo.wen   := 1.B
-        io.pcIo.wdata := Cat((io.output.num3 + io.output.num4)(XLEN - 1, 1), 0.U)
-      }
-      is(branch) {
-        when(wireData === 1.U) {
-          io.pcIo.wen   := 1.B
-          io.pcIo.wdata := io.pcIo.rdata + io.output.num3
-        }
-      }
-    }
   }.elsewhen(io.lastVR.VALID && io.lastVR.READY) { // let's start working
     NVALID  := 1.B
     LREADY  := 0.B

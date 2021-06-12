@@ -74,7 +74,6 @@ class InternalCPU extends Module {
   io.axiWr <> moduleMEM.io.axiWr
 
   moduleIF.io.pcIo  <> modulePC.io.pcIo
-  moduleID.io.pcIo  <> modulePC.io.pcIo
 
   moduleID.io.gprsR <> moduleGPRs.io.gprsR
   moduleWB.io.gprsW <> moduleGPRs.io.gprsW
@@ -89,6 +88,10 @@ class InternalCPU extends Module {
   moduleEX.io.nextVR  <> moduleMEM.io.lastVR
   moduleMEM.io.nextVR <> moduleWB.io.lastVR
   moduleWB.io.nextVR  <> moduleIF.io.lastVR
+
+  moduleIF.io.jmpBch := moduleID.io.jmpBch
+  moduleIF.io.jbAddr := moduleID.io.jbAddr
+  moduleID.io.pc     := modulePC.io.pcIo.rdata
 
   if (debugIO) {
     io.debug.exit := moduleEX.io.output.exit

@@ -17,6 +17,8 @@ class IF extends Module {
     val nextVR = Flipped(new LastVR)
     val pcIo   = Flipped(new PCIO)
     val instr  = Output(UInt(XLEN.W))
+    val jmpBch = Input (Bool())
+    val jbAddr = Input (UInt(XLEN.W))
   })
 
   io.axiRa.ARID     := 0.U // 0 for IF
@@ -26,7 +28,7 @@ class IF extends Module {
   io.axiRa.ARLOCK   := 0.U // since we do not use it yet
   io.axiRa.ARCACHE  := 0.U // since we do not use it yet
   io.axiRa.ARPROT   := 0.U // since we do not use it yet
-  io.axiRa.ARADDR   := io.pcIo.rdata
+  io.axiRa.ARADDR   := 0.U
   io.axiRa.ARQOS    := DontCare
   io.axiRa.ARUSER   := DontCare
   io.axiRa.ARREGION := DontCare
@@ -58,6 +60,14 @@ class IF extends Module {
   }.elsewhen(io.axiRa.ARVALID && io.axiRa.ARREADY) { // ready to send request to BUS
     ARVALID := 0.B
     RREADY  := 1.B
+    io.pcIo.wen := 1.B
+    when(io.jmpBch) {
+      io.axiRa.ARADDR := io.jbAddr
+      io.pcIo.wdata   := io.jbAddr + 4.U
+    }.otherwise {
+      io.axiRa.ARADDR := io.pcIo.rdata
+      io.pcIo.wdata   := io.pcIo.rdata + 4.U
+    }
   }.elsewhen(io.lastVR.VALID && io.lastVR.READY) { // ready to start fetching instr
     LREADY  := 0.B
     ARVALID := 1.B
