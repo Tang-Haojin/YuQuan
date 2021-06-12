@@ -28,10 +28,10 @@ class EXOutput extends Bundle {
 
 class EX extends Module {
   val io = IO(new Bundle {
-    val pcIo   = Flipped(new PCIO)     // connected
-    val input  = Flipped(new IDOutput) // connected
-    val lastVR = new LastVR            // connected
-    val nextVR = Flipped(new LastVR)   // connected
+    val pcIo   = Flipped(new PCIO)
+    val input  = Flipped(new IDOutput)
+    val lastVR = new LastVR
+    val nextVR = Flipped(new LastVR)
     val output = new EXOutput
   })
 

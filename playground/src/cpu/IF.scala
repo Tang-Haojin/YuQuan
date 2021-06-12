@@ -9,15 +9,14 @@ import cpu.config.GeneralConfig._
 import cpu.config.RegisterConfig._
 import cpu.config.Debug._
 
-// instruction fetching module
 class IF extends Module {
   val io = IO(new Bundle {
-    val axiRa  = new AXIra            // connected
-    val axiRd  = new AXIrd            // connected
-    val lastVR = new LastVR           // connected
-    val nextVR = Flipped(new LastVR)  // connected
-    val pcIo   = Flipped(new PCIO)    // connected
-    val instr  = Output(UInt(XLEN.W)) // connected
+    val axiRa  = new AXIra
+    val axiRd  = new AXIrd
+    val lastVR = new LastVR
+    val nextVR = Flipped(new LastVR)
+    val pcIo   = Flipped(new PCIO)
+    val instr  = Output(UInt(XLEN.W))
   })
 
   io.axiRa.ARID     := 0.U // 0 for IF

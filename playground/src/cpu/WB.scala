@@ -12,9 +12,9 @@ import cpu.config.Debug._
 
 class WB extends Module {
   val io = IO(new Bundle {
-    val gprsW  = Flipped(new GPRsW)  // connected
-    val lastVR = new LastVR          // connected
-    val nextVR = Flipped(new LastVR) // connected
+    val gprsW  = Flipped(new GPRsW)
+    val lastVR = new LastVR
+    val nextVR = Flipped(new LastVR)
     val input  = Flipped(new MEMOutput)
   })
 
@@ -25,7 +25,7 @@ class WB extends Module {
   val NVALID  = RegInit(1.B); io.nextVR.VALID := NVALID
   val LREADY  = RegInit(0.B); io.lastVR.READY := LREADY
 
-  // FSM with a little simple combinational logic
+  // FSM
   when(io.nextVR.VALID && io.nextVR.READY) { // ready to announce the next level
     NVALID  := 0.B
     LREADY  := 1.B
@@ -34,8 +34,6 @@ class WB extends Module {
     LREADY  := 0.B
     NVALID  := 1.B
     io.gprsW.wen := (io.input.rd =/= 0.U)
-  }.otherwise {
-    io.gprsW.wen := 0.B
   }
 
   if (debugIO && false) {

@@ -17,13 +17,13 @@ class MEMOutput extends Bundle {
 
 class MEM extends Module {
   val io = IO(new Bundle {
-    val axiWa  = new AXIwa             // connected
-    val axiWd  = new AXIwd             // connected
-    val axiWr  = new AXIwr             // connected
-    val axiRa  = new AXIra             // connected
-    val axiRd  = new AXIrd             // connected
-    val lastVR = new LastVR            // connected
-    val nextVR = Flipped(new LastVR)   // connected
+    val axiWa  = new AXIwa
+    val axiWd  = new AXIwd
+    val axiWr  = new AXIwr
+    val axiRa  = new AXIra
+    val axiRd  = new AXIrd
+    val lastVR = new LastVR
+    val nextVR = Flipped(new LastVR)
     val input  = Flipped(new EXOutput)
     val output = new MEMOutput
   })

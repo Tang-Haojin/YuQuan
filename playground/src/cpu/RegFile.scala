@@ -32,19 +32,21 @@ class GPRs extends Module {
     regs(io.gprsW.waddr) := io.gprsW.wdata
   }
 
-  for (i <- 0 until readPortsNum) {
+  for (i <- 0 until readPortsNum)
     io.gprsR.rdata(i) := regs(io.gprsR.raddr(i))
-  }
 
-  if (showReg) {
+  if (showReg)
     when(io.debug.showReg) {
-      for (i <- 0 until 32) {
-        if (!partialReg || (partialReg && showRegList(i))) {
-          printf("\t%c%c%c\t%x\n", regNames.regNames(i)(0).U, regNames.regNames(i)(1).U, regNames.regNames(i)(2).U, regs(i.U))
-        }
-      }
+      for (i <- 0 until 32)
+        if (!partialReg || (partialReg && showRegList(i)))
+          printf(
+            "\t%c%c%c\t%x\n",
+            regNames.regNames(i)(0).U,
+            regNames.regNames(i)(1).U,
+            regNames.regNames(i)(2).U,
+            regs(i.U)
+          )
     }
-  }
 }
 
 class PCIO extends Bundle {
@@ -67,11 +69,10 @@ class PC extends Module {
   }
   io.pcIo.rdata := reg
 
-  if (showReg) {
+  if (showReg)
     when(io.debug.showReg) {
       printf("\n\tPC\t%x\n", reg)
     }
-  }
 }
 
 object regNames {

@@ -46,12 +46,12 @@ class IDOutput extends Bundle {
 // instruction decoding module
 class ID extends Module {
   val io = IO(new Bundle {
-    val pcIo   = Flipped(new PCIO)    // connected
-    val output = new IDOutput         // connected
-    val gprsR  = Flipped(new GPRsR)   // connected
-    val lastVR = new LastVR           // connected
-    val nextVR = Flipped(new LastVR)  // connected
-    val instr  = Input (UInt(32.W))   // connected
+    val pcIo   = Flipped(new PCIO)
+    val output = new IDOutput
+    val gprsR  = Flipped(new GPRsR)
+    val lastVR = new LastVR
+    val nextVR = Flipped(new LastVR)
+    val instr  = Input (UInt(32.W))
   })
 
   io.pcIo.wen   := 0.B
