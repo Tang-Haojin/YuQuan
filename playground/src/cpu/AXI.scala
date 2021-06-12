@@ -88,19 +88,13 @@ class AXIRaMux extends Module {
     val axiRaOut    = new AXIra
   })
 
-  val selector = RegInit(0.B)
-
   io.axiRaIn0.ARREADY := 0.B
   io.axiRaIn1.ARREADY := 0.B
 
-  when(selector) {
+  when(io.axiRaIn1.ARVALID && io.axiRaOut.ARREADY) {
     io.axiRaIn1 <> io.axiRaOut
   }.otherwise {
     io.axiRaIn0 <> io.axiRaOut
-  }
-
-  when(~io.axiRaOut.ARVALID || ~io.axiRaOut.ARREADY) {
-    selector := ~selector
   }
 }
 
@@ -110,8 +104,6 @@ class AXIRdMux extends Module {
     val axiRdIn1    = Flipped(new AXIrd)
     val axiRdOut    = new AXIrd
   })
-
-  val selector = RegInit(0.B)
 
   io.axiRdIn0.RID    := 0xf.U
   io.axiRdIn1.RID    := 0xf.U
@@ -126,14 +118,9 @@ class AXIRdMux extends Module {
   io.axiRdIn0.RVALID := 0.B
   io.axiRdIn1.RVALID := 0.B
 
-  when(selector) {
+  when(io.axiRdOut.RVALID && io.axiRdIn1.RREADY && io.axiRdOut.RID === 1.U) {
     io.axiRdIn1 <> io.axiRdOut
   }.otherwise {
     io.axiRdIn0 <> io.axiRdOut
-  }
-
-  when(~io.axiRdOut.RVALID || ~io.axiRdOut.RREADY || 
-       (io.axiRdOut.RID =/= selector.asUInt())) {
-    selector := ~selector
   }
 }
