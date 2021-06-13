@@ -46,12 +46,11 @@ class IDOutput extends Bundle {
 // instruction decoding module
 class ID extends Module {
   val io = IO(new Bundle {
-    val pc     = Input (UInt(XLEN.W))
     val output = new IDOutput
     val gprsR  = Flipped(new GPRsR)
     val lastVR = new LastVR
     val nextVR = Flipped(new LastVR)
-    val instr  = Input (UInt(32.W))
+    val input  = Flipped(new IFOutput)
     val jmpBch = Output(Bool())
     val jbAddr = Output(UInt(XLEN.W))
   })
@@ -69,17 +68,17 @@ class ID extends Module {
   )
   
   val decoded = ListLookup(
-    io.instr,
+    io.input.instr,
     List(7.U, 0.U, 0.U, 0.U, 0.U, 0.U, 0.U, 0.U, inv),
     RVInstr.table
   )
 
-  val wireSpecial = WireDefault(0.U(5.W))
+  val wireSpecial = WireDefault(0.U(5.W));      wireSpecial := decoded(8)
   val wireType    = WireDefault(7.U(3.W))
   val wireRd      = Wire(UInt(5.W))
-  val wireOp1_2   = Wire(UInt(AluTypeWidth.W)); wireOp1_2 := decoded(5)
-  val wireOp1_3   = Wire(UInt(AluTypeWidth.W)); wireOp1_3 := decoded(6)
-  val wireFunt3   = Wire(UInt(3.W));            wireFunt3 := io.instr(14, 12)
+  val wireOp1_2   = Wire(UInt(AluTypeWidth.W)); wireOp1_2   := decoded(5)
+  val wireOp1_3   = Wire(UInt(AluTypeWidth.W)); wireOp1_3   := decoded(6)
+  val wireFunt3   = Wire(UInt(3.W));            wireFunt3   := io.input.instr(14, 12)
   val wireData    = Wire(UInt(XLEN.W))
 
   val alu1_2 = Module(new ALU)
@@ -99,7 +98,7 @@ class ID extends Module {
 
   val (wireRs1, wireRs2) = (
     Wire(UInt(5.W)), Wire(UInt(5.W))
-  ); wireRs1 := io.instr(19, 15); wireRs2 := io.instr(24, 20)
+  ); wireRs1 := io.input.instr(19, 15); wireRs2 := io.input.instr(24, 20)
 
   val (wireDataRs1, wireDataRs2) = (
     Wire(UInt(XLEN.W)), Wire(UInt(XLEN.W))
@@ -139,7 +138,7 @@ class ID extends Module {
         num._1 := 4.U
       }
       is(NumTypes.pc) {
-        num._1 := io.pc - 4.U
+        num._1 := io.input.pc
       }
       is(NumTypes.non) {
         num._1 := 0.U
@@ -150,41 +149,39 @@ class ID extends Module {
     }
   }
 
-  io.output.special := decoded(8)
-
   switch(decoded(0)) {
     is(i) {
-      wireImm := Cat(Fill(XLEN - 12, io.instr(31)), io.instr(31, 20))
+      wireImm := Cat(Fill(XLEN - 12, io.input.instr(31)), io.input.instr(31, 20))
     }
     is(u) {
       wireImm := Cat(
-        if (XLEN == 64) Fill(XLEN - 32, io.instr(31)) else 0.U,
-        io.instr(31, 12),
+        if (XLEN == 64) Fill(XLEN - 32, io.input.instr(31)) else 0.U,
+        io.input.instr(31, 12),
         Fill(12, 0.U)
       )
     }
     is(j) {
       wireImm := Cat(
-        Fill(XLEN - 20, io.instr(31)),
-        io.instr(19, 12),
-        io.instr(20),
-        io.instr(30, 21),
+        Fill(XLEN - 20, io.input.instr(31)),
+        io.input.instr(19, 12),
+        io.input.instr(20),
+        io.input.instr(30, 21),
         0.U
       )
     }
     is(s) {
       wireImm := Cat(
-        Fill(XLEN - 12, io.instr(31)),
-        io.instr(31, 25),
-        io.instr(11, 7 )
+        Fill(XLEN - 12, io.input.instr(31)),
+        io.input.instr(31, 25),
+        io.input.instr(11, 7 )
       )
     }
     is(b) {
       wireImm := Cat(
-        Fill(XLEN - 12, io.instr(31)),
-        io.instr(7),
-        io.instr(30, 25),
-        io.instr(11, 8 ),
+        Fill(XLEN - 12, io.input.instr(31)),
+        io.input.instr(7),
+        io.input.instr(30, 25),
+        io.input.instr(11, 8 ),
         0.U
       )
     }
@@ -194,35 +191,38 @@ class ID extends Module {
   }
   
   when(decoded(7) === 1.U) {
-    wireRd := io.instr(11, 7)
+    wireRd := io.input.instr(11, 7)
   }.otherwise {
     wireRd := 0.U
   }
 
   io.jmpBch := 0.B
   io.jbAddr := 0.U
-  switch(io.output.special) {
+  switch(wireSpecial) {
     is(jump) {
       io.jmpBch := 1.B
-      io.jbAddr := io.output.num1 + io.output.num3
+      io.jbAddr := io.input.pc + wireImm
     }
     is(jalr) {
       io.jmpBch := 1.B
-      io.jbAddr := Cat((io.output.num3 + io.output.num4)(XLEN - 1, 1), 0.U)
+      io.jbAddr := Cat((wireImm + wireRs1)(XLEN - 1, 1), 0.U)
     }
     is(branch) {
       when(wireData === 1.U) {
         io.jmpBch := 1.B
-        io.jbAddr := io.pc + io.output.num3 - 4.U
+        io.jbAddr := io.input.pc + wireImm
       }
     }
   }
 
+  io.lastVR.READY := io.nextVR.READY
   // FSM
   when(io.nextVR.VALID && io.nextVR.READY) { // ready to trans instr to the next level
-    NVALID  := 0.B
+    // NVALID  := 0.B
     LREADY  := 1.B
-  }.elsewhen(io.lastVR.VALID && io.lastVR.READY) { // let's start working
+  }
+  
+  when(io.lastVR.VALID && io.lastVR.READY) { // let's start working
     NVALID  := 1.B
     LREADY  := 0.B
     rd      := wireRd
@@ -233,14 +233,17 @@ class ID extends Module {
     op1_2   := wireOp1_2
     op1_3   := wireOp1_3
     special := wireSpecial
+  }.otherwise {
+    NVALID := 0.B
   }
 
-  if (debugIO && false) {
+  if (debugIO) {
     printf("id_last_ready     = %d\n", io.lastVR.READY  )
     printf("id_last_valid     = %d\n", io.lastVR.VALID  )
     printf("id_next_ready     = %d\n", io.nextVR.READY  )
     printf("id_next_valid     = %d\n", io.nextVR.VALID  )
-    printf("io.instr          = %x\n", io.instr         )
+    printf("io.input.instr    = %x\n", io.input.instr   )
+    printf("io.input.pc       = %x\n", io.input.pc      )
     printf("io.output.rd      = %d\n", io.output.rd     )
     printf("io.output.num1    = %d\n", io.output.num1   )
     printf("io.output.num2    = %d\n", io.output.num2   )

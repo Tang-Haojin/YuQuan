@@ -25,12 +25,15 @@ class WB extends Module {
   val NVALID  = RegInit(1.B); io.nextVR.VALID := NVALID
   val LREADY  = RegInit(0.B); io.lastVR.READY := LREADY
 
+  io.lastVR.READY := 1.B
   // FSM
   when(io.nextVR.VALID && io.nextVR.READY) { // ready to announce the next level
     NVALID  := 0.B
     LREADY  := 1.B
     io.gprsW.wen := 0.B
-  }.elsewhen(io.lastVR.VALID && io.lastVR.READY) { // ready to start fetching instr
+  }
+  
+  when(io.lastVR.VALID && io.lastVR.READY) { // ready to start fetching instr
     LREADY  := 0.B
     NVALID  := 1.B
     io.gprsW.wen := (io.input.rd =/= 0.U)

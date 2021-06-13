@@ -9,6 +9,11 @@ import cpu.config.GeneralConfig._
 import cpu.config.RegisterConfig._
 import cpu.config.Debug._
 
+class IFOutput extends Bundle {
+  val instr = Output(UInt(32.W))
+  val pc    = Output(UInt(XLEN.W))
+}
+
 class IF extends Module {
   val io = IO(new Bundle {
     val axiRa  = new AXIra
@@ -16,10 +21,18 @@ class IF extends Module {
     val lastVR = new LastVR
     val nextVR = Flipped(new LastVR)
     val pcIo   = Flipped(new PCIO)
-    val instr  = Output(UInt(XLEN.W))
+    val output = new IFOutput
     val jmpBch = Input (Bool())
     val jbAddr = Input (UInt(XLEN.W))
   })
+
+  val running::blocking::Nil = Enum(2)
+  val state = RegInit(0.U(1.W))
+
+  val pendingNum = RegInit(0.U(XLEN.W))
+  val basePC     = RegInit(MEMBase.U(XLEN.W))
+  val firstRun   = RegInit(1.B)
+  val NVALID     = RegInit(0.B)
 
   io.axiRa.ARID     := 0.U // 0 for IF
   io.axiRa.ARLEN    := 0.U // (ARLEN + 1) AXI Burst per AXI Transfer (a.k.a. AXI Beat)
@@ -35,49 +48,78 @@ class IF extends Module {
   io.pcIo.wen       := 0.B
   io.pcIo.wdata     := 0.U
 
-  val ARVALID = RegInit(0.B)
-  val NVALID  = RegInit(0.B)
-  val LREADY  = RegInit(1.B)
-  val RREADY  = RegInit(0.B)
   val instr   = RegInit(0.U(32.W))
+  val pc      = RegInit(0.U(XLEN.W))
 
-  io.axiRa.ARVALID := ARVALID
+  io.axiRa.ARVALID := 1.B
   io.nextVR.VALID  := NVALID
-  io.axiRd.RREADY  := RREADY
-  io.lastVR.READY  := LREADY
-  io.instr         := instr
+  io.axiRd.RREADY  := 1.B
+  io.lastVR.READY  := 1.B
+  io.output.instr  := instr
+  io.output.pc     := io.pcIo.rdata
 
   // FSM
-  when(io.nextVR.VALID && io.nextVR.READY) { // ready to trans instr to the next level
-    NVALID  := 0.B
-    LREADY  := 1.B
-  }.elsewhen(io.axiRd.RVALID && io.axiRd.RREADY) { // ready to receive instr from BUS
-    when(io.axiRd.RID === 0.U) { // remember to check the transaction ID
-      RREADY := 0.B
-      NVALID := 1.B
-      instr  := io.axiRd.RDATA
+  switch(state) {
+    is(running) {
+      when(!io.jmpBch) {
+        io.axiRa.ARVALID := 1.B
+        io.axiRa.ARADDR  := basePC
+        when(io.axiRa.ARREADY) {
+          basePC    := basePC + 4.U
+        }
+        when(io.axiRd.RVALID && (io.axiRd.RID === 0.U)) { // remember to check the transaction ID
+          io.pcIo.wen   := 1.B
+          instr         := io.axiRd.RDATA
+          pc            := io.pcIo.rdata
+          io.pcIo.wdata := io.pcIo.rdata + 4.U
+          when(firstRun) {
+            firstRun := 0.B
+          }.otherwise {
+            NVALID := 1.B
+          }
+        }
+      }.otherwise {
+        state    := blocking
+        firstRun := 1.B
+        basePC   := io.jbAddr
+        io.axiRa.ARVALID := 0.B
+        NVALID  := 1.B
+        instr := 0x00000013.U // nop
+        io.pcIo.wen   := 1.B
+        io.pcIo.wdata := io.jbAddr
+        when(io.axiRd.RVALID && (io.axiRd.RID === 0.U) && (pendingNum === 1.U)) {
+          state := running
+        }
+      }
     }
-  }.elsewhen(io.axiRa.ARVALID && io.axiRa.ARREADY) { // ready to send request to BUS
-    ARVALID := 0.B
-    RREADY  := 1.B
-    io.pcIo.wen := 1.B
-    when(io.jmpBch) {
-      io.axiRa.ARADDR := io.jbAddr
-      io.pcIo.wdata   := io.jbAddr + 4.U
-    }.otherwise {
-      io.axiRa.ARADDR := io.pcIo.rdata
-      io.pcIo.wdata   := io.pcIo.rdata + 4.U
+    is(blocking) {
+      io.axiRa.ARVALID := 0.B
+      NVALID := 0.B
+      when(io.axiRd.RVALID && (io.axiRd.RID === 0.U)) {
+        when(pendingNum === 1.U) {
+          state := running
+        }
+      }
+      when(pendingNum === 0.U) {
+        state := running
+      }
     }
-  }.elsewhen(io.lastVR.VALID && io.lastVR.READY) { // ready to start fetching instr
-    LREADY  := 0.B
-    ARVALID := 1.B
   }
 
-  if (debugIO & false) {
-    printf("if_last_ready = %d\n", io.lastVR.READY)
-    printf("if_last_valid = %d\n", io.lastVR.VALID)
-    printf("if_next_ready = %d\n", io.nextVR.READY)
-    printf("if_next_valid = %d\n", io.nextVR.VALID)
-    printf("io.instr      = %x\n", io.instr       )
+  when(io.axiRa.ARREADY && io.axiRa.ARVALID && !(io.axiRd.RREADY && io.axiRd.RVALID)) {
+    pendingNum := pendingNum + 1.U
+  }.elsewhen(!(io.axiRa.ARREADY && io.axiRa.ARVALID) && io.axiRd.RREADY && io.axiRd.RVALID) {
+    pendingNum := pendingNum - 1.U
+  }
+
+  if (debugIO) {
+    printf("if_next_ready   = %d\n", io.nextVR.READY)
+    printf("if_next_valid   = %d\n", io.nextVR.VALID)
+    printf("io.output.instr = %x\n", io.output.instr)
+    printf("io.output.pc    = %x\n", io.output.pc   )
+    printf("pendingNum      = %x\n", pendingNum     )
+    printf("firstRun        = %x\n", firstRun       )
+    printf("state           = %x\n", state          )
+    printf("io.jmpBch       = %x\n", io.jmpBch      )
   }
 }

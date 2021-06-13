@@ -109,6 +109,7 @@ class MEM extends Module {
     }
   }
 
+  io.lastVR.READY := io.nextVR.READY
   // FSM
   when(io.nextVR.VALID && io.nextVR.READY) { // ready to announce the next level
     NVALID  := 0.B

@@ -78,7 +78,7 @@ class InternalCPU extends Module {
   moduleID.io.gprsR <> moduleGPRs.io.gprsR
   moduleWB.io.gprsW <> moduleGPRs.io.gprsW
 
-  moduleIF.io.instr   <> moduleID.io.instr
+  moduleIF.io.output  <> moduleID.io.input
   moduleID.io.output  <> moduleEX.io.input
   moduleEX.io.output  <> moduleMEM.io.input
   moduleMEM.io.output <> moduleWB.io.input
@@ -91,7 +91,6 @@ class InternalCPU extends Module {
 
   moduleIF.io.jmpBch := moduleID.io.jmpBch
   moduleIF.io.jbAddr := moduleID.io.jbAddr
-  moduleID.io.pc     := modulePC.io.pcIo.rdata
 
   if (debugIO) {
     io.debug.exit := moduleEX.io.output.exit
@@ -100,7 +99,7 @@ class InternalCPU extends Module {
   }
 
   if (showReg) {
-    moduleGPRs.io.debug.showReg := (moduleWB.io.nextVR.READY && moduleWB.io.nextVR.VALID)
-    modulePC.io.debug.showReg   := (moduleWB.io.nextVR.READY && moduleWB.io.nextVR.VALID)
+    moduleGPRs.io.debug.showReg := (moduleWB.io.nextVR.READY)
+    modulePC.io.debug.showReg   := (moduleWB.io.nextVR.READY)
   }
 }

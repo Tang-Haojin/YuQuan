@@ -87,11 +87,14 @@ class EX extends Module {
     }
   }
 
+  io.lastVR.READY := io.nextVR.READY
   // FSM
   when(io.nextVR.VALID && io.nextVR.READY) { // ready to trans result to the next level
     NVALID := 0.B
     LREADY := 1.B
-  }.elsewhen(io.lastVR.VALID && io.lastVR.READY) { // let's start working
+  }
+  
+  when(io.lastVR.VALID && io.lastVR.READY) { // let's start working
     NVALID := 1.B
     LREADY := 0.B
     rd     := wireRd
