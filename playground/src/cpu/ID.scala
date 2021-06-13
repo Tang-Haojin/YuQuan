@@ -53,10 +53,10 @@ class ID extends Module {
     val input  = Flipped(new IFOutput)
     val jmpBch = Output(Bool())
     val jbAddr = Output(UInt(XLEN.W))
+    val isWait = Input (Bool())
   })
 
   val NVALID  = RegInit(0.B)
-  val LREADY  = RegInit(1.B)
   val rd      = RegInit(0.U(5.W))
   val op1_2   = RegInit(0.U(AluTypeWidth.W))
   val op1_3   = RegInit(0.U(AluTypeWidth.W))
@@ -81,7 +81,7 @@ class ID extends Module {
   val wireFunt3   = Wire(UInt(3.W));            wireFunt3   := io.input.instr(14, 12)
   val wireData    = Wire(UInt(XLEN.W))
 
-  val alu1_2 = Module(new ALU)
+  val alu1_2 = Module(new SimpleALU)
   wireData  := alu1_2.io.res.asUInt
   when(io.output.special === word) {
     wireData := Cat(Fill(32, alu1_2.io.res(31)), alu1_2.io.res(31, 0))
@@ -105,7 +105,6 @@ class ID extends Module {
   ); wireDataRs1 := io.gprsR.rdata(0); wireDataRs2 := io.gprsR.rdata(1)
 
   io.nextVR.VALID   := NVALID
-  io.lastVR.READY   := LREADY
   io.output.rd      := rd
   io.output.num1    := num1
   io.output.num2    := num2
@@ -114,9 +113,17 @@ class ID extends Module {
   io.output.op1_2   := op1_2
   io.output.op1_3   := op1_3
   io.output.special := special
-  io.gprsR.raddr(0) := wireRs1
-  io.gprsR.raddr(1) := wireRs2
+  io.gprsR.raddr(0) := 0.U
+  io.gprsR.raddr(1) := 0.U
   io.gprsR.raddr(2) := 10.U
+
+  for (i <- 1 to 4) {
+    when(decoded(i) === NumTypes.rs1) {
+      io.gprsR.raddr(0) := wireRs1
+    }.elsewhen(decoded(i) === NumTypes.rs2) {
+      io.gprsR.raddr(1) := wireRs2
+    }
+  }
 
   val numList = List(
     (wireNum1, decoded(1)), (wireNum2, decoded(2)),
@@ -205,7 +212,7 @@ class ID extends Module {
     }
     is(jalr) {
       io.jmpBch := 1.B
-      io.jbAddr := Cat((wireImm + wireRs1)(XLEN - 1, 1), 0.U)
+      io.jbAddr := Cat((wireImm + wireDataRs1)(XLEN - 1, 1), 0.U)
     }
     is(branch) {
       when(wireData === 1.U) {
@@ -215,16 +222,10 @@ class ID extends Module {
     }
   }
 
-  io.lastVR.READY := io.nextVR.READY
-  // FSM
-  when(io.nextVR.VALID && io.nextVR.READY) { // ready to trans instr to the next level
-    // NVALID  := 0.B
-    LREADY  := 1.B
-  }
+  io.lastVR.READY := io.nextVR.READY && !io.isWait
   
   when(io.lastVR.VALID && io.lastVR.READY) { // let's start working
     NVALID  := 1.B
-    LREADY  := 0.B
     rd      := wireRd
     num1    := wireNum1
     num2    := wireNum2
@@ -233,11 +234,21 @@ class ID extends Module {
     op1_2   := wireOp1_2
     op1_3   := wireOp1_3
     special := wireSpecial
-  }.otherwise {
+  }.elsewhen(io.isWait) {
+    NVALID  := 1.B
+    rd      := 0.U
+    num1    := 0.U
+    num2    := 0.U
+    num3    := 0.U
+    num4    := 0.U
+    op1_2   := 0.U
+    op1_3   := 0.U
+    special := 0.U
+  }.elsewhen(io.nextVR.READY && io.nextVR.VALID) {
     NVALID := 0.B
   }
 
-  if (debugIO) {
+  if (debugIO && false) {
     printf("id_last_ready     = %d\n", io.lastVR.READY  )
     printf("id_last_valid     = %d\n", io.lastVR.VALID  )
     printf("id_next_ready     = %d\n", io.nextVR.READY  )

@@ -54,11 +54,33 @@ class ALU extends Module {
   
   if (XLEN == 64) {
     switch(io.op) {
-      is(sllw) { io.res := a << b(4, 0).asUInt }
+      is(sllw) { io.res := (a << b(4, 0).asUInt)(31, 0).asSInt }
       is(srlw) { io.res := (Cat(Fill(XLEN - 32, 0.U), a(31, 0)) >> b(4, 0).asUInt).asSInt }
       is(sraw) { io.res := (Cat(Fill(XLEN - 32, a(31)), a(31, 0)) >> b(4, 0).asUInt).asSInt }
       is(divw) { io.res := a(31, 0).asSInt / b(31, 0).asSInt }
       is(remw) { io.res := a(31, 0).asSInt - b(31, 0).asSInt * (a(31, 0).asSInt / b(31, 0).asSInt) }
     }
+  }
+}
+
+class SimpleALU extends Module {
+  val io = IO(new Bundle {
+    val op     = Input (UInt(AluTypeWidth.W))
+    val a      = Input (SInt(XLEN.W))
+    val b      = Input (SInt(XLEN.W))
+    val res    = Output(SInt(XLEN.W))
+  })
+  val a   = io.a
+  val b   = io.b
+
+  io.res := io.a
+    
+  switch(io.op) {
+    is(lts)  { io.res := Cat(Fill(XLEN - 1, 0.U), (a < b)).asSInt }
+    is(ltu)  { io.res := Cat(Fill(XLEN - 1, 0.U), (a.asUInt < b.asUInt)).asSInt }
+    is(equ)  { io.res := Cat(Fill(XLEN - 1, 0.U), (a === b)).asSInt }
+    is(neq)  { io.res := Cat(Fill(XLEN - 1, 0.U), (a =/= b)).asSInt }
+    is(ges)  { io.res := Cat(Fill(XLEN - 1, 0.U), (a >= b)).asSInt }
+    is(geu)  { io.res := Cat(Fill(XLEN - 1, 0.U), (a.asUInt >= b.asUInt)).asSInt }
   }
 }

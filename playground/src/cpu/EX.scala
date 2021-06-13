@@ -35,7 +35,6 @@ class EX extends Module {
   })
 
   val NVALID = RegInit(0.B); io.nextVR.VALID := NVALID
-  val LREADY = RegInit(1.B); io.lastVR.READY := LREADY
 
   val rd     = RegInit(0.U(5.W))
   val data   = RegInit(0.U(XLEN.W))
@@ -88,15 +87,9 @@ class EX extends Module {
   }
 
   io.lastVR.READY := io.nextVR.READY
-  // FSM
-  when(io.nextVR.VALID && io.nextVR.READY) { // ready to trans result to the next level
-    NVALID := 0.B
-    LREADY := 1.B
-  }
-  
+
   when(io.lastVR.VALID && io.lastVR.READY) { // let's start working
     NVALID := 1.B
-    LREADY := 0.B
     rd     := wireRd
     data   := wireData
     isMem  := wireIsMem
@@ -104,6 +97,8 @@ class EX extends Module {
     addr   := wireAddr
     mask   := wireMask
     exit   := wireExit
+  }.elsewhen(io.nextVR.READY && io.nextVR.VALID) {
+    NVALID := 0.B
   }
 
   if (debugIO && false) {

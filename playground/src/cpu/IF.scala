@@ -18,7 +18,6 @@ class IF extends Module {
   val io = IO(new Bundle {
     val axiRa  = new AXIra
     val axiRd  = new AXIrd
-    val lastVR = new LastVR
     val nextVR = Flipped(new LastVR)
     val pcIo   = Flipped(new PCIO)
     val output = new IFOutput
@@ -40,7 +39,7 @@ class IF extends Module {
   io.axiRa.ARLOCK   := 0.U // since we do not use it yet
   io.axiRa.ARCACHE  := 0.U // since we do not use it yet
   io.axiRa.ARPROT   := 0.U // since we do not use it yet
-  io.axiRa.ARADDR   := 0.U
+  io.axiRa.ARADDR   := basePC
   io.axiRa.ARQOS    := DontCare
   io.axiRa.ARUSER   := DontCare
   io.axiRa.ARREGION := DontCare
@@ -50,34 +49,38 @@ class IF extends Module {
   val instr   = RegInit(0.U(32.W))
   val pc      = RegInit(0.U(XLEN.W))
 
-  io.axiRa.ARVALID := 1.B
+  io.axiRa.ARVALID := 0.B
   io.nextVR.VALID  := NVALID
   io.axiRd.RREADY  := 1.B
-  io.lastVR.READY  := 1.B
   io.output.instr  := instr
   io.output.pc     := pc
 
-  // FSM
   switch(state) {
     is(running) {
       when(!io.jmpBch) {
-        io.axiRa.ARVALID := 1.B
-        io.axiRa.ARADDR  := basePC
-        when(io.axiRa.ARREADY) {
-          basePC    := basePC + 4.U
-        }
-        when(io.axiRd.RVALID && (io.axiRd.RID === 0.U)) { // remember to check the transaction ID
-          io.pcIo.wen   := 1.B
-          instr         := io.axiRd.RDATA
-          pc            := io.pcIo.rdata
-          io.pcIo.wdata := io.pcIo.rdata + 4.U
-          NVALID := 1.B
+        when(io.nextVR.READY) {
+          io.axiRa.ARVALID := 1.B
+          when(io.axiRa.ARREADY) {
+            basePC    := basePC + 4.U
+          }
+          when(io.axiRd.RREADY && io.axiRd.RVALID && (io.axiRd.RID === 0.U)) { // remember to check the transaction ID
+            io.pcIo.wen   := 1.B
+            instr         := io.axiRd.RDATA
+            pc            := io.pcIo.rdata
+            io.pcIo.wdata := io.pcIo.rdata + 4.U
+            NVALID := 1.B
+          }.otherwise {
+            NVALID := 0.B
+          }
+        }.otherwise {
+          io.axiRd.RREADY := 0.B
+          NVALID := 0.B
         }
       }.otherwise {
-        state    := blocking
-        basePC   := io.jbAddr
+        state  := blocking
+        basePC := io.jbAddr
         io.axiRa.ARVALID := 0.B
-        NVALID  := 0.B
+        NVALID := 0.B
         instr := 0x00000013.U // nop
         io.pcIo.wen   := 1.B
         io.pcIo.wdata := io.jbAddr
@@ -106,7 +109,7 @@ class IF extends Module {
     pendingNum := pendingNum - 1.U
   }
 
-  if (debugIO) {
+  if (debugIO && false) {
     printf("if_next_ready   = %d\n", io.nextVR.READY)
     printf("if_next_valid   = %d\n", io.nextVR.VALID)
     printf("io.output.instr = %x\n", io.output.instr)

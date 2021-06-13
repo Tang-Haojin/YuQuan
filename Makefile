@@ -38,7 +38,14 @@ ifneq ($(BIN),)
 	@xxd -g 1 $(ROOT_DIR)/sim/bin/$(BIN)-$(ISA)-nemu.bin | grep -oP "(?<=: ).*(?=  )" >$(BUILD_DIR)/sim/mem.txt
 endif
 	mill -i __.sim.runMain Elaborate -td $(BUILD_DIR)/sim
-	@cd $(BUILD_DIR)/sim && verilator -cc TestTop.v --top-module TestTop --exe --build sim_main.cpp -CFLAGS -D$(ISA) -Wno-WIDTH >/dev/null && ./obj_dir/VTestTop
+	@sed -i '$$d' $(BUILD_DIR)/sim/TestTop.v
+	@echo '  initial' >>$(BUILD_DIR)/sim/TestTop.v
+	@echo '  begin' >>$(BUILD_DIR)/sim/TestTop.v
+	@echo '    $$dumpfile("dump.vcd");' >>$(BUILD_DIR)/sim/TestTop.v
+	@echo '    $$dumpvars(0, TestTop);' >>$(BUILD_DIR)/sim/TestTop.v
+	@echo '  end' >>$(BUILD_DIR)/sim/TestTop.v
+	@echo 'endmodule' >>$(BUILD_DIR)/sim/TestTop.v
+	@cd $(BUILD_DIR)/sim && verilator -cc TestTop.v --top-module TestTop --exe --build sim_main.cpp -CFLAGS -D$(ISA) -Wno-WIDTH --trace >/dev/null && ./obj_dir/VTestTop
 
 .PHONY: test verilog help compile bsp reformat checkformat clean sim
 

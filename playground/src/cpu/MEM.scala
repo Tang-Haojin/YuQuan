@@ -65,6 +65,7 @@ class MEM extends Module {
 
   val NVALID  = RegInit(0.B); io.nextVR.VALID  := NVALID
   val LREADY  = RegInit(1.B); io.lastVR.READY  := LREADY
+  val isFree  = RegInit(1.B)
 
   val ARVALID = RegInit(0.B); io.axiRa.ARVALID := ARVALID
   val RREADY  = RegInit(0.B); io.axiRd.RREADY  := RREADY
@@ -77,47 +78,38 @@ class MEM extends Module {
 
   switch(io.input.mask) {
     is(0.U) {
-      wireMask := "b00000001".U
-      wireSign := 1.B
+      wireMask := "b00000001".U; wireSign := 1.B
     }
     is(1.U) {
-      wireMask := "b00000011".U
-      wireSign := 1.B
+      wireMask := "b00000011".U; wireSign := 1.B
     }
     is(2.U) {
-      wireMask := "b00001111".U
-      wireSign := 1.B
+      wireMask := "b00001111".U; wireSign := 1.B
     }
     is(3.U) {
       wireMask := (
     if(XLEN == 64)"b11111111".U
     else          "b00000000".U
-      )
-      wireSign := 0.B
+      );                         wireSign := 0.B
     }
     is(4.U) {
-      wireMask := "b00000001".U
-      wireSign := 0.B
+      wireMask := "b00000001".U; wireSign := 0.B
     }
     is(5.U) {
-      wireMask := "b00000011".U
-      wireSign := 0.B
+      wireMask := "b00000011".U; wireSign := 0.B
     }
     is(6.U) {
-      wireMask := "b00001111".U
-      wireSign := 0.B
+      wireMask := "b00001111".U; wireSign := 0.B
     }
   }
 
-  io.lastVR.READY := io.nextVR.READY
+  io.lastVR.READY := isFree && io.nextVR.READY
   // FSM
-  when(io.nextVR.VALID && io.nextVR.READY) { // ready to announce the next level
-    NVALID  := 0.B
-    LREADY  := 1.B
-  }.elsewhen(io.axiWr.BVALID && io.axiWr.BREADY) {
+  when(io.axiWr.BVALID && io.axiWr.BREADY) {
     when(io.axiWr.BID === 1.U) {
       BREADY := 0.B
       NVALID := 1.B
+      isFree := 1.B
     }
   }.elsewhen((io.axiWa.AWVALID && io.axiWa.AWREADY) &&
              (io.axiWd.WVALID && io.axiWd.WREADY)) {
@@ -139,6 +131,7 @@ class MEM extends Module {
     when(io.axiRd.RID === 1.U) { // remember to check the transaction ID
       RREADY := 0.B
       NVALID := 1.B
+      isFree := 1.B
       when(sign === 0.B) {
         // printf("data: %x\tmask: %b\n", io.axiRd.RDATA, mask)
         data := io.axiRd.RDATA & Cat((for { a <- 0 until XLEN / 8 } yield Fill(8, mask(a))).reverse)
@@ -166,6 +159,8 @@ class MEM extends Module {
     mask   := wireMask
     sign   := wireSign
     when(io.input.isMem) {
+      NVALID := 0.B
+      isFree := 0.B
       when(io.input.isLd) {
         ARVALID := 1.B
       }.otherwise {
@@ -174,7 +169,10 @@ class MEM extends Module {
       }
     }.otherwise {
       NVALID := 1.B
+      isFree := 1.B
     }
+  }.otherwise {
+    NVALID := 0.B
   }
 
   if (debugIO && false) {

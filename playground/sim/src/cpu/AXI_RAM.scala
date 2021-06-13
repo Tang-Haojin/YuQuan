@@ -37,12 +37,16 @@ class RAM extends RawModule {
     val RVALID  = RegInit(0.B); io.axiRd.RVALID  := RVALID
 
     val RID    = RegInit(0.U(4.W)); io.axiRd.RID := RID
+    val ARADDR = RegInit(0.U(XLEN.W))
     val AWADDR = RegInit(0.U(XLEN.W))
     val WDATA  = RegInit(0.U(XLEN.W))
     val WSTRB  = RegInit(0.U((XLEN / 8).W))
+
+    val wireARADDR = Wire(UInt(XLEN.W))
+    wireARADDR := ARADDR
     
     io.axiRd.RDATA := 
-      Cat((for { a <- 0 until XLEN / 8 } yield syncRAM.read(io.axiRa.ARADDR - MEMBase.U + a.U)).reverse)
+      Cat((for { a <- 0 until XLEN / 8 } yield syncRAM.read(wireARADDR + a.U)).reverse)
 
     when(io.axiRd.RVALID && io.axiRd.RREADY) {
       RVALID  := 0.B
@@ -50,6 +54,8 @@ class RAM extends RawModule {
       // printf("RDATA: %x\n", io.axiRd.RDATA)
     }.elsewhen(io.axiRa.ARVALID && io.axiRa.ARREADY) {
       RID := io.axiRa.ARID
+      ARADDR := io.axiRa.ARADDR - MEMBase.U
+      wireARADDR := io.axiRa.ARADDR - MEMBase.U
       ARREADY := 0.B
       RVALID := 1.B
     }

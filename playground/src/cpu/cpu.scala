@@ -52,6 +52,7 @@ class InternalCPU extends Module {
 
   val modulePC       = Module(new PC)
   val moduleGPRs     = Module(new GPRs)
+  val moduleBypass   = Module(new Bypass)
   val moduleAXIRaMux = Module(new AXIRaMux)
   val moduleAXIRdMux = Module(new AXIRdMux)
 
@@ -75,7 +76,7 @@ class InternalCPU extends Module {
 
   moduleIF.io.pcIo  <> modulePC.io.pcIo
 
-  moduleID.io.gprsR <> moduleGPRs.io.gprsR
+  moduleID.io.gprsR <> moduleBypass.io.receive
   moduleWB.io.gprsW <> moduleGPRs.io.gprsW
 
   moduleIF.io.output  <> moduleID.io.input
@@ -87,7 +88,15 @@ class InternalCPU extends Module {
   moduleID.io.nextVR  <> moduleEX.io.lastVR
   moduleEX.io.nextVR  <> moduleMEM.io.lastVR
   moduleMEM.io.nextVR <> moduleWB.io.lastVR
-  moduleWB.io.nextVR  <> moduleIF.io.lastVR
+
+  moduleBypass.io.request <> moduleGPRs.io.gprsR
+  moduleBypass.io.idOut.index  := moduleID.io.output.rd & Fill(5, moduleID.io.nextVR.VALID.asUInt)
+  moduleBypass.io.idOut.value  := DontCare
+  moduleBypass.io.exOut.index  := moduleEX.io.output.rd & Fill(5, moduleEX.io.nextVR.VALID.asUInt)
+  moduleBypass.io.exOut.value  := moduleEX.io.output.data
+  moduleBypass.io.memOut.index := moduleMEM.io.output.rd & Fill(5, moduleMEM.io.nextVR.VALID.asUInt)
+  moduleBypass.io.memOut.value := moduleMEM.io.output.data
+  moduleID.io.isWait := moduleBypass.io.isWait
 
   moduleIF.io.jmpBch := moduleID.io.jmpBch
   moduleIF.io.jbAddr := moduleID.io.jbAddr
@@ -99,7 +108,7 @@ class InternalCPU extends Module {
   }
 
   if (showReg) {
-    moduleGPRs.io.debug.showReg := (moduleWB.io.nextVR.READY)
-    modulePC.io.debug.showReg   := (moduleWB.io.nextVR.READY)
+    moduleGPRs.io.debug.showReg := (moduleWB.io.debug.showReg)
+    modulePC.io.debug.showReg   := (moduleWB.io.debug.showReg)
   }
 }
