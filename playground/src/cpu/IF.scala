@@ -31,7 +31,6 @@ class IF extends Module {
 
   val pendingNum = RegInit(0.U(XLEN.W))
   val basePC     = RegInit(MEMBase.U(XLEN.W))
-  val firstRun   = RegInit(1.B)
   val NVALID     = RegInit(0.B)
 
   io.axiRa.ARID     := 0.U // 0 for IF
@@ -56,7 +55,7 @@ class IF extends Module {
   io.axiRd.RREADY  := 1.B
   io.lastVR.READY  := 1.B
   io.output.instr  := instr
-  io.output.pc     := io.pcIo.rdata
+  io.output.pc     := pc
 
   // FSM
   switch(state) {
@@ -72,18 +71,13 @@ class IF extends Module {
           instr         := io.axiRd.RDATA
           pc            := io.pcIo.rdata
           io.pcIo.wdata := io.pcIo.rdata + 4.U
-          when(firstRun) {
-            firstRun := 0.B
-          }.otherwise {
-            NVALID := 1.B
-          }
+          NVALID := 1.B
         }
       }.otherwise {
         state    := blocking
-        firstRun := 1.B
         basePC   := io.jbAddr
         io.axiRa.ARVALID := 0.B
-        NVALID  := 1.B
+        NVALID  := 0.B
         instr := 0x00000013.U // nop
         io.pcIo.wen   := 1.B
         io.pcIo.wdata := io.jbAddr
@@ -118,7 +112,6 @@ class IF extends Module {
     printf("io.output.instr = %x\n", io.output.instr)
     printf("io.output.pc    = %x\n", io.output.pc   )
     printf("pendingNum      = %x\n", pendingNum     )
-    printf("firstRun        = %x\n", firstRun       )
     printf("state           = %x\n", state          )
     printf("io.jmpBch       = %x\n", io.jmpBch      )
   }
