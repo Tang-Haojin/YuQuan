@@ -50,11 +50,10 @@ class InternalCPU extends Module {
     else        null
   })
 
-  val modulePC       = Module(new PC)
-  val moduleGPRs     = Module(new GPRs)
-  val moduleBypass   = Module(new Bypass)
-  val moduleAXIRaMux = Module(new AXIRaMux)
-  val moduleAXIRdMux = Module(new AXIRdMux)
+  val modulePC      = Module(new PC)
+  val moduleGPRs    = Module(new GPRs)
+  val moduleBypass  = Module(new Bypass)
+  val moduleAXIRMux = Module(new AXIRMux)
 
   val moduleIF  = Module(new IF)
   val moduleID  = Module(new ID)
@@ -62,13 +61,13 @@ class InternalCPU extends Module {
   val moduleMEM = Module(new MEM)
   val moduleWB  = Module(new WB)
 
-  moduleIF.io.axiRa  <> moduleAXIRaMux.io.axiRaIn0
-  moduleMEM.io.axiRa <> moduleAXIRaMux.io.axiRaIn1
-  io.axiRa           <> moduleAXIRaMux.io.axiRaOut
+  moduleIF.io.axiRa  <> moduleAXIRMux.io.axiRaIn0
+  moduleMEM.io.axiRa <> moduleAXIRMux.io.axiRaIn1
+  io.axiRa           <> moduleAXIRMux.io.axiRaOut
 
-  moduleIF.io.axiRd  <> moduleAXIRdMux.io.axiRdIn0
-  moduleMEM.io.axiRd <> moduleAXIRdMux.io.axiRdIn1
-  io.axiRd           <> moduleAXIRdMux.io.axiRdOut
+  moduleIF.io.axiRd  <> moduleAXIRMux.io.axiRdIn0
+  moduleMEM.io.axiRd <> moduleAXIRMux.io.axiRdIn1
+  io.axiRd           <> moduleAXIRMux.io.axiRdOut
 
   io.axiWa <> moduleMEM.io.axiWa
   io.axiWd <> moduleMEM.io.axiWd

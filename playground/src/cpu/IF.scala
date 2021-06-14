@@ -60,7 +60,7 @@ class IF extends Module {
       when(!io.jmpBch) {
         when(io.nextVR.READY) {
           io.axiRa.ARVALID := 1.B
-          when(io.axiRa.ARREADY) {
+          when(io.axiRa.ARVALID && io.axiRa.ARREADY) {
             basePC    := basePC + 4.U
           }
           when(io.axiRd.RREADY && io.axiRd.RVALID && (io.axiRd.RID === 0.U)) { // remember to check the transaction ID

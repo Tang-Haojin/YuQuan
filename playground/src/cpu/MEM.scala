@@ -104,7 +104,7 @@ class MEM extends Module {
   }
 
   io.lastVR.READY := isFree && io.nextVR.READY
-  // FSM
+
   when(io.axiWr.BVALID && io.axiWr.BREADY) {
     when(io.axiWr.BID === 1.U) {
       BREADY := 0.B
