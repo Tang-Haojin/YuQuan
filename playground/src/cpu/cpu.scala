@@ -95,6 +95,7 @@ class InternalCPU extends Module {
   moduleBypass.io.exOut.value  := moduleEX.io.output.data
   moduleBypass.io.memOut.index := moduleMEM.io.output.rd & Fill(5, moduleMEM.io.nextVR.VALID.asUInt)
   moduleBypass.io.memOut.value := moduleMEM.io.output.data
+  moduleBypass.io.isLd         := moduleEX.io.output.isLd
   moduleID.io.isWait := moduleBypass.io.isWait
 
   moduleIF.io.jmpBch := moduleID.io.jmpBch

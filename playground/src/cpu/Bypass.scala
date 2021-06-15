@@ -24,6 +24,7 @@ class Bypass extends Module {
     val idOut  = new RdVal
     val exOut  = new RdVal
     val memOut = new RdVal
+    val isLd   = Input (Bool())
     val isWait = Output(Bool())
   })
 
@@ -38,7 +39,11 @@ class Bypass extends Module {
       when(io.receive.raddr(i) === io.idOut.index) {
         io.isWait := 1.B
       }.elsewhen(io.receive.raddr(i) === io.exOut.index) {
-        io.receive.rdata(i) := io.exOut.value
+        when(io.isLd) {
+          io.isWait := 1.B
+        }.otherwise {
+          io.receive.rdata(i) := io.exOut.value
+        }
       }.elsewhen(io.receive.raddr(i) === io.memOut.index) {
         io.receive.rdata(i) := io.memOut.value
       }.otherwise {

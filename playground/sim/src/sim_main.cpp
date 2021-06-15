@@ -11,6 +11,7 @@ int main(int argc, char **argv, char **env) {
   Verilated::commandArgs(argc, argv);
   Verilated::traceEverOn(true);
   VTestTop *top = new VTestTop;
+  int ret = 0;
   top->reset = 0;
   top->clock = 0;
   for (int i = 0; i < 10; i++) {
@@ -19,15 +20,17 @@ int main(int argc, char **argv, char **env) {
     top->eval();
   }
   top->reset = 1;
-  for (int i = 0; i < 20000; i++) {
+  for (int i = 0; i < 2000000; i++) {
     Verilated::timeInc(1);
     top->clock = !top->clock;
     top->eval();
     if (top->io_exit == 1) {
       printf("debug: Exit after %d clock cycles.\n", i / 2);
       printf("debug: ");
-      if (top->io_data)
+      if (top->io_data) {
         printf("\33[1;31mHIT BAD TRAP");
+        ret = 1;
+      }
       else
         printf("\33[1;32mHIT GOOD TRAP");
       printf(PCFMT, top->io_pc - 4);
@@ -36,11 +39,12 @@ int main(int argc, char **argv, char **env) {
     else if (top->io_exit == 2) {
       printf("debug: Exit after %d clock cycles.\n", i / 2);
       printf("debug: ");
-        printf("\33[1;31mINVALID INSTRUCTION");
-        printf(PCFMT, top->io_pc - 4);
-        break;
+      printf("\33[1;31mINVALID INSTRUCTION");
+      printf(PCFMT, top->io_pc - 4);
+      ret = 1;
+      break;
     }
   }
   delete top;
-  return 0;
+  return ret;
 }
