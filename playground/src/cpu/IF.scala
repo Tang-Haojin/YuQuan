@@ -74,7 +74,7 @@ class IF extends Module {
           }
         }.otherwise {
           io.axiRd.RREADY := 0.B
-          NVALID := 0.B
+          // NVALID := 0.B
         }
       }.otherwise {
         state  := blocking

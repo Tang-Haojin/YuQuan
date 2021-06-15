@@ -32,6 +32,10 @@ class MEM extends Module {
   val wireSign = WireDefault(0.B)
   val mask     = RegInit(0.U(8.W))
   val sign     = RegInit(0.B)
+  val addr     = RegInit(0.U(XLEN.W))
+  
+  val rd       = RegInit(0.U(5.W));    io.output.rd   := rd
+  val data     = RegInit(0.U(XLEN.W)); io.output.data := data
   
   io.axiRa.ARID     := 1.U // 1 for MEM
   io.axiRa.ARLEN    := 0.U // (ARLEN + 1) AXI Burst per AXI Transfer (a.k.a. AXI Beat)
@@ -40,7 +44,7 @@ class MEM extends Module {
   io.axiRa.ARLOCK   := 0.U // since we do not use it yet
   io.axiRa.ARCACHE  := 0.U // since we do not use it yet
   io.axiRa.ARPROT   := 0.U // since we do not use it yet
-  io.axiRa.ARADDR   := io.input.addr
+  io.axiRa.ARADDR   := addr
   io.axiRa.ARQOS    := DontCare
   io.axiRa.ARUSER   := DontCare
   io.axiRa.ARREGION := DontCare
@@ -55,11 +59,11 @@ class MEM extends Module {
   io.axiWa.AWQOS    := DontCare
   io.axiWa.AWUSER   := DontCare
   io.axiWa.AWREGION := DontCare
-  io.axiWa.AWADDR   := io.input.addr
+  io.axiWa.AWADDR   := addr
 
   io.axiWd.WID   := 1.U
   io.axiWd.WLAST := 1.B // since we do not enable burst yet
-  io.axiWd.WDATA := io.input.data
+  io.axiWd.WDATA := data
   io.axiWd.WSTRB := mask
   io.axiWd.WUSER := DontCare
 
@@ -72,9 +76,6 @@ class MEM extends Module {
   val AWVALID = RegInit(0.B); io.axiWa.AWVALID := AWVALID
   val WVALID  = RegInit(0.B); io.axiWd.WVALID  := WVALID
   val BREADY  = RegInit(0.B); io.axiWr.BREADY  := BREADY
-
-  val rd      = RegInit(0.U(5.W));    io.output.rd   := rd
-  val data    = RegInit(0.U(XLEN.W)); io.output.data := data
 
   switch(io.input.mask) {
     is(0.U) {
@@ -155,6 +156,7 @@ class MEM extends Module {
   }.elsewhen(io.lastVR.VALID && io.lastVR.READY) {
     LREADY := 0.B
     rd     := io.input.rd
+    addr   := io.input.addr
     data   := io.input.data
     mask   := wireMask
     sign   := wireSign
