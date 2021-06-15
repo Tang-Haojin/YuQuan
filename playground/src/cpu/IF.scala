@@ -74,18 +74,21 @@ class IF extends Module {
           }
         }.otherwise {
           io.axiRd.RREADY := 0.B
-          // NVALID := 0.B
         }
       }.otherwise {
-        state  := blocking
-        basePC := io.jbAddr
-        io.axiRa.ARVALID := 0.B
-        NVALID := 0.B
-        instr := 0x00000013.U // nop
-        io.pcIo.wen   := 1.B
-        io.pcIo.wdata := io.jbAddr
-        when(io.axiRd.RVALID && (io.axiRd.RID === 0.U) && (pendingNum === 1.U)) {
-          state := running
+        when(io.nextVR.READY) {
+          state  := blocking
+          basePC := io.jbAddr
+          io.axiRa.ARVALID := 0.B
+          NVALID := 0.B
+          instr := 0x00000013.U // nop
+          io.pcIo.wen   := 1.B
+          io.pcIo.wdata := io.jbAddr
+          when(io.axiRd.RVALID && (io.axiRd.RID === 0.U) && (pendingNum === 1.U)) {
+            state := running
+          }
+        }.otherwise {
+          io.axiRd.RREADY := 0.B
         }
       }
     }
