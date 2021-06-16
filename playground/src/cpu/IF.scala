@@ -112,7 +112,7 @@ class IF extends Module {
     pendingNum := pendingNum - 1.U
   }
 
-  if (debugIO && false) {
+  if (debugIO) {
     printf("if_next_ready   = %d\n", io.nextVR.READY)
     printf("if_next_valid   = %d\n", io.nextVR.VALID)
     printf("io.output.instr = %x\n", io.output.instr)

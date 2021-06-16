@@ -24,6 +24,10 @@ class EXOutput extends Bundle {
   val addr  = Output(UInt(XLEN.W))
   val mask  = Output(UInt(3.W))
   val exit  = Output(UInt(3.W))
+  val debug =
+  if (Debug) new Bundle {
+    val pc = if (DiffTest) Output(UInt(XLEN.W)) else null
+  } else null
 }
 
 class EX extends Module {
@@ -43,6 +47,7 @@ class EX extends Module {
   val addr   = RegInit(0.U(XLEN.W))
   val mask   = RegInit(0.U(3.W))
   val exit   = RegInit(0.U(3.W))
+  val pc     = if (DiffTest) RegInit(0.U(XLEN.W)) else null
 
   val wireRd    = Wire(UInt(5.W))
   val wireData  = Wire(UInt(XLEN.W))
@@ -97,11 +102,12 @@ class EX extends Module {
     addr   := wireAddr
     mask   := wireMask
     exit   := wireExit
+    if (DiffTest) pc := io.input.debug.pc
   }.elsewhen(io.nextVR.READY && io.nextVR.VALID) {
     NVALID := 0.B
   }
 
-  if (debugIO && false) {
+  if (debugIO) {
     printf("ex_last_ready    = %d\n", io.lastVR.READY )
     printf("ex_last_valid    = %d\n", io.lastVR.VALID )
     printf("ex_next_ready    = %d\n", io.nextVR.READY )
@@ -111,5 +117,9 @@ class EX extends Module {
     printf("io.output.isMem  = %d\n", io.output.isMem )
     printf("io.output.isLd   = %d\n", io.output.isLd  )
     printf("io.output.addr   = %d\n", io.output.addr  )
+  }
+
+  if (DiffTest) {
+    io.output.debug.pc := pc
   }
 }

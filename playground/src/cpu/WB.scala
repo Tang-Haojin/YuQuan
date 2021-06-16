@@ -15,10 +15,13 @@ class WB extends Module {
     val gprsW  = Flipped(new GPRsW)
     val lastVR = new LastVR
     val input  = Flipped(new MEMOutput)
-    val debug = if (showReg) new Bundle {
-      val showReg = Output(Bool())
+    val debug = if (Debug) new Bundle {
+      val showReg = if (cpu.config.Debug.showReg) Output(Bool()) else null
+      val pc      = if (DiffTest) Output(UInt(XLEN.W)) else null
     } else null
   })
+
+  val pc = if (DiffTest) RegInit(0.U(XLEN.W)) else null
 
   io.gprsW.wen   := 0.B
   io.gprsW.waddr := io.input.rd
@@ -35,11 +38,16 @@ class WB extends Module {
   when(io.lastVR.VALID) { // ready to start fetching instr
     io.gprsW.wen := (io.input.rd =/= 0.U)
     if (showReg) regShowReg := 1.B
+    if (DiffTest) pc := io.input.debug.pc
   }
 
-  if (debugIO && false) {
+  if (debugIO) {
     printf("wb_last_ready    = %d\n", io.lastVR.READY )
     printf("wb_last_valid    = %d\n", io.lastVR.VALID )
     printf("io.gprsW.wen     = %d\n", io.gprsW.wen    )
+  }
+
+  if (DiffTest) {
+    io.debug.pc := pc
   }
 }

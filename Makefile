@@ -3,6 +3,24 @@ ROOT_DIR = $(shell cat build.sc | grep -oP "(?<=object ).*(?= extends ScalaModul
 SUB_DIR = $(shell cd $(ROOT_DIR); ls -d */ | tr -d / | grep -v src; cd ..)
 simall: notrun = 1
 
+ifeq ($(ISA),)
+ISA = riscv64
+endif
+ifeq ($(ISA), riscv32)
+export XLEN = 32
+endif
+
+ifeq ($(TRACE),1)
+override TRACE = --trace
+else
+override TRACE = 
+endif
+
+ifeq ($(DIFF),0)
+export DIFF = 0
+endif
+
+
 test:
 	mill -i __.test
 
@@ -39,7 +57,7 @@ ifneq ($(BIN),)
 	@xxd -g 1 $(ROOT_DIR)/sim/bin/$(BIN)-$(ISA)-nemu.bin | grep -oP "(?<=: ).*(?=  )" >$(BUILD_DIR)/sim/mem.txt
 endif
 	mill -i __.sim.runMain Elaborate -td $(BUILD_DIR)/sim
-ifeq ($(TRACE),--trace)
+ifneq ($(TRACE),)
 	@sed -i '$$d' $(BUILD_DIR)/sim/TestTop.v
 	@echo '  initial' >>$(BUILD_DIR)/sim/TestTop.v
 	@echo '  begin' >>$(BUILD_DIR)/sim/TestTop.v
@@ -51,6 +69,9 @@ endif
 	@cd $(BUILD_DIR)/sim && verilator -cc TestTop.v --top-module TestTop --exe --build sim_main.cpp -CFLAGS -D$(ISA) -Wno-WIDTH $(TRACE) >/dev/null
 ifeq ($(notrun),)
 	@cd $(BUILD_DIR)/sim && ./obj_dir/VTestTop
+ifneq ($(TRACE),)
+	@vcd2fst $(BUILD_DIR)/sim/dump.vcd $(BUILD_DIR)/sim/dump.fst
+endif
 endif
 
 simall:
@@ -67,16 +88,3 @@ simall:
 	done
 
 .PHONY: test verilog help compile bsp reformat checkformat clean sim simall
-
-ifeq ($(ISA),)
-ISA = riscv64
-endif
-ifeq ($(ISA), riscv32)
-export XLEN = 32
-endif
-
-ifeq ($(TRACE),1)
-override TRACE = --trace
-else
-override TRACE = 
-endif

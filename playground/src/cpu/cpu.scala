@@ -12,6 +12,7 @@ class DEBUG extends Bundle {
   val exit = Output(UInt(3.W))
   val data = Output(UInt(XLEN.W))
   val pc   = Output(UInt(XLEN.W))
+  val wbPC = if (DiffTest) Output(UInt(XLEN.W)) else null
 }
 
 class CPU extends RawModule {
@@ -23,7 +24,7 @@ class CPU extends RawModule {
     val axiRa = new AXIra
     val axiRd = new AXIrd
     val debug = 
-    if(debugIO) new DEBUG
+    if(Debug)   new DEBUG
     else        null
   })
 
@@ -34,7 +35,7 @@ class CPU extends RawModule {
     io.axiWr <> cpu.io.axiWr
     io.axiRa <> cpu.io.axiRa
     io.axiRd <> cpu.io.axiRd
-    if (debugIO) io.debug <> cpu.io.debug
+    if (Debug) io.debug <> cpu.io.debug
   }
 }
 
@@ -46,7 +47,7 @@ class InternalCPU extends Module {
     val axiRa = new AXIra
     val axiRd = new AXIrd
     val debug = 
-    if(debugIO) new DEBUG
+    if(Debug)   new DEBUG
     else        null
   })
 
@@ -101,10 +102,17 @@ class InternalCPU extends Module {
   moduleIF.io.jmpBch := moduleID.io.jmpBch
   moduleIF.io.jbAddr := moduleID.io.jbAddr
 
-  if (debugIO) {
+  if (Debug) {
     io.debug.exit := moduleEX.io.output.exit
     io.debug.data := moduleEX.io.output.data
     io.debug.pc   := modulePC.io.pcIo.rdata
+  }
+
+  if (DiffTest) {
+    io.debug.wbPC := moduleWB.io.debug.pc
+    moduleEX.io.input.debug.pc  := moduleID.io.output.debug.pc
+    moduleMEM.io.input.debug.pc := moduleEX.io.output.debug.pc
+    moduleWB.io.input.debug.pc  := moduleMEM.io.output.debug.pc
   }
 
   if (showReg) {

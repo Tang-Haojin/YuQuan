@@ -11,6 +11,7 @@ import cpu.config.RegisterConfig._
 import cpu.config.Debug._
 import cpu.ExecSpecials._
 import cpu.InstrTypes._
+import org.apache.commons.lang3.builder.Diff
 
 
 object ExecSpecials {
@@ -41,6 +42,10 @@ class IDOutput extends Bundle {
   val op1_2   = Output(UInt(AluTypeWidth.W))
   val op1_3   = Output(UInt(AluTypeWidth.W))
   val special = Output(UInt(5.W))
+  val debug   =
+  if (Debug) new Bundle {
+    val pc = if (DiffTest) Output(UInt(XLEN.W)) else null
+  } else null
 }
 
 // instruction decoding module
@@ -61,6 +66,7 @@ class ID extends Module {
   val op1_2   = RegInit(0.U(AluTypeWidth.W))
   val op1_3   = RegInit(0.U(AluTypeWidth.W))
   val special = RegInit(0.U(5.W))
+  val pc      = if (DiffTest) RegInit(0.U(XLEN.W)) else null
 
   val (num1, num2, num3, num4) = (
     RegInit(0.U(XLEN.W)), RegInit(0.U(XLEN.W)),
@@ -232,8 +238,9 @@ class ID extends Module {
     op1_2   := wireOp1_2
     op1_3   := wireOp1_3
     special := wireSpecial
+    if (DiffTest) pc := io.input.pc
   }.elsewhen(io.isWait && io.nextVR.READY) {
-    NVALID  := 1.B
+    NVALID  := 0.B
     rd      := 0.U
     num1    := 0.U
     num2    := 0.U
@@ -246,7 +253,7 @@ class ID extends Module {
     NVALID := 0.B
   }
 
-  if (debugIO && false) {
+  if (debugIO) {
     printf("id_last_ready     = %d\n", io.lastVR.READY  )
     printf("id_last_valid     = %d\n", io.lastVR.VALID  )
     printf("id_next_ready     = %d\n", io.nextVR.READY  )
@@ -261,5 +268,9 @@ class ID extends Module {
     printf("io.output.op1_2   = %d\n", io.output.op1_2  )
     printf("io.output.op1_3   = %d\n", io.output.op1_3  )
     printf("io.output.special = %d\n", io.output.special)
+  }
+
+  if (DiffTest) {
+    io.output.debug.pc := pc
   }
 }
