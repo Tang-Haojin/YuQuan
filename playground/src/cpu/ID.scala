@@ -20,8 +20,8 @@ object ExecSpecials {
 }
 
 object InstrTypes {
-  val instrtypes = Enum(7)
-  val i::u::s::r::j::b::t::Nil = instrtypes
+  val instrtypes = Enum(6)
+  val i::u::s::r::j::b::Nil = instrtypes
 }
 
 object NumTypes {
@@ -44,7 +44,7 @@ class IDOutput extends Bundle {
   val special = Output(UInt(5.W))
   val debug   =
   if (Debug) new Bundle {
-    val pc = if (DiffTest) Output(UInt(XLEN.W)) else null
+    val pc = Output(UInt(XLEN.W))
   } else null
 }
 
@@ -66,7 +66,7 @@ class ID extends Module {
   val op1_2   = RegInit(0.U(AluTypeWidth.W))
   val op1_3   = RegInit(0.U(AluTypeWidth.W))
   val special = RegInit(0.U(5.W))
-  val pc      = if (DiffTest) RegInit(0.U(XLEN.W)) else null
+  val pc      = if (Debug) RegInit(0.U(XLEN.W)) else null
 
   val (num1, num2, num3, num4) = (
     RegInit(0.U(XLEN.W)), RegInit(0.U(XLEN.W)),
@@ -196,9 +196,6 @@ class ID extends Module {
         0.U
       )
     }
-    is(t) {
-      wireImm := io.gprsR.rdata(2)
-    }
   }
   
   when(decoded(7) === 1.U) {
@@ -238,7 +235,7 @@ class ID extends Module {
     op1_2   := wireOp1_2
     op1_3   := wireOp1_3
     special := wireSpecial
-    if (DiffTest) pc := io.input.pc
+    if (Debug) pc := io.input.pc
   }.elsewhen(io.isWait && io.nextVR.READY) {
     NVALID  := 0.B
     rd      := 0.U
@@ -270,7 +267,7 @@ class ID extends Module {
     printf("io.output.special = %d\n", io.output.special)
   }
 
-  if (DiffTest) {
+  if (Debug) {
     io.output.debug.pc := pc
   }
 }

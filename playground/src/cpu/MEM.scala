@@ -15,7 +15,8 @@ class MEMOutput extends Bundle {
   val data  = Output(UInt(XLEN.W))
   val debug =
   if (Debug) new Bundle {
-    val pc = if (DiffTest) Output(UInt(XLEN.W)) else null
+    val exit  = Output(UInt(3.W))
+    val pc = Output(UInt(XLEN.W))
   } else null
 }
 
@@ -37,10 +38,11 @@ class MEM extends Module {
   val mask     = RegInit(0.U(8.W))
   val sign     = RegInit(0.B)
   val addr     = RegInit(0.U(XLEN.W))
-  
-  val rd       = RegInit(0.U(5.W));    io.output.rd   := rd
-  val data     = RegInit(0.U(XLEN.W)); io.output.data := data
-  val pc       = if (DiffTest) RegInit(0.U(XLEN.W)) else null
+
+  val rd   = RegInit(0.U(5.W));    io.output.rd   := rd
+  val data = RegInit(0.U(XLEN.W)); io.output.data := data
+  val exit = if (Debug) RegInit(0.U(3.W)) else null
+  val pc   = if (Debug) RegInit(0.U(XLEN.W)) else null
   
   io.axiRa.ARID     := 1.U // 1 for MEM
   io.axiRa.ARLEN    := 0.U // (ARLEN + 1) AXI Burst per AXI Transfer (a.k.a. AXI Beat)
@@ -165,7 +167,10 @@ class MEM extends Module {
     data   := io.input.data
     mask   := wireMask
     sign   := wireSign
-    if (DiffTest) pc := io.input.debug.pc
+    if (Debug) {
+      exit := io.input.debug.exit
+      pc   := io.input.debug.pc
+    }
     when(io.input.isMem) {
       NVALID := 0.B
       isFree := 0.B
@@ -192,7 +197,8 @@ class MEM extends Module {
     printf("io.output.data   = %d\n", io.output.data  )
   }
 
-  if (DiffTest) {
-    io.output.debug.pc := pc
+  if (Debug) {
+    io.output.debug.exit := exit
+    io.output.debug.pc   := pc
   }
 }

@@ -9,10 +9,13 @@ import cpu.config.Debug._
 import cpu.config.GeneralConfig._
 
 class DEBUG extends Bundle {
-  val exit = Output(UInt(3.W))
-  val data = Output(UInt(XLEN.W))
-  val pc   = Output(UInt(XLEN.W))
-  val wbPC = if (DiffTest) Output(UInt(XLEN.W)) else null
+  val exit    = Output(UInt(3.W))
+  val data    = Output(UInt(XLEN.W))
+  val pc      = Output(UInt(XLEN.W))
+  val wbPC    = Output(UInt(XLEN.W))
+  val wbValid = Output(Bool())
+  val wbRd    = Output(UInt(5.W))
+  val gprs    = Output(Vec(32, UInt(XLEN.W)))
 }
 
 class CPU extends RawModule {
@@ -103,16 +106,19 @@ class InternalCPU extends Module {
   moduleIF.io.jbAddr := moduleID.io.jbAddr
 
   if (Debug) {
-    io.debug.exit := moduleEX.io.output.exit
-    io.debug.data := moduleEX.io.output.data
-    io.debug.pc   := modulePC.io.pcIo.rdata
-  }
-
-  if (DiffTest) {
-    io.debug.wbPC := moduleWB.io.debug.pc
-    moduleEX.io.input.debug.pc  := moduleID.io.output.debug.pc
-    moduleMEM.io.input.debug.pc := moduleEX.io.output.debug.pc
-    moduleWB.io.input.debug.pc  := moduleMEM.io.output.debug.pc
+    io.debug.exit    := moduleWB.io.debug.exit
+    io.debug.data    := moduleGPRs.io.gprsR.rdata(2)
+    io.debug.pc      := modulePC.io.pcIo.rdata
+    io.debug.wbPC    := moduleWB.io.debug.pc
+    io.debug.wbValid := moduleWB.io.debug.wbvalid
+    io.debug.wbRd    := moduleWB.io.debug.rd
+    io.debug.gprs    := moduleGPRs.io.debug.gprs
+    
+    moduleEX.io.input.debug.pc    := moduleID.io.output.debug.pc
+    moduleMEM.io.input.debug.pc   := moduleEX.io.output.debug.pc
+    moduleMEM.io.input.debug.exit := moduleEX.io.output.debug.exit
+    moduleWB.io.input.debug.pc    := moduleMEM.io.output.debug.pc
+    moduleWB.io.input.debug.exit  := moduleMEM.io.output.debug.exit
   }
 
   if (showReg) {

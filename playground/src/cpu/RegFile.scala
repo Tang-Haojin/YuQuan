@@ -21,8 +21,9 @@ class GPRs extends Module {
   val io = IO(new Bundle {
     val gprsW = new GPRsW
     val gprsR = new GPRsR
-    val debug = if (showReg) new Bundle {
-      val showReg = Input(Bool())
+    val debug = if (Debug) new Bundle {
+      val showReg = if (cpu.config.Debug.showReg) Input(Bool()) else null
+      val gprs    = Output(Vec(32, UInt(XLEN.W)))
     } else null
   })
 
@@ -47,6 +48,10 @@ class GPRs extends Module {
             regs(i.U)
           )
     }
+
+  if (Debug) {
+    io.debug.gprs := regs
+  }
 }
 
 class PCIO extends Bundle {

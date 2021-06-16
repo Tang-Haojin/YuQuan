@@ -8,6 +8,7 @@ out/
 .coursier/
 .vscode/
 test_run_dir/
+lib/
 
 build/
 /playground/sim/bin/*

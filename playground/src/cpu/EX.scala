@@ -23,10 +23,10 @@ class EXOutput extends Bundle {
   val isLd  = Output(Bool())
   val addr  = Output(UInt(XLEN.W))
   val mask  = Output(UInt(3.W))
-  val exit  = Output(UInt(3.W))
   val debug =
   if (Debug) new Bundle {
-    val pc = if (DiffTest) Output(UInt(XLEN.W)) else null
+    val exit  = Output(UInt(3.W))
+    val pc    = Output(UInt(XLEN.W))
   } else null
 }
 
@@ -46,8 +46,8 @@ class EX extends Module {
   val isLd   = RegInit(0.B)
   val addr   = RegInit(0.U(XLEN.W))
   val mask   = RegInit(0.U(3.W))
-  val exit   = RegInit(0.U(3.W))
-  val pc     = if (DiffTest) RegInit(0.U(XLEN.W)) else null
+  val exit   = if (Debug) RegInit(0.U(3.W)) else null
+  val pc     = if (Debug) RegInit(0.U(XLEN.W)) else null
 
   val wireRd    = Wire(UInt(5.W))
   val wireData  = Wire(UInt(XLEN.W))
@@ -55,14 +55,14 @@ class EX extends Module {
   val wireIsLd  = Wire(Bool())
   val wireAddr  = Wire(UInt(XLEN.W));
   val wireMask  = Wire(UInt(3.W))
-  val wireExit  = Wire(UInt(3.W))
+  val wireExit  = if (Debug) Wire(UInt(3.W)) else null
 
   wireRd    := io.input.rd
   wireIsMem := (io.input.special === ld || io.input.special === st)
   wireIsLd  := (io.input.special === ld)
   wireAddr  := io.input.num3 + io.input.num4
   wireMask  := io.input.op1_3
-  wireExit  := ExitReasons.non
+  if (Debug) wireExit := ExitReasons.non
 
   io.output.rd    := rd
   io.output.data  := data
@@ -70,7 +70,6 @@ class EX extends Module {
   io.output.isLd  := isLd
   io.output.addr  := addr
   io.output.mask  := mask
-  io.output.exit  := exit
 
   val alu1_2 = Module(new ALU)
 
@@ -82,7 +81,7 @@ class EX extends Module {
   alu1_2.io.b  := io.input.num2.asSInt
   alu1_2.io.op := io.input.op1_2
 
-  switch(io.input.special) {
+  if (Debug) switch(io.input.special) {
     is(trap) {
       wireExit := ExitReasons.trap
     }
@@ -101,8 +100,10 @@ class EX extends Module {
     isLd   := wireIsLd
     addr   := wireAddr
     mask   := wireMask
-    exit   := wireExit
-    if (DiffTest) pc := io.input.debug.pc
+    if (Debug) {
+      exit   := wireExit
+      pc     := io.input.debug.pc
+    }
   }.elsewhen(io.nextVR.READY && io.nextVR.VALID) {
     NVALID := 0.B
   }
@@ -119,7 +120,8 @@ class EX extends Module {
     printf("io.output.addr   = %d\n", io.output.addr  )
   }
 
-  if (DiffTest) {
-    io.output.debug.pc := pc
+  if (Debug) {
+    io.output.debug.exit := exit
+    io.output.debug.pc   := pc
   }
 }

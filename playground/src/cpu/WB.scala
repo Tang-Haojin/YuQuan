@@ -17,11 +17,17 @@ class WB extends Module {
     val input  = Flipped(new MEMOutput)
     val debug = if (Debug) new Bundle {
       val showReg = if (cpu.config.Debug.showReg) Output(Bool()) else null
-      val pc      = if (DiffTest) Output(UInt(XLEN.W)) else null
+      val pc      = Output(UInt(XLEN.W))
+      val exit    = Output(UInt(3.W))
+      val wbvalid = Output(Bool())
+      val rd      = Output(UInt(5.W))
     } else null
   })
 
-  val pc = if (DiffTest) RegInit(0.U(XLEN.W)) else null
+  val pc      = if (Debug) RegInit(0.U(XLEN.W)) else null
+  val exit    = if (Debug) RegInit(0.U(3.W)) else null
+  val wbvalid = if (Debug) RegInit(0.B) else null
+  val rd      = if (Debug) RegInit(0.U(5.W)) else null
 
   io.gprsW.wen   := 0.B
   io.gprsW.waddr := io.input.rd
@@ -38,7 +44,11 @@ class WB extends Module {
   when(io.lastVR.VALID) { // ready to start fetching instr
     io.gprsW.wen := (io.input.rd =/= 0.U)
     if (showReg) regShowReg := 1.B
-    if (DiffTest) pc := io.input.debug.pc
+    if (Debug) {
+      exit  := io.input.debug.exit
+      pc    := io.input.debug.pc
+      rd    := io.input.rd
+    }
   }
 
   if (debugIO) {
@@ -47,7 +57,11 @@ class WB extends Module {
     printf("io.gprsW.wen     = %d\n", io.gprsW.wen    )
   }
 
-  if (DiffTest) {
-    io.debug.pc := pc
+  if (Debug) {
+    io.debug.exit    := exit
+    io.debug.pc      := pc
+    io.debug.wbvalid := wbvalid
+    io.debug.rd      := rd
+    wbvalid := io.lastVR.VALID
   }
 }

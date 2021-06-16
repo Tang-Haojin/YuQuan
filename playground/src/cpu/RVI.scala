@@ -154,6 +154,6 @@ object RVI {
     SRLW  -> List(InstrTypes.r, rs1 , rs2 , non , non , srlw, non , 1.U, ExecSpecials.word  ),
     SRAW  -> List(InstrTypes.r, rs1 , rs2 , non , non , sraw, non , 1.U, ExecSpecials.word  ),
 
-    TRAP  -> List(InstrTypes.t, imm , non , non , non , add , non , 0.U, ExecSpecials.trap  )
+    TRAP  -> List(InstrTypes.i, non , non , non , non , non , non , 0.U, ExecSpecials.trap  )
   )
 }
