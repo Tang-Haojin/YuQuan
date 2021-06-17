@@ -3,7 +3,10 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
 extern "C" {
+#endif
+
 #ifdef riscv32
 #define FMT_WORD "0x%08x"
 typedef uint32_t word_t;
@@ -107,6 +110,9 @@ void cpu_exec(uint64_t n);
 vaddr_t isa_exec_once();
 
 extern CPU_state cpu;
+
+#ifdef __cplusplus
 }
+#endif
 
 #endif
