@@ -8,6 +8,13 @@ object GeneralConfig {
   val HasRVM = true
   val MEMBase = 0x80100000L
   val Extensions = List('I', 'M')
+  val privilegeMode = if (Extensions.contains('S')) 3
+                 else if (Extensions.contains('U')) 2
+                 else if (Extensions.contains('M')) 1
+                 else 1
+
+  val IALIGN = 32 // compressed instructions are not implemented yet
+  val ILEN = 32 // base instruction set supported only
 }
 
 object RegisterConfig {

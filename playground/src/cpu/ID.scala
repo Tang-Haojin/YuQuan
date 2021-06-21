@@ -15,18 +15,18 @@ import org.apache.commons.lang3.builder.Diff
 
 
 object ExecSpecials {
-  val specials = Enum(9)
-  val non::ld::st::jump::jalr::branch::trap::inv::word::Nil = specials
+  val specials = Enum(10)
+  val non::ld::st::jump::jalr::branch::trap::inv::word::csr::Nil = specials
 }
 
 object InstrTypes {
-  val instrtypes = Enum(6)
-  val i::u::s::r::j::b::Nil = instrtypes
+  val instrtypes = Enum(7)
+  val i::u::s::r::j::b::inscsr::Nil = instrtypes
 }
 
 object NumTypes {
-  val numtypes = Enum(7)
-  val non::rs1::rs2::imm::four::pc::fun3::Nil = numtypes
+  val numtypes = Enum(8)
+  val non::rs1::rs2::imm::four::pc::fun3::csr::Nil = numtypes
 }
 
 object RVInstr {
@@ -35,6 +35,7 @@ object RVInstr {
 
 class IDOutput extends Bundle {
   val rd      = Output(UInt(5.W))
+  val csr     = Output(UInt(12.W))
   val num1    = Output(UInt(XLEN.W))
   val num2    = Output(UInt(XLEN.W))
   val num3    = Output(UInt(XLEN.W))
@@ -110,6 +111,7 @@ class ID extends Module {
 
   io.nextVR.VALID   := NVALID
   io.output.rd      := rd
+  io.output.csr     := 0xFFF.U
   io.output.num1    := num1
   io.output.num2    := num2
   io.output.num3    := num3
@@ -196,6 +198,9 @@ class ID extends Module {
         0.U
       )
     }
+    is(inscsr) {
+      wireImm := Cat(Fill(XLEN - 5, 0.U), io.input.instr(19, 15))
+    }
   }
   
   when(decoded(7) === 1.U) {
@@ -220,6 +225,9 @@ class ID extends Module {
         io.jmpBch := 1.B
         io.jbAddr := io.input.pc + wireImm
       }
+    }
+    is(csr) {
+      
     }
   }
 
