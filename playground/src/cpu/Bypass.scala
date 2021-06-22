@@ -52,3 +52,35 @@ class Bypass extends Module {
     }
   }
 }
+
+class CsrVal extends Bundle {
+  val wcsr  = Input(UInt(12.W))
+  val value = Input(UInt(XLEN.W))
+}
+
+class Bypass_csr extends Module {
+  val io = IO(new Bundle {
+    val receive = new cpu.privileged.CSRsR
+    val request = Flipped(new cpu.privileged.CSRsR)
+    val idOut   = new CsrVal
+    val exOut   = new CsrVal
+    val memOut  = new CsrVal
+    val isWait  = Output(Bool())
+  })
+
+  io.isWait := 0.B
+
+  io.request.rcsr := io.receive.rcsr
+  io.receive.rdata := 0.U
+  when(io.receive.rcsr =/= 0xFFF.U) {
+    when(io.receive.rcsr === io.idOut.wcsr) {
+      io.isWait := 1.B
+    }.elsewhen(io.receive.rcsr === io.exOut.wcsr) {
+      io.receive.rdata := io.exOut.value
+    }.elsewhen(io.receive.rcsr === io.memOut.wcsr) {
+      io.receive.rdata := io.memOut.value
+    }.otherwise {
+      io.receive.rdata := io.request.rdata
+    }
+  }
+}

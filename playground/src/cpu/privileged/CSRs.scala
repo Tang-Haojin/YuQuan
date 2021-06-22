@@ -6,17 +6,20 @@ import cpu.config.{GeneralConfig => p}
 import p._
 import chisel3.util.log2Floor
 
-object FieldSpec {
-  val fieldSpec = Enum(3)
-  val wpri::wlrl::warl::Nil = fieldSpec
+class CSRsW extends Bundle {
+  val wen   = Input(Bool())
+  val wcsr  = Input(UInt(12.W))
+  val wdata = Input(UInt(XLEN.W))
+}
+class CSRsR extends Bundle {
+  val rcsr  = Input(UInt(12.W))
+  val rdata = Output(UInt(XLEN.W))
 }
 
 class M_CSRs extends Module {
   val io = IO(new Bundle {
-    val csr   = Input(UInt(12.W))
-    val wen   = Input(Bool())
-    val wdata = Input(UInt(XLEN.W))
-    val rdata = Output(UInt(XLEN.W))
+    val csrsW = new CSRsW
+    val csrsR = new CSRsR
   })
 
   val MXL   = (log2Down(XLEN) - 4).U(2.W)
@@ -42,8 +45,8 @@ class M_CSRs extends Module {
                     TWInit   << 21 | TSRInit << 22 | SDInit  << (XLEN - 1)
   if (XLEN != 32)   mstatusInit = mstatusInit | UXLInit << 32 | SXLInit << 34
 
-  val mipInit = "b888".U(XLEN.W)
-  val mieInit = "b888".U(XLEN.W)
+  val mipInit = 0x888.U
+  val mieInit = 0x888.U
 
   val Mvendorid     = 0xF11.U
   val Marchid       = 0xF12.U
@@ -91,7 +94,7 @@ class M_CSRs extends Module {
   val marchid   = 0.U(XLEN.W) // the field is not implemented
   val mimpid    = 0.U(XLEN.W) // the field is not implemented
   val mhartid   = 0.U(XLEN.W) // the hart that running the code
-  val mstatus   = MstatusInit(RegInit(mstatusInit.U(XLEN.W)))
+  val mstatus   = MstatusInit(UInt(XLEN.W), mstatusInit.U)
   val mtvec     = RegInit(0.U(XLEN.W))
 
   // val medeleg // should not exist with only M-Mode
@@ -110,7 +113,7 @@ class M_CSRs extends Module {
   val mcounteren = RegInit(0.U(32.W)) // not needed for M-Mode only
   val scounteren = RegInit(0.U(32.W)) // not needed for M-Mode only
 
-  val mcountinhibit = RegInit(0xFFFFFFF8.U(32.W)) // only allow CY and IR to increase
+  val mcountinhibit = RegInit(0xFFFFFFF8L.U(32.W)) // only allow CY and IR to increase
 
   val mscratch = RegInit(0.U(XLEN.W))
   val mepc = RegInit(0.U(XLEN.W))
@@ -118,26 +121,26 @@ class M_CSRs extends Module {
   val mcause = RegInit(0.U(XLEN.W))
   val mtval = RegInit(0.U(XLEN.W))
 
-  val mip = MipInit(RegInit(mipInit))
-  val mie = MieInit(RegInit(mieInit))
+  val mip = MipInit(UInt(XLEN.W), mipInit)
+  val mie = MieInit(UInt(XLEN.W), mieInit)
   val mtime = RegInit(0.U(64.W))
   val mtimecmp = RegInit(0.U(64.W))
 
-  when(io.wen) {
-    when(io.csr(11, 10) === "b11".U) {
+  when(io.csrsW.wen) {
+    when(io.csrsW.wcsr(11, 10) === "b11".U) {
       // TODO: Raise an illegal instruction exception.
     }.otherwise {
-      when(io.csr === Misa) {} // Currently read-only
-      .elsewhen(io.csr === Mvendorid) {
+      when(io.csrsW.wcsr === Misa) {} // Currently read-only
+      .elsewhen(io.csrsW.wcsr === Mvendorid) {
         // TODO: Raise an illegal instruction exception.
-      }.elsewhen(io.csr === Marchid) {
+      }.elsewhen(io.csrsW.wcsr === Marchid) {
         // TODO: Raise an illegal instruction exception.
-      }.elsewhen(io.csr === Mimpid) {
+      }.elsewhen(io.csrsW.wcsr === Mimpid) {
         // TODO: Raise an illegal instruction exception.
-      }.elsewhen(io.csr === Mhartid) {
+      }.elsewhen(io.csrsW.wcsr === Mhartid) {
         // TODO: Raise an illegal instruction exception.
-      }.elsewhen(io.csr === Mstatus) {
-        val wdata = MstatusInit(io.wdata)
+      }.elsewhen(io.csrsW.wcsr === Mstatus) {
+        val wdata = MstatusInit(io.csrsW.wdata)
         mstatus := wdata
 
         mstatus.SPP  := 0.B
@@ -163,80 +166,80 @@ class M_CSRs extends Module {
 
           mstatus.WPRI_36 := 0.U
         }
-      }.elsewhen(io.csr === Mtvec) {
-        mtvec := io.rdata
-        when(io.rdata(1, 0) >= 2.U) {
-          mtvec(1, 0) := mtvec(1, 0)
+      }.elsewhen(io.csrsW.wcsr === Mtvec) {
+        mtvec := io.csrsW.wdata
+        when(io.csrsW.wdata(1, 0) >= 2.U) {
+          mtvec := Cat(io.csrsW.wdata(XLEN - 1, 2), mtvec(1, 0))
         }
         // TODO: What is the legal value?
-      }.elsewhen(io.csr === Mip) {} // Currently do nothing.
-      .elsewhen(io.csr === Mie) {
-        val wdata = MieInit(io.wdata)
+      }.elsewhen(io.csrsW.wcsr === Mip) {} // Currently do nothing.
+      .elsewhen(io.csrsW.wcsr === Mie) {
+        val wdata = MieInit(io.csrsW.wdata)
         mie.MEIE := wdata.MEIE
         mie.MSIE := wdata.MSIE
         mie.MTIE := wdata.MTIE
-      }.elsewhen(io.csr === Mtime) { mtime := io.wdata; mip.MTIP := 0.B }
-      .elsewhen(io.csr === Mtimecmp) { mtimecmp := io.wdata; mip.MTIP := 0.B }
-      .elsewhen(io.csr === Mcycle) { if (XLEN != 32) mcycle := io.wdata else mcycle(31, 0) := io.wdata }
-      .elsewhen(io.csr === Minstret) { if (XLEN != 32) minstret := io.wdata else minstret(31, 0) := io.wdata }
-      .elsewhen(io.csr >= Mhpmcounter(3.U) && io.csr <= Mhpmcounter(31.U)) {} // Do nothing.
-      .elsewhen(io.csr >= Mhpmevent(3.U) && io.csr <= Mhpmevent(31.U)) {} // Do nothing.
-      .elsewhen(io.csr === Mcountinhibit) {
-        mcountinhibit(0) := io.wdata(0)
-        mcountinhibit(2) := io.wdata(2)
-      }.elsewhen(io.csr === Mscratch) { mscratch := io.wdata }
-      .elsewhen(io.csr === Mepc) { mepc(XLEN - 1, 2) := io.wdata(XLEN - 1, 2) }
-      .elsewhen(io.csr === Mcause) {
-        when(io.wdata(XLEN - 1) === 1.B) {
-          when((io.wdata(XLEN - 2, 0) === 3.U) ||
-               (io.wdata(XLEN - 2, 0) === 7.U) ||
-               (io.wdata(XLEN - 2, 0) === 11.U)) { mcause := io.wdata }
+      }.elsewhen(io.csrsW.wcsr === Mtime) { mtime := io.csrsW.wdata; mip.MTIP := 0.B }
+      .elsewhen(io.csrsW.wcsr === Mtimecmp) { mtimecmp := io.csrsW.wdata; mip.MTIP := 0.B }
+      .elsewhen(io.csrsW.wcsr === Mcycle) { if (XLEN != 32) mcycle := io.csrsW.wdata else mcycle(31, 0) := io.csrsW.wdata }
+      .elsewhen(io.csrsW.wcsr === Minstret) { if (XLEN != 32) minstret := io.csrsW.wdata else minstret(31, 0) := io.csrsW.wdata }
+      .elsewhen(io.csrsW.wcsr >= Mhpmcounter(3.U) && io.csrsW.wcsr <= Mhpmcounter(31.U)) {} // Do nothing.
+      .elsewhen(io.csrsW.wcsr >= Mhpmevent(3.U) && io.csrsW.wcsr <= Mhpmevent(31.U)) {} // Do nothing.
+      .elsewhen(io.csrsW.wcsr === Mcountinhibit) {
+        mcountinhibit := Cat(mcountinhibit(31, 3), io.csrsW.wdata(2), mcountinhibit(1), io.csrsW.wdata(0))
+      }.elsewhen(io.csrsW.wcsr === Mscratch) { mscratch := io.csrsW.wdata }
+      .elsewhen(io.csrsW.wcsr === Mepc) { mepc := Cat(io.csrsW.wdata(XLEN - 1, 2), mepc(1, 0)) }
+      .elsewhen(io.csrsW.wcsr === Mcause) {
+        when(io.csrsW.wdata(XLEN - 1) === 1.B) {
+          when((io.csrsW.wdata(XLEN - 2, 0) === 3.U) ||
+               (io.csrsW.wdata(XLEN - 2, 0) === 7.U) ||
+               (io.csrsW.wdata(XLEN - 2, 0) === 11.U)) { mcause := io.csrsW.wdata }
         }.otherwise {
-          when((io.wdata(XLEN - 2, 0) <= 7.U) || (io.wdata(XLEN - 2, 0) === 11.U)) {
-            mcause := io.wdata
+          when((io.csrsW.wdata(XLEN - 2, 0) <= 7.U) || (io.csrsW.wdata(XLEN - 2, 0) === 11.U)) {
+            mcause := io.csrsW.wdata
           }
         }
       }
-      .elsewhen(io.csr === Mtval) {} // Do nothing. A simple implementation.
-      .elsewhen((io.csr === Pmpcfg0) || (io.csr === Pmpcfg2)) {} // Currently do nothing.
-      .elsewhen((io.csr >= Pmpaddr(0.U)) && (io.csr <= Pmpaddr(15.U))) {} // Currently do nothing.
+      .elsewhen(io.csrsW.wcsr === Mtval) {} // Do nothing. A simple implementation.
+      .elsewhen((io.csrsW.wcsr === Pmpcfg0) || (io.csrsW.wcsr === Pmpcfg2)) {} // Currently do nothing.
+      .elsewhen((io.csrsW.wcsr >= Pmpaddr(0.U)) && (io.csrsW.wcsr <= Pmpaddr(15.U))) {} // Currently do nothing.
 
       if (XLEN == 32) {
-        when((io.csr === Pmpcfg1) || (io.csr === Pmpcfg3)) {} // Currently do nothing.
-        .elsewhen(io.csr === Mcycleh) { mcycle(63, 32) := io.wdata }
-        .elsewhen(io.csr === Minstreth) { minstret(63, 32) := io.wdata }
-        .elsewhen(io.csr >= Mhpmcounterh(3.U) && io.csr <= Mhpmcounterh(31.U)) {} // Do nothing.
+        when((io.csrsW.wcsr === Pmpcfg1) || (io.csrsW.wcsr === Pmpcfg3)) {} // Currently do nothing.
+        .elsewhen(io.csrsW.wcsr === Mcycleh) { mcycle(63, 32) := io.csrsW.wdata }
+        .elsewhen(io.csrsW.wcsr === Minstreth) { minstret(63, 32) := io.csrsW.wdata }
+        .elsewhen(io.csrsW.wcsr >= Mhpmcounterh(3.U) && io.csrsW.wcsr <= Mhpmcounterh(31.U)) {} // Do nothing.
       }
     }
   }
 
-  when(io.csr === Misa) { io.rdata := misa }
-  .elsewhen(io.csr === Mvendorid) { io.rdata := mvendorid }
-  .elsewhen(io.csr === Marchid) { io.rdata := marchid }
-  .elsewhen(io.csr === Mimpid) { io.rdata := mimpid }
-  .elsewhen(io.csr === Mhartid) { io.rdata := mhartid }
-  .elsewhen(io.csr === Mstatus) { io.rdata := mstatus }
-  .elsewhen(io.csr === Mtvec) { io.rdata := mtvec }
-  .elsewhen(io.csr === Mip) { io.rdata := mip }
-  .elsewhen(io.csr === Mie) { io.rdata := mie }
-  .elsewhen(io.csr === Mtime) { io.rdata := mtime }
-  .elsewhen(io.csr === Mtimecmp) { io.rdata := mtimecmp }
-  .elsewhen(io.csr === Mcycle) { io.rdata := mcycle }
-  .elsewhen(io.csr === Minstret) { io.rdata := minstret }
-  .elsewhen(io.csr >= Mhpmcounter(3.U) && io.csr <= Mhpmcounter(31.U)) { io.rdata := 0.U }
-  .elsewhen(io.csr >= Mhpmevent(3.U) && io.csr <= Mhpmevent(31.U)) { io.rdata := 0.U }
-  .elsewhen(io.csr === Mcountinhibit) { io.rdata := mcountinhibit }
-  .elsewhen(io.csr === Mscratch) { io.rdata := mscratch }
-  .elsewhen(io.csr === Mepc) { io.rdata := Cat(mepc(XLEN - 1, 2), 0.U, 0.U) }
-  .elsewhen(io.csr === Mcause) { io.rdata := mcause }
-  .elsewhen(io.csr === Mtval) { io.rdata := 0.U } // A simple implementation.
-  .elsewhen((io.csr === Pmpcfg0) || (io.csr === Pmpcfg2)) { io.rdata := 0.U }
-  .elsewhen((io.csr >= Pmpaddr(0.U)) && (io.csr <= Pmpaddr(15.U))) { io.rdata := 0.U }
+  io.csrsR.rdata := 0.U
+  when(io.csrsR.rcsr === Misa) { io.csrsR.rdata := misa }
+  .elsewhen(io.csrsR.rcsr === Mvendorid) { io.csrsR.rdata := mvendorid }
+  .elsewhen(io.csrsR.rcsr === Marchid) { io.csrsR.rdata := marchid }
+  .elsewhen(io.csrsR.rcsr === Mimpid) { io.csrsR.rdata := mimpid }
+  .elsewhen(io.csrsR.rcsr === Mhartid) { io.csrsR.rdata := mhartid }
+  .elsewhen(io.csrsR.rcsr === Mstatus) { io.csrsR.rdata := mstatus }
+  .elsewhen(io.csrsR.rcsr === Mtvec) { io.csrsR.rdata := mtvec }
+  .elsewhen(io.csrsR.rcsr === Mip) { io.csrsR.rdata := mip }
+  .elsewhen(io.csrsR.rcsr === Mie) { io.csrsR.rdata := mie }
+  .elsewhen(io.csrsR.rcsr === Mtime) { io.csrsR.rdata := mtime }
+  .elsewhen(io.csrsR.rcsr === Mtimecmp) { io.csrsR.rdata := mtimecmp }
+  .elsewhen(io.csrsR.rcsr === Mcycle) { io.csrsR.rdata := mcycle }
+  .elsewhen(io.csrsR.rcsr === Minstret) { io.csrsR.rdata := minstret }
+  .elsewhen(io.csrsR.rcsr >= Mhpmcounter(3.U) && io.csrsR.rcsr <= Mhpmcounter(31.U)) { io.csrsR.rdata := 0.U }
+  .elsewhen(io.csrsR.rcsr >= Mhpmevent(3.U) && io.csrsR.rcsr <= Mhpmevent(31.U)) { io.csrsR.rdata := 0.U }
+  .elsewhen(io.csrsR.rcsr === Mcountinhibit) { io.csrsR.rdata := mcountinhibit }
+  .elsewhen(io.csrsR.rcsr === Mscratch) { io.csrsR.rdata := mscratch }
+  .elsewhen(io.csrsR.rcsr === Mepc) { io.csrsR.rdata := Cat(mepc(XLEN - 1, 2), 0.U, 0.U) }
+  .elsewhen(io.csrsR.rcsr === Mcause) { io.csrsR.rdata := mcause }
+  .elsewhen(io.csrsR.rcsr === Mtval) { io.csrsR.rdata := 0.U } // A simple implementation.
+  .elsewhen((io.csrsR.rcsr === Pmpcfg0) || (io.csrsR.rcsr === Pmpcfg2)) { io.csrsR.rdata := 0.U }
+  .elsewhen((io.csrsR.rcsr >= Pmpaddr(0.U)) && (io.csrsR.rcsr <= Pmpaddr(15.U))) { io.csrsR.rdata := 0.U }
   
   if (XLEN == 32) {
-    when((io.csr === Pmpcfg1) || (io.csr === Pmpcfg3)) { io.rdata := 0.U }
-    .elsewhen(io.csr === Mcycleh) { io.rdata := mcycle(63, 32) }
-    .elsewhen(io.csr === Minstreth) { io.rdata := minstret(63, 32) }
-    .elsewhen(io.csr >= Mhpmcounterh(3.U) && io.csr <= Mhpmcounterh(31.U)) { io.rdata := 0.U }
+    when((io.csrsR.rcsr === Pmpcfg1) || (io.csrsR.rcsr === Pmpcfg3)) { io.csrsR.rdata := 0.U }
+    .elsewhen(io.csrsR.rcsr === Mcycleh) { io.csrsR.rdata := mcycle(63, 32) }
+    .elsewhen(io.csrsR.rcsr === Minstreth) { io.csrsR.rdata := minstret(63, 32) }
+    .elsewhen(io.csrsR.rcsr >= Mhpmcounterh(3.U) && io.csrsR.rcsr <= Mhpmcounterh(31.U)) { io.csrsR.rdata := 0.U }
   }
 }

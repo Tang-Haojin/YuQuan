@@ -54,10 +54,12 @@ class InternalCPU extends Module {
     else        null
   })
 
-  val modulePC      = Module(new PC)
-  val moduleGPRs    = Module(new GPRs)
-  val moduleBypass  = Module(new Bypass)
-  val moduleAXIRMux = Module(new AXIRMux)
+  val modulePC        = Module(new PC)
+  val moduleGPRs      = Module(new GPRs)
+  val moduleCSRs      = Module(new cpu.privileged.M_CSRs)
+  val moduleBypass    = Module(new Bypass)
+  val moduleBypassCsr = Module(new Bypass_csr)
+  val moduleAXIRMux   = Module(new AXIRMux)
 
   val moduleIF  = Module(new IF)
   val moduleID  = Module(new ID)
@@ -80,7 +82,9 @@ class InternalCPU extends Module {
   moduleIF.io.pcIo  <> modulePC.io.pcIo
 
   moduleID.io.gprsR <> moduleBypass.io.receive
+  moduleID.io.csrsR <> moduleBypassCsr.io.receive
   moduleWB.io.gprsW <> moduleGPRs.io.gprsW
+  moduleWB.io.csrsW <> moduleCSRs.io.csrsW
 
   moduleIF.io.output  <> moduleID.io.input
   moduleID.io.output  <> moduleEX.io.input
@@ -100,7 +104,16 @@ class InternalCPU extends Module {
   moduleBypass.io.memOut.index := moduleMEM.io.output.rd & Fill(5, moduleMEM.io.nextVR.VALID.asUInt)
   moduleBypass.io.memOut.value := moduleMEM.io.output.data
   moduleBypass.io.isLd         := moduleEX.io.output.isLd
-  moduleID.io.isWait := moduleBypass.io.isWait
+
+  moduleBypassCsr.io.request <> moduleCSRs.io.csrsR
+  moduleBypassCsr.io.idOut.wcsr   := moduleID.io.output.wcsr | Fill(12, ~moduleID.io.nextVR.VALID.asUInt)
+  moduleBypassCsr.io.idOut.value  := DontCare
+  moduleBypassCsr.io.exOut.wcsr   := moduleEX.io.output.wcsr | Fill(12, ~moduleEX.io.nextVR.VALID.asUInt)
+  moduleBypassCsr.io.exOut.value  := moduleEX.io.output.csrData
+  moduleBypassCsr.io.memOut.wcsr  := moduleMEM.io.output.wcsr | Fill(12, ~moduleEX.io.nextVR.VALID.asUInt)
+  moduleBypassCsr.io.memOut.value := moduleMEM.io.output.csrData
+
+  moduleID.io.isWait := moduleBypass.io.isWait || moduleBypassCsr.io.isWait
 
   moduleIF.io.jmpBch := moduleID.io.jmpBch
   moduleIF.io.jbAddr := moduleID.io.jbAddr

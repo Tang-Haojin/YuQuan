@@ -9,10 +9,12 @@ import cpu.register._
 import cpu.config.GeneralConfig._
 import cpu.config.RegisterConfig._
 import cpu.config.Debug._
+import cpu.privileged.CSRsW
 
 class WB extends Module {
   val io = IO(new Bundle {
     val gprsW  = Flipped(new GPRsW)
+    val csrsW  = Flipped(new CSRsW)
     val lastVR = new LastVR
     val input  = Flipped(new MEMOutput)
     val debug = if (Debug) new Bundle {
@@ -33,6 +35,10 @@ class WB extends Module {
   io.gprsW.waddr := io.input.rd
   io.gprsW.wdata := io.input.data
 
+  io.csrsW.wen   := 0.B
+  io.csrsW.wcsr  := io.input.wcsr
+  io.csrsW.wdata := io.input.csrData
+
   io.lastVR.READY := 1.B
 
   val regShowReg = if (showReg) RegInit(0.B) else null
@@ -43,6 +49,7 @@ class WB extends Module {
   
   when(io.lastVR.VALID) { // ready to start fetching instr
     io.gprsW.wen := (io.input.rd =/= 0.U)
+    io.csrsW.wen := (io.input.wcsr =/= 0xFFF.U)
     if (showReg) regShowReg := 1.B
     if (Debug) {
       exit  := io.input.debug.exit

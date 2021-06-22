@@ -11,9 +11,11 @@ import cpu.config.RegisterConfig._
 import cpu.config.Debug._
 
 class MEMOutput extends Bundle {
-  val rd    = Output(UInt(5.W))
-  val data  = Output(UInt(XLEN.W))
-  val debug =
+  val rd      = Output(UInt(5.W))
+  val data    = Output(UInt(XLEN.W))
+  val wcsr    = Output(UInt(12.W))
+  val csrData = Output(UInt(XLEN.W))
+  val debug   =
   if (Debug) new Bundle {
     val exit  = Output(UInt(3.W))
     val pc = Output(UInt(XLEN.W))
@@ -39,10 +41,12 @@ class MEM extends Module {
   val sign     = RegInit(0.B)
   val addr     = RegInit(0.U(XLEN.W))
 
-  val rd   = RegInit(0.U(5.W));    io.output.rd   := rd
-  val data = RegInit(0.U(XLEN.W)); io.output.data := data
-  val exit = if (Debug) RegInit(0.U(3.W)) else null
-  val pc   = if (Debug) RegInit(0.U(XLEN.W)) else null
+  val rd      = RegInit(0.U(5.W));      io.output.rd      := rd
+  val data    = RegInit(0.U(XLEN.W));   io.output.data    := data
+  val wcsr    = RegInit(0xFFF.U(12.W)); io.output.wcsr    := wcsr
+  val csrData = RegInit(0.U(XLEN.W));   io.output.csrData := csrData
+  val exit    = if (Debug) RegInit(0.U(3.W)) else null
+  val pc      = if (Debug) RegInit(0.U(XLEN.W)) else null
   
   io.axiRa.ARID     := 1.U // 1 for MEM
   io.axiRa.ARLEN    := 0.U // (ARLEN + 1) AXI Burst per AXI Transfer (a.k.a. AXI Beat)
@@ -161,12 +165,14 @@ class MEM extends Module {
     ARVALID := 0.B
     RREADY  := 1.B
   }.elsewhen(io.lastVR.VALID && io.lastVR.READY) {
-    LREADY := 0.B
-    rd     := io.input.rd
-    addr   := io.input.addr
-    data   := io.input.data
-    mask   := wireMask
-    sign   := wireSign
+    LREADY  := 0.B
+    rd      := io.input.rd
+    addr    := io.input.addr
+    wcsr    := io.input.wcsr
+    csrData := io.input.csrData
+    data    := io.input.data
+    mask    := wireMask
+    sign    := wireSign
     if (Debug) {
       exit := io.input.debug.exit
       pc   := io.input.debug.pc

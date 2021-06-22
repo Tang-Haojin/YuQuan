@@ -17,13 +17,15 @@ object ExitReasons {
 }
 
 class EXOutput extends Bundle {
-  val rd    = Output(UInt(5.W))
-  val data  = Output(UInt(XLEN.W))
-  val isMem = Output(Bool())
-  val isLd  = Output(Bool())
-  val addr  = Output(UInt(XLEN.W))
-  val mask  = Output(UInt(3.W))
-  val debug =
+  val rd      = Output(UInt(5.W))
+  val data    = Output(UInt(XLEN.W))
+  val wcsr    = Output(UInt(12.W))
+  val csrData = Output(UInt(XLEN.W))
+  val isMem   = Output(Bool())
+  val isLd    = Output(Bool())
+  val addr    = Output(UInt(XLEN.W))
+  val mask    = Output(UInt(3.W))
+  val debug   =
   if (Debug) new Bundle {
     val exit  = Output(UInt(3.W))
     val pc    = Output(UInt(XLEN.W))
@@ -40,14 +42,16 @@ class EX extends Module {
 
   val NVALID = RegInit(0.B); io.nextVR.VALID := NVALID
 
-  val rd     = RegInit(0.U(5.W))
-  val data   = RegInit(0.U(XLEN.W))
-  val isMem  = RegInit(0.B)
-  val isLd   = RegInit(0.B)
-  val addr   = RegInit(0.U(XLEN.W))
-  val mask   = RegInit(0.U(3.W))
-  val exit   = if (Debug) RegInit(0.U(3.W)) else null
-  val pc     = if (Debug) RegInit(0.U(XLEN.W)) else null
+  val rd      = RegInit(0.U(5.W))
+  val data    = RegInit(0.U(XLEN.W))
+  val wcsr    = RegInit(0xFFF.U(12.W))
+  val csrData = RegInit(0.U(XLEN.W))
+  val isMem   = RegInit(0.B)
+  val isLd    = RegInit(0.B)
+  val addr    = RegInit(0.U(XLEN.W))
+  val mask    = RegInit(0.U(3.W))
+  val exit    = if (Debug) RegInit(0.U(3.W)) else null
+  val pc      = if (Debug) RegInit(0.U(XLEN.W)) else null
 
   val wireRd    = Wire(UInt(5.W))
   val wireData  = Wire(UInt(XLEN.W))
@@ -64,12 +68,14 @@ class EX extends Module {
   wireMask  := io.input.op1_3
   if (Debug) wireExit := ExitReasons.non
 
-  io.output.rd    := rd
-  io.output.data  := data
-  io.output.isMem := isMem
-  io.output.isLd  := isLd
-  io.output.addr  := addr
-  io.output.mask  := mask
+  io.output.rd      := rd
+  io.output.data    := data
+  io.output.wcsr    := wcsr
+  io.output.csrData := csrData
+  io.output.isMem   := isMem
+  io.output.isLd    := isLd
+  io.output.addr    := addr
+  io.output.mask    := mask
 
   val alu1_2 = Module(new ALU)
 
@@ -93,13 +99,15 @@ class EX extends Module {
   io.lastVR.READY := io.nextVR.READY
 
   when(io.lastVR.VALID && io.lastVR.READY) { // let's start working
-    NVALID := 1.B
-    rd     := wireRd
-    data   := wireData
-    isMem  := wireIsMem
-    isLd   := wireIsLd
-    addr   := wireAddr
-    mask   := wireMask
+    NVALID  := 1.B
+    rd      := wireRd
+    data    := wireData
+    wcsr    := io.input.wcsr
+    csrData := io.input.num2
+    isMem   := wireIsMem
+    isLd    := wireIsLd
+    addr    := wireAddr
+    mask    := wireMask
     if (Debug) {
       exit   := wireExit
       pc     := io.input.debug.pc

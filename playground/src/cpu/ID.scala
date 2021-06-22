@@ -11,7 +11,6 @@ import cpu.config.RegisterConfig._
 import cpu.config.Debug._
 import cpu.ExecSpecials._
 import cpu.InstrTypes._
-import org.apache.commons.lang3.builder.Diff
 
 
 object ExecSpecials {
@@ -30,12 +29,12 @@ object NumTypes {
 }
 
 object RVInstr {
-  val table = RVI.table ++ (if (HasRVM) RVM.table else Nil)
+  val table = RVI.table ++ cpu.privileged.Zicsr.table ++ (if (HasRVM) RVM.table else Nil)
 }
 
 class IDOutput extends Bundle {
   val rd      = Output(UInt(5.W))
-  val csr     = Output(UInt(12.W))
+  val wcsr    = Output(UInt(12.W))
   val num1    = Output(UInt(XLEN.W))
   val num2    = Output(UInt(XLEN.W))
   val num3    = Output(UInt(XLEN.W))
@@ -54,6 +53,7 @@ class ID extends Module {
   val io = IO(new Bundle {
     val output = new IDOutput
     val gprsR  = Flipped(new GPRsR)
+    val csrsR  = Flipped(new cpu.privileged.CSRsR)
     val lastVR = new LastVR
     val nextVR = Flipped(new LastVR)
     val input  = Flipped(new IFOutput)
@@ -64,6 +64,7 @@ class ID extends Module {
 
   val NVALID  = RegInit(0.B)
   val rd      = RegInit(0.U(5.W))
+  val wcsr    = RegInit(0xFFF.U(12.W))
   val op1_2   = RegInit(0.U(AluTypeWidth.W))
   val op1_3   = RegInit(0.U(AluTypeWidth.W))
   val special = RegInit(0.U(5.W))
@@ -80,12 +81,13 @@ class ID extends Module {
     RVInstr.table
   )
 
-  val wireSpecial = WireDefault(0.U(5.W));      wireSpecial := decoded(8)
+  val wireSpecial = WireDefault(UInt(5.W), decoded(8))
   val wireType    = WireDefault(7.U(3.W))
   val wireRd      = Wire(UInt(5.W))
-  val wireOp1_2   = Wire(UInt(AluTypeWidth.W)); wireOp1_2   := decoded(5)
-  val wireOp1_3   = Wire(UInt(AluTypeWidth.W)); wireOp1_3   := decoded(6)
-  val wireFunt3   = Wire(UInt(3.W));            wireFunt3   := io.input.instr(14, 12)
+  val wireCsr     = WireDefault(0xFFF.U(12.W))
+  val wireOp1_2   = WireDefault(UInt(AluTypeWidth.W), decoded(5))
+  val wireOp1_3   = WireDefault(UInt(AluTypeWidth.W), decoded(6))
+  val wireFunt3   = WireDefault(UInt(3.W), io.input.instr(14, 12))
 
   val (wireNum1, wireNum2, wireNum3, wireNum4, wireImm) = (
     WireDefault(0.U(XLEN.W)), WireDefault(0.U(XLEN.W)),
@@ -111,7 +113,7 @@ class ID extends Module {
 
   io.nextVR.VALID   := NVALID
   io.output.rd      := rd
-  io.output.csr     := 0xFFF.U
+  io.output.wcsr    := wcsr
   io.output.num1    := num1
   io.output.num2    := num2
   io.output.num3    := num3
@@ -122,6 +124,7 @@ class ID extends Module {
   io.gprsR.raddr(0) := 0.U
   io.gprsR.raddr(1) := 0.U
   io.gprsR.raddr(2) := 10.U
+  io.csrsR.rcsr     := 0xFFF.U
 
   for (i <- 1 to 4) {
     when(decoded(i) === NumTypes.rs1) {
@@ -138,27 +141,14 @@ class ID extends Module {
   
   for (num <- numList) {
     switch(num._2) {
-      is(NumTypes.rs1) {
-        num._1 := wireDataRs1
-      }
-      is(NumTypes.rs2) {
-        num._1 := wireDataRs2
-      }
-      is(NumTypes.imm) {
-        num._1 := wireImm
-      }
-      is(NumTypes.four) {
-        num._1 := 4.U
-      }
-      is(NumTypes.pc) {
-        num._1 := io.input.pc
-      }
-      is(NumTypes.non) {
-        num._1 := 0.U
-      }
-      is(NumTypes.fun3) {
-        num._1 := wireFunt3
-      }
+      is(NumTypes.rs1 ) { num._1 := wireDataRs1 }
+      is(NumTypes.rs2 ) { num._1 := wireDataRs2 }
+      is(NumTypes.imm ) { num._1 := wireImm }
+      is(NumTypes.four) { num._1 := 4.U }
+      is(NumTypes.pc  ) { num._1 := io.input.pc }
+      is(NumTypes.non ) { num._1 := 0.U }
+      is(NumTypes.fun3) { num._1 := wireFunt3 }
+      is(NumTypes.csr ) { num._1 := io.csrsR.rdata }
     }
   }
 
@@ -227,7 +217,8 @@ class ID extends Module {
       }
     }
     is(csr) {
-      
+      wireCsr := io.input.instr(31, 20)
+      io.csrsR.rcsr := wireCsr
     }
   }
 
@@ -236,6 +227,7 @@ class ID extends Module {
   when(io.lastVR.VALID && io.lastVR.READY) { // let's start working
     NVALID  := 1.B
     rd      := wireRd
+    wcsr    := wireCsr
     num1    := wireNum1
     num2    := wireNum2
     num3    := wireNum3
@@ -247,6 +239,7 @@ class ID extends Module {
   }.elsewhen(io.isWait && io.nextVR.READY) {
     NVALID  := 0.B
     rd      := 0.U
+    wcsr    := 0xFFF.U
     num1    := 0.U
     num2    := 0.U
     num3    := 0.U

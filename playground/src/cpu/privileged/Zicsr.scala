@@ -19,6 +19,7 @@ object Zicsr {
 
   val table = Array(
     //            |    Type    |num1 |num2 |num3 |num4 |op1_2|op1_3| WB |     Special        |
-    CSRRW  -> List(InstrTypes.i, csr , non , rs1 , non , non , non , 1.U, ExecSpecials.csr   )
+    CSRRW  -> List(InstrTypes.i, csr , rs1 , non , non , non , non , 1.U, ExecSpecials.csr   ),
+    CSRRWI -> List(InstrTypes.i, csr , imm , non , non , non , non , 1.U, ExecSpecials.csr   )
   )
 }

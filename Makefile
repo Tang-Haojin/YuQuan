@@ -95,6 +95,7 @@ endif
 	-CFLAGS -D$(ISA) \
 	-LDFLAGS -L$(pwd)/$(ROOT_DIR)/sim/lib \
 	-LDFLAGS -lrv64nemu \
+	-LDFLAGS -lSDL2 \
 	-LDFLAGS -lreadline -Wno-WIDTH $(TRACE) >/dev/null
 
 	@cd $(BUILD_DIR)/sim && ./obj_dir/VTestTop $(BINFILE)
