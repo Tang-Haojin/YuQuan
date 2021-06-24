@@ -92,6 +92,7 @@ endif
 
 	@cd $(BUILD_DIR)/sim && \
 	verilator -cc TestTop.v --top-module TestTop --exe --build sim_main.cpp \
+	--timescale "1ns/1ns" \
 	-CFLAGS -D$(ISA) \
 	-LDFLAGS -L$(pwd)/$(ROOT_DIR)/sim/lib \
 	-LDFLAGS -lrv64nemu \

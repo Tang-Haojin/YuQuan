@@ -15,6 +15,15 @@ object GeneralConfig {
 
   val IALIGN = 32 // compressed instructions are not implemented yet
   val ILEN = 32 // base instruction set supported only
+
+  object UART0_MMIO {
+    val UART0_BASE     = 0x10000000L
+    val UART0_WADDR    = UART0_BASE
+    val UART0_RADDR    = UART0_BASE + 1L
+    val UART0_STATE    = UART0_BASE + 2L
+    val UART0_FREE     = 0x00
+    val UART0_READBUSY = 0x01
+  }
 }
 
 object RegisterConfig {

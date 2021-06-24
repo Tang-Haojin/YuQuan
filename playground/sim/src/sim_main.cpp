@@ -2,12 +2,24 @@
 #include "verilated.h"
 #include "sim_main.hpp"
 
+VerilatedContext *const contextp = new VerilatedContext;
+
+extern "C"
+vluint64_t getTick(void) {
+  return contextp->time();
+}
+
+extern "C"
+int getUnit(void) {
+  return contextp->timeunit();
+}
+
 int main(int argc, char **argv, char **env) {
   int ret = 0;
   vaddr_t pc, nemu_pc;
+  contextp->commandArgs(argc, argv);
+  contextp->traceEverOn(true);
 
-  Verilated::commandArgs(argc, argv);
-  Verilated::traceEverOn(true);
   VTestTop *top = new VTestTop;
 
   QData *gprs = &top->io_gprs_0;
@@ -20,14 +32,14 @@ int main(int argc, char **argv, char **env) {
   top->eval();
 
   for (int i = 0; i < 2; i++) {
-    Verilated::timeInc(1);
+    contextp->timeInc(1);
     top->clock = !top->clock;
     top->eval();
   }
 
   top->reset = 1;
   for (int i = 0; i < 2000000; i++) {
-    Verilated::timeInc(1);
+    contextp->timeInc(1);
     top->clock = !top->clock;
     top->eval();
 

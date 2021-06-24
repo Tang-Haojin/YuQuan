@@ -5,9 +5,8 @@ import chisel3.util._
 
 import cpu.axi._
 import cpu.config.GeneralConfig._
-import chisel3.util.experimental.loadMemoryFromFileInline
 
-class RAM extends RawModule {
+class UART extends RawModule {
   val io = IO(new AxiSlaveIO)
 
   io.axiWr.BID := 1.U // since only cpu requests writing now
@@ -18,61 +17,38 @@ class RAM extends RawModule {
   io.axiRd.RUSER := DontCare
   io.axiRd.RRESP := DontCare
 
-
   withClockAndReset(io.basic.ACLK, ~io.basic.ARESETn) {
-    val syncRAM = SyncReadMem(65536, UInt(8.W))
-    loadMemoryFromFileInline(syncRAM, "mem.txt")
-
     val AWREADY = RegInit(1.B); io.axiWa.AWREADY := AWREADY
     val WREADY  = RegInit(1.B); io.axiWd.WREADY  := WREADY
     val BVALID  = RegInit(0.B); io.axiWr.BVALID  := BVALID
-    val ARREADY = RegInit(1.B); io.axiRa.ARREADY := ARREADY
+                                io.axiRa.ARREADY := 1.B
     val RVALID  = RegInit(0.B); io.axiRd.RVALID  := RVALID
 
     val RID    = RegInit(0.U(4.W)); io.axiRd.RID := RID
-    val ARADDR = RegInit(0.U(XLEN.W))
-    val AWADDR = RegInit(0.U(XLEN.W))
     val WDATA  = RegInit(0.U(XLEN.W))
-    val WSTRB  = RegInit(0.U((XLEN / 8).W))
-
-    val wireARADDR = Wire(UInt(XLEN.W))
-    wireARADDR := ARADDR
     
-    io.axiRd.RDATA := 
-      Cat((for { a <- 0 until XLEN / 8 } yield syncRAM.read(wireARADDR + a.U)).reverse)
+    io.axiRd.RDATA := (-1.S).asUInt
 
     when(io.axiRd.RVALID && io.axiRd.RREADY) {
       RVALID  := 0.B
-      ARREADY := 1.B
-      // printf("RDATA: %x\n", io.axiRd.RDATA)
     }.elsewhen(io.axiRa.ARVALID && io.axiRa.ARREADY) {
       RID := io.axiRa.ARID
-      ARADDR := io.axiRa.ARADDR - MEMBase.U
-      wireARADDR := io.axiRa.ARADDR - MEMBase.U
-      ARREADY := 0.B
       RVALID := 1.B
     }
 
     when(io.axiWa.AWVALID && io.axiWa.AWREADY) {
-      AWADDR  := io.axiWa.AWADDR - MEMBase.U
       AWREADY := 0.B
     }
 
     when(io.axiWd.WVALID && io.axiWd.WREADY) {
       WDATA  := io.axiWd.WDATA
-      WSTRB  := io.axiWd.WSTRB
       WREADY := 0.B
-      // printf("WDATA: %x\n", io.axiWd.WDATA)
     }
 
     when(~io.axiWa.AWREADY && ~io.axiWd.WREADY) {
       AWREADY := 1.B
       WREADY  := 1.B
-      for (i <- 0 until XLEN / 8) {
-        when(WSTRB(i)) {
-          syncRAM.write(AWADDR + i.U, WDATA(i * 8 + 7, i * 8))
-        }
-      }
+      printf("%c", WDATA(7, 0))
       BVALID  := 1.B
     }
 
