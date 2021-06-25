@@ -4,28 +4,19 @@
 
 VerilatedContext *const contextp = new VerilatedContext;
 
-extern "C"
-vluint64_t getTick(void) {
-  return contextp->time();
-}
-
-extern "C"
-int getUnit(void) {
-  return contextp->timeunit();
-}
-
 int main(int argc, char **argv, char **env) {
   int ret = 0;
-  vaddr_t pc, nemu_pc;
-  contextp->commandArgs(argc, argv);
-  contextp->traceEverOn(true);
-
   VTestTop *top = new VTestTop;
 
-  QData *gprs = &top->io_gprs_0;
-
+#ifdef DIFFTEST
+  vaddr_t pc, nemu_pc;
   init_monitor(argc, argv);
   init_device();
+  QData *gprs = &top->io_gprs_0;
+#endif
+
+  contextp->commandArgs(argc, argv);
+  contextp->traceEverOn(true);
 
   top->reset = 0;
   top->clock = 0;
@@ -43,10 +34,10 @@ int main(int argc, char **argv, char **env) {
     top->clock = !top->clock;
     top->eval();
 
+#ifdef DIFFTEST
     if (top->io_wbValid && top->clock) {
       pc = top->io_wbPC;
       nemu_pc = cpu.pc;
-      // printf("pc=" FMT_WORD "\tnemu_pc=" FMT_WORD "\n", top->io_wbPC, cpu.pc);
       if (pc != nemu_pc) {
         printf("\33[1;31mPC Diff\33[0m\n");
         printf("pc = " FMT_WORD "\tnemu_pc=" FMT_WORD "\n", top->io_wbPC, cpu.pc);
@@ -64,6 +55,7 @@ int main(int argc, char **argv, char **env) {
         break;
       }
     }
+#endif
 
     if (top->io_exit == 1) {
       printf("debug: Exit after %d clock cycles.\n", i / 2);
@@ -88,6 +80,5 @@ int main(int argc, char **argv, char **env) {
   }
 
   delete top;
-
   return ret;
 }

@@ -20,7 +20,7 @@ class RAM extends RawModule {
 
 
   withClockAndReset(io.basic.ACLK, ~io.basic.ARESETn) {
-    val syncRAM = SyncReadMem(65536, UInt(8.W))
+    val syncRAM = SyncReadMem(MEMSize, UInt(8.W))
     loadMemoryFromFileInline(syncRAM, "mem.txt")
 
     val AWREADY = RegInit(1.B); io.axiWa.AWREADY := AWREADY

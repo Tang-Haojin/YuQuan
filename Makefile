@@ -20,10 +20,9 @@ else
 override TRACE = 
 endif
 
-ifeq ($(DIFF),0)
+ifneq ($(DIFF),)
 export DIFF = 0
 else
-BINFILE = $(pwd)/$(ROOT_DIR)/sim/bin/$(BIN)-$(ISA)-nemu.bin
 LIB_DIR = $(pwd)/$(ROOT_DIR)/sim/lib
 LIBNEMU = $(pwd)/$(ROOT_DIR)/sim/lib/librv$(xlens)nemu.so
 $(shell mkdir $(LIB_DIR) >>/dev/null 2>&1 | echo >>/dev/null 2>&1)
@@ -31,9 +30,15 @@ ifeq ($(wildcard $(LIBNEMU)),)
 $(shell wget https://tanghaojin.site/static/librv64nemu.so -O $(LIBNEMU) || rm $(LIBNEMU))
 endif
 export LD_LIBRARY_PATH := $(LIB_DIR):$(LD_LIBRARY_PATH)
+VFLAGS = -LDFLAGS -L$(pwd)/$(ROOT_DIR)/sim/lib \
+         -LDFLAGS -lrv64nemu \
+	     -LDFLAGS -lSDL2 \
+	     -LDFLAGS -lreadline \
+		 -CFLAGS  -DDIFFTEST
 endif
 
 ifneq ($(BIN),)
+BINFILE = $(pwd)/$(ROOT_DIR)/sim/bin/$(BIN)-$(ISA)-nemu.bin
 ifeq ($(wildcard $(BINFILE)),)
 $(shell wget https://tanghaojin.site/static/$(BIN)-$(ISA)-nemu.bin -O $(BINFILE) || rm $(BINFILE))
 endif
@@ -94,10 +99,8 @@ endif
 	verilator -cc TestTop.v --top-module TestTop --exe --build sim_main.cpp \
 	--timescale "1ns/1ns" \
 	-CFLAGS -D$(ISA) \
-	-LDFLAGS -L$(pwd)/$(ROOT_DIR)/sim/lib \
-	-LDFLAGS -lrv64nemu \
-	-LDFLAGS -lSDL2 \
-	-LDFLAGS -lreadline -Wno-WIDTH $(TRACE) >/dev/null
+	-Wno-WIDTH $(TRACE) \
+	$(VFLAGS) >/dev/null
 
 	@cd $(BUILD_DIR)/sim && ./obj_dir/VTestTop $(BINFILE)
 

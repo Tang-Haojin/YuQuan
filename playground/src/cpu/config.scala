@@ -7,6 +7,7 @@ object GeneralConfig {
   val XLEN = sys.env.getOrElse("XLEN", 64).toString.toInt
   val HasRVM = true
   val MEMBase = 0x80100000L
+  val MEMSize = 90 * 1024 * 1024
   val Extensions = List('I', 'M')
   val privilegeMode = if (Extensions.contains('S')) 3
                  else if (Extensions.contains('U')) 2
@@ -23,6 +24,7 @@ object GeneralConfig {
     val UART0_STATE    = UART0_BASE + 2L
     val UART0_FREE     = 0x00
     val UART0_READBUSY = 0x01
+    val UART0_SIZE     = 100
   }
 }
 

@@ -90,6 +90,8 @@ typedef struct {
 
 #endif
 
+#ifdef DIFFTEST
+
 /* Initialize the monitor. */
 void init_monitor(int argc, char *argv[]);
 
@@ -108,6 +110,8 @@ void cpu_exec(uint64_t n);
 vaddr_t isa_exec_once();
 
 extern CPU_state cpu;
+
+#endif
 
 }
 
