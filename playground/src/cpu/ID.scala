@@ -14,13 +14,13 @@ import cpu.InstrTypes._
 
 
 object ExecSpecials {
-  val specials = Enum(10)
-  val non::ld::st::jump::jalr::branch::trap::inv::word::csr::Nil = specials
+  val specials = Enum(11)
+  val non::ld::st::jump::jalr::branch::trap::inv::word::csr::mret::Nil = specials
 }
 
 object InstrTypes {
   val instrtypes = Enum(7)
-  val i::u::s::r::j::b::inscsr::Nil = instrtypes
+  val i::u::s::r::j::b::c::Nil = instrtypes
 }
 
 object NumTypes {
@@ -60,6 +60,7 @@ class ID extends Module {
     val jmpBch = Output(Bool())
     val jbAddr = Output(UInt(XLEN.W))
     val isWait = Input (Bool())
+    val except = Flipped(new cpu.privileged.ExceptIO)
   })
 
   val NVALID  = RegInit(0.B)
@@ -125,6 +126,12 @@ class ID extends Module {
   io.gprsR.raddr(1) := 0.U
   io.gprsR.raddr(2) := 10.U
   io.csrsR.rcsr     := 0xFFF.U
+  io.except.except  := 0.B
+  io.except.excode  := 0.U
+  io.except.int     := 0.B
+  io.except.mtval   := 0.U
+  io.except.pc      := io.input.pc
+  io.except.mret    := 0.B
 
   for (i <- 1 to 4) {
     when(decoded(i) === NumTypes.rs1) {
@@ -188,7 +195,7 @@ class ID extends Module {
         0.U
       )
     }
-    is(inscsr) {
+    is(c) {
       wireImm := Cat(Fill(XLEN - 5, 0.U), io.input.instr(19, 15))
     }
   }
@@ -219,6 +226,20 @@ class ID extends Module {
     is(csr) {
       wireCsr := io.input.instr(31, 20)
       io.csrsR.rcsr := wireCsr
+    }
+    is(inv) {
+      io.jmpBch        := 1.B
+      io.jbAddr        := Cat(io.except.mtvec(XLEN - 1, 2), "b00".U)
+      io.except.except := 1.B
+      io.except.excode := 2.U
+      io.except.int    := 0.B
+      io.except.mtval  := io.input.instr
+      io.except.pc     := io.input.pc
+    }
+    is(mret) {
+      io.jmpBch      := 1.B
+      io.jbAddr      := io.except.mepc
+      io.except.mret := 1.B
     }
   }
 

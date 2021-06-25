@@ -46,7 +46,7 @@ class IF extends Module {
   io.pcIo.wen       := 0.B
   io.pcIo.wdata     := 0.U
 
-  val instr   = RegInit(0.U(32.W))
+  val instr   = RegInit(0x00000013.U(32.W))
   val pc      = RegInit(0.U(XLEN.W))
 
   io.axiRa.ARVALID := 0.B

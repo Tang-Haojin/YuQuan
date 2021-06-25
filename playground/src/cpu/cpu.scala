@@ -118,6 +118,8 @@ class InternalCPU extends Module {
   moduleIF.io.jmpBch := moduleID.io.jmpBch
   moduleIF.io.jbAddr := moduleID.io.jbAddr
 
+  moduleID.io.except <> moduleCSRs.io.except
+
   if (Debug) {
     io.debug.exit    := moduleWB.io.debug.exit
     io.debug.data    := moduleGPRs.io.gprsR.rdata(2)

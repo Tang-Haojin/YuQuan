@@ -80,7 +80,7 @@ sim:
 ifneq ($(BIN),)
 	@rm -f $(BUILD_DIR)/sim/mem.txt
 	@xxd -g 1 $(ROOT_DIR)/sim/bin/$(BIN)-$(ISA)-nemu.bin | \
-	grep -oP "(?<=: ).*(?=  )" >$(BUILD_DIR)/sim/mem.txt
+	grep -oP "(?<=: ).*(?=  .{16})" >$(BUILD_DIR)/sim/mem.txt
 endif
 	mill -i __.sim.runMain Elaborate -td $(BUILD_DIR)/sim
 ifneq ($(TRACE),)

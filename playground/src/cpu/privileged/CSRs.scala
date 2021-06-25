@@ -6,6 +6,17 @@ import cpu.config.{GeneralConfig => p}
 import p._
 import chisel3.util.log2Floor
 
+class ExceptIO extends Bundle {
+  val except = Input (Bool())
+  val pc     = Input (UInt(XLEN.W))
+  val int    = Input (Bool())
+  val excode = Input (UInt(4.W))
+  val mtval  = Input (UInt(XLEN.W))
+  val mtvec  = Output(UInt(XLEN.W))
+  val mepc   = Output(UInt(XLEN.W))
+  val mret   = Input (Bool())
+}
+
 class CSRsW extends Bundle {
   val wen   = Input(Bool())
   val wcsr  = Input(UInt(12.W))
@@ -18,8 +29,9 @@ class CSRsR extends Bundle {
 
 class M_CSRs extends Module {
   val io = IO(new Bundle {
-    val csrsW = new CSRsW
-    val csrsR = new CSRsR
+    val csrsW  = new CSRsW
+    val csrsR  = new CSRsR
+    val except = new ExceptIO
   })
 
   val MXL   = (log2Down(XLEN) - 4).U(2.W)
@@ -242,4 +254,34 @@ class M_CSRs extends Module {
     .elsewhen(io.csrsR.rcsr === Minstreth) { io.csrsR.rdata := minstret(63, 32) }
     .elsewhen(io.csrsR.rcsr >= Mhpmcounterh(3.U) && io.csrsR.rcsr <= Mhpmcounterh(31.U)) { io.csrsR.rdata := 0.U }
   }
+
+  when(io.except.except) {
+    when(io.except.int) {
+      // TODO
+    }.otherwise {
+      mepc := io.except.pc
+    }
+    mcause  := Cat(io.except.int, Fill(XLEN - 5, 0.U), io.except.excode)
+    mtval   := io.except.mtval
+    mstatus := Cat(
+      mstatus(XLEN - 1, 13),
+      "b11".U,
+      mstatus(10, 8),
+      mstatus.MIE,
+      mstatus(6, 4),
+      0.B,
+      mstatus(2, 0)
+    )
+  }
+  when(io.except.mret) {
+    mstatus := Cat(
+      mstatus(XLEN - 1, 8),
+      1.B,
+      mstatus(6, 4),
+      mstatus.MPIE,
+      mstatus(2, 0)
+    )
+  }
+  io.except.mtvec := mtvec
+  io.except.mepc  := mepc
 }

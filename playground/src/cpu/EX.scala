@@ -103,6 +103,9 @@ class EX extends Module {
     rd      := wireRd
     data    := wireData
     wcsr    := io.input.wcsr
+    when(io.input.op1_3 === 0.U) { csrData := io.input.num2 }
+    .elsewhen(io.input.op1_3 === 1.U) { csrData := io.input.num2 | io.input.num1 }
+    .elsewhen(io.input.op1_3 === 2.U) { csrData := io.input.num2 & (~io.input.num1) }
     csrData := io.input.num2
     isMem   := wireIsMem
     isLd    := wireIsLd
