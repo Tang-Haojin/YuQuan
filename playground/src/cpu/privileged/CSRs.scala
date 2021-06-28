@@ -5,7 +5,6 @@ import chisel3.util._
 import cpu.config.{GeneralConfig => p}
 import p._
 import cpu.config.RegisterConfig._
-import chisel3.util.log2Floor
 
 class ExceptIO extends Bundle {
   val except  = Input (Bool())
@@ -79,8 +78,6 @@ class M_CSRs extends Module with CSRsAddr {
   val io = IO(new Bundle {
     val csrsW  = new CSRsW
     val csrsR  = new CSRsR
-    val except = new ExceptIO
-    val fakeMemOut = new FakeMemOut
   })
 
   val MXL   = (log2Down(XLEN) - 4).U(2.W)
@@ -271,35 +268,4 @@ class M_CSRs extends Module with CSRsAddr {
       .elsewhen(io.csrsR.rcsr(i) >= Mhpmcounterh(3.U) && io.csrsR.rcsr(i) <= Mhpmcounterh(31.U)) { io.csrsR.rdata(i) := 0.U }
     }
   }
-
-  when(io.except.except) {
-    mepc    := io.except.pc
-    mcause  := Cat(io.except.int, Fill(XLEN - 5, 0.U), io.except.excode)
-    mtval   := io.except.mtval
-    mstatus := Cat(
-      mstatus(XLEN - 1, 13),
-      "b11".U,
-      mstatus(10, 8),
-      mstatus.MIE,
-      mstatus(6, 4),
-      0.B,
-      mstatus(2, 0)
-    )
-  }
-  when(io.except.mret) {
-    mstatus := Cat(
-      mstatus(XLEN - 1, 8),
-      1.B,
-      mstatus(6, 4),
-      mstatus.MPIE,
-      mstatus(2, 0)
-    )
-  }
-  io.except.mtvec   := mtvec
-  io.except.mepc    := mepc
-  io.except.mie     := mie
-  io.except.mstatus := mstatus
-
-  io.fakeMemOut.mtime    := mtime
-  io.fakeMemOut.mtimecmp := mtimecmp
 }

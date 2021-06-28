@@ -68,7 +68,25 @@ class FakeMem extends Module {
       is(0.U) { io.data_out := Cat(wireData(XLEN - 1,  8), io.data_in( 7, 0)) }
       is(1.U) { io.data_out := Cat(wireData(XLEN - 1, 16), io.data_in(15, 0)) }
       is(2.U) { io.data_out := Cat(wireData(XLEN - 1, 32), io.data_in(31, 0)) }
-      is(3.U) { io.data_out :=     wireData                                    }
+      is(3.U) { io.data_out :=     wireData                                   }
     }
   }
+}
+
+class IsCLINT extends Module {
+  val io = IO(new Bundle {
+    val addr_in  = Input(UInt(XLEN.W))
+    val addr_out = Output(UInt(12.W))
+  })
+
+  class CSRsAddr extends cpu.privileged.CSRsAddr
+  val csrsAddr = new CSRsAddr
+
+  io.addr_out := 0xFFF.U
+
+  switch(io.addr_in) {
+    is(CLINT.MTIME.U) { io.addr_out := csrsAddr.Mtime }
+    is(CLINT.MTIMECMP(0).U) { io.addr_out := csrsAddr.Mtimecmp }
+  }
+
 }

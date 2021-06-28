@@ -57,10 +57,9 @@ class ID extends Module {
     val jmpBch    = Output(Bool())
     val jbAddr    = Output(UInt(XLEN.W))
     val isWait    = Input (Bool())
-    val except    = Flipped(new cpu.privileged.ExceptIO)
-    val fakeMemIn = Flipped(new cpu.privileged.FakeMemOut)
   })
 
+  val csrsRdata = io.csrsR.rdata
   class CSRsAddr extends cpu.privileged.CSRsAddr
   val csrsAddr = new CSRsAddr
 
@@ -128,12 +127,6 @@ class ID extends Module {
   io.gprsR.raddr(1) := 0.U
   io.gprsR.raddr(2) := 10.U
   io.csrsR.rcsr     := Vec(readCsrsPort, 0xFFF.U)
-  io.except.except  := 0.B
-  io.except.excode  := 0.U
-  io.except.int     := 0.B
-  io.except.mtval   := 0.U
-  io.except.pc      := io.input.pc
-  io.except.mret    := 0.B
 
   io.csrsR.rcsr(1) := csrsAddr.Mstatus
   io.csrsR.rcsr(2) := csrsAddr.Mie
@@ -211,9 +204,41 @@ class ID extends Module {
     wireRd := 0.U
   }
 
+  val isClint = Module(new IsCLINT)
+  isClint.io.addr_in := decoded(3) + decoded(4)
+
   io.jmpBch := 0.B
   io.jbAddr := 0.U
-  switch(wireSpecial) {
+  switch(decoded(8)) {
+    is(ld) {
+      when(isClint.io.addr_out =/= 0xFFF.U) {
+        io.csrsR.rcsr(0) := isClint.io.addr_out
+        switch(decoded(6)) {
+          is(0.U) { wireNum1 := Cat(Fill(XLEN - 8 , csrsRdata(0)( 7)), csrsRdata(0)( 7, 0)) }
+          is(1.U) { wireNum1 := Cat(Fill(XLEN - 16, csrsRdata(0)(15)), csrsRdata(0)(15, 0)) }
+          is(2.U) { wireNum1 := Cat(Fill(XLEN - 32, csrsRdata(0)(31)), csrsRdata(0)(31, 0)) }
+          is(3.U) { wireNum1 :=                                        csrsRdata(0)         }
+          is(4.U) { wireNum1 := Cat(Fill(XLEN - 8 ,              0.B), csrsRdata(0)( 7, 0)) }
+          is(5.U) { wireNum1 := Cat(Fill(XLEN - 16,              0.B), csrsRdata(0)(15, 0)) }
+          is(6.U) { wireNum1 := Cat(Fill(XLEN - 32,              0.B), csrsRdata(0)(31, 0)) }
+        }
+        wireNum2  := non; wireNum3  := non; wireNum4    := non
+        wireOp1_2 := non; wireOp1_3 := non; wireSpecial := non
+      }
+    }
+    is(st) {
+      when(isClint.io.addr_out =/= 0xFFF.U) {
+        io.csrsR.rcsr(0) := isClint.io.addr_out
+        switch(decoded(6)) {
+          is(0.U) { wireNum2 := Cat(csrsRdata(0)(XLEN - 1,  8), decoded(1)( 7, 0)) }
+          is(1.U) { wireNum2 := Cat(csrsRdata(0)(XLEN - 1, 16), decoded(1)(15, 0)) }
+          is(2.U) { wireNum2 := Cat(csrsRdata(0)(XLEN - 1, 32), decoded(1)(31, 0)) }
+          is(3.U) { wireNum2 :=     csrsRdata(0)                                   }
+        }
+        wireNum1  := non; wireNum3  := non; wireNum4    := non
+        wireOp1_2 := non; wireOp1_3 := 0.U; wireSpecial := csr
+      }
+    }
     is(jump) {
       io.jmpBch := 1.B
       io.jbAddr := io.input.pc + wireImm
@@ -284,14 +309,6 @@ class ID extends Module {
     }
   }
 
-  val fakeMem = Module(new FakeMem)
-
-  fakeMem.io.fake_in <> io.fakeMemIn
-  fakeMem.io.addr_in := wireNum3 + wireNum4
-  fakeMem.io.data_in := wireNum1
-  fakeMem.io.mask    := decoded(6)
-  fakeMem.io.special := decoded(8)
-
   io.lastVR.READY := io.nextVR.READY && !io.isWait
   
   when(io.lastVR.VALID && io.lastVR.READY) { // let's start working
@@ -306,21 +323,6 @@ class ID extends Module {
     op1_3   := wireOp1_3
     special := wireSpecial
     instr   := io.input.instr
-    when(fakeMem.io.addr_out =/= 0xFFF.U) {
-      when(wireSpecial === ld) {
-        num1 := fakeMem.io.data_out
-        num2 := 0.U
-        op1_2 := Operators.add
-        special := non
-      }
-      when(wireSpecial === st) {
-        rd      := 0.U
-        wcsr    := fakeMem.io.addr_out
-        num2    := fakeMem.io.data_out
-        op1_3   := 0.U
-        special := non
-      }
-    }
     if (Debug) pc := io.input.pc
   }.elsewhen(io.isWait && io.nextVR.READY) {
     NVALID  := 0.B
