@@ -24,6 +24,12 @@ object RVM {
   def REMU   = BitPat("b0000001_?????_?????_111_?????_0110011")
   def DIVU   = BitPat("b0000001_?????_?????_101_?????_0110011")
   def MULH   = BitPat("b0000001_?????_?????_001_?????_0110011")
+  def DIVUW  = 
+  if(XLEN==64) BitPat("b0000001_?????_?????_101_?????_0111011")
+  else         BitPat("b0000000_00000_00000_000_00000_0000000")
+  def REMUW  = 
+  if(XLEN==64) BitPat("b0000001_?????_?????_111_?????_0111011")
+  else         BitPat("b0000000_00000_00000_000_00000_0000000")
 
   val table = Array(
     //            |    Type    |num1 |num2 |num3 |num4 |op1_2|op1_3| WB |     Special        |
@@ -35,6 +41,8 @@ object RVM {
     DIV    -> List(InstrTypes.r, rs1 , rs2 , non , non , div , non , 1.U, ExecSpecials.non   ),
     REMU   -> List(InstrTypes.r, rs1 , rs2 , non , non , remu, non , 1.U, ExecSpecials.non   ),
     DIVU   -> List(InstrTypes.r, rs1 , rs2 , non , non , divu, non , 1.U, ExecSpecials.non   ),
-    MULH   -> List(InstrTypes.r, rs1 , rs2 , non , non , mulh, non , 1.U, ExecSpecials.non   )
+    MULH   -> List(InstrTypes.r, rs1 , rs2 , non , non , mulh, non , 1.U, ExecSpecials.non   ),
+    DIVUW  -> List(InstrTypes.r, rs1 , rs2 , non , non , duw , non , 1.U, ExecSpecials.word  ),
+    REMUW  -> List(InstrTypes.r, rs1 , rs2 , non , non , ruw , non , 1.U, ExecSpecials.word  )
   )
 }

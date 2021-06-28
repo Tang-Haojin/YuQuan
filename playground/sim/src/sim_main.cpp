@@ -6,6 +6,7 @@ VerilatedContext *const contextp = new VerilatedContext;
 
 int main(int argc, char **argv, char **env) {
   int ret = 0;
+  uart_init();
   VTestTop *top = new VTestTop;
 
 #ifdef DIFFTEST
@@ -79,6 +80,7 @@ int main(int argc, char **argv, char **env) {
     }
   }
 
+  uart_isRunning = false;
   delete top;
   return ret;
 }

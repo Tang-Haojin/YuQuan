@@ -113,6 +113,10 @@ extern CPU_state cpu;
 
 #endif
 
+void uart_getc(char *ch);
+void uart_init(void);
+extern bool uart_isRunning;
+
 }
 
 #endif

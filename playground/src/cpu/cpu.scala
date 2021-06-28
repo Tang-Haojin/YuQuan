@@ -7,6 +7,7 @@ import cpu.register._
 import cpu.axi._
 import cpu.config.Debug._
 import cpu.config.GeneralConfig._
+import cpu.config.RegisterConfig._
 
 class DEBUG extends Bundle {
   val exit    = Output(UInt(3.W))
@@ -106,11 +107,13 @@ class InternalCPU extends Module {
   moduleBypass.io.isLd         := moduleEX.io.output.isLd
 
   moduleBypassCsr.io.request <> moduleCSRs.io.csrsR
-  moduleBypassCsr.io.idOut.wcsr   := moduleID.io.output.wcsr | Fill(12, ~moduleID.io.nextVR.VALID.asUInt)
+  for (i <- 0 until writeCsrsPort) {
+    moduleBypassCsr.io.idOut.wcsr(i)   := moduleID.io.output.wcsr(i)  | Fill(12, ~moduleID.io.nextVR.VALID.asUInt)
+    moduleBypassCsr.io.exOut.wcsr(i)   := moduleEX.io.output.wcsr(i)  | Fill(12, ~moduleEX.io.nextVR.VALID.asUInt)
+    moduleBypassCsr.io.memOut.wcsr(i)  := moduleMEM.io.output.wcsr(i) | Fill(12, ~moduleEX.io.nextVR.VALID.asUInt)
+  }
   moduleBypassCsr.io.idOut.value  := DontCare
-  moduleBypassCsr.io.exOut.wcsr   := moduleEX.io.output.wcsr | Fill(12, ~moduleEX.io.nextVR.VALID.asUInt)
   moduleBypassCsr.io.exOut.value  := moduleEX.io.output.csrData
-  moduleBypassCsr.io.memOut.wcsr  := moduleMEM.io.output.wcsr | Fill(12, ~moduleEX.io.nextVR.VALID.asUInt)
   moduleBypassCsr.io.memOut.value := moduleMEM.io.output.csrData
 
   moduleID.io.isWait := moduleBypass.io.isWait || moduleBypassCsr.io.isWait
@@ -118,7 +121,8 @@ class InternalCPU extends Module {
   moduleIF.io.jmpBch := moduleID.io.jmpBch
   moduleIF.io.jbAddr := moduleID.io.jbAddr
 
-  moduleID.io.except <> moduleCSRs.io.except
+  moduleID.io.except    <> moduleCSRs.io.except
+  moduleID.io.fakeMemIn <> moduleCSRs.io.fakeMemOut
 
   if (Debug) {
     io.debug.exit    := moduleWB.io.debug.exit

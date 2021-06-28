@@ -98,7 +98,7 @@ object RVI {
 
   val table = Array(
     //           |    Type    |num1 |num2 |num3 |num4 |op1_2|op1_3| WB |     Special        |
-    ERR   -> List(7.U         , non , non , non , non , non , non , 0.U, ExecSpecials.inv   ),
+    ERR   -> List(7.U         , pc  , non , non , non , non , non , 0.U, ExecSpecials.inv   ),
     
     LUI   -> List(InstrTypes.u, non , imm , non , non , add , non , 1.U, ExecSpecials.non   ),
     AUIPC -> List(InstrTypes.u, pc  , imm , non , non , add , non , 1.U, ExecSpecials.non   ),

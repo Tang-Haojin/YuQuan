@@ -6,6 +6,30 @@ import chisel3.util._
 import cpu.axi._
 import cpu.config.GeneralConfig._
 
+class UartGetc extends BlackBox with HasBlackBoxInline {
+  val io = IO(new Bundle {
+    val clock = Input (Clock())
+    val getc  = Input (Bool())
+    val ch    = Output(UInt(8.W))
+  })
+
+  setInline("UartGetc.v",s"""
+    |import "DPI-C" function void uart_getc(output byte ch);
+    |
+    |module UartGetc (
+    |  input  clock,
+    |  input  getc,
+    |  output reg [7:0] ch
+    |);
+    |
+    |  always@(posedge clock) begin
+    |    if (getc) uart_getc(ch);
+    |  end
+    |
+    |endmodule
+  """.stripMargin)
+}
+
 class UART extends RawModule {
   val io = IO(new AxiSlaveIO)
 
@@ -26,14 +50,21 @@ class UART extends RawModule {
 
     val RID    = RegInit(0.U(4.W)); io.axiRd.RID := RID
     val WDATA  = RegInit(0.U(XLEN.W))
+    val RDATA  = RegInit(0.U(8.W))
     
-    io.axiRd.RDATA := (-1.S).asUInt
+    io.axiRd.RDATA := Cat(Fill(XLEN - 8, 0.U), RDATA)
+
+    val uart_getc = Module(new UartGetc)
+    uart_getc.io.clock := io.basic.ACLK
+    uart_getc.io.getc  := 0.B
 
     when(io.axiRd.RVALID && io.axiRd.RREADY) {
       RVALID  := 0.B
     }.elsewhen(io.axiRa.ARVALID && io.axiRa.ARREADY) {
+      uart_getc.io.getc := 1.B
       RID := io.axiRa.ARID
       RVALID := 1.B
+      RDATA := uart_getc.io.ch
     }
 
     when(io.axiWa.AWVALID && io.axiWa.AWREADY) {

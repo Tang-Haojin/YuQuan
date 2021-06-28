@@ -54,8 +54,8 @@ class Bypass extends Module {
 }
 
 class CsrVal extends Bundle {
-  val wcsr  = Input(UInt(12.W))
-  val value = Input(UInt(XLEN.W))
+  val wcsr  = Input(Vec(writeCsrsPort, UInt(12.W)))
+  val value = Input(Vec(writeCsrsPort, UInt(XLEN.W)))
 }
 
 class Bypass_csr extends Module {
@@ -70,17 +70,24 @@ class Bypass_csr extends Module {
 
   io.isWait := 0.B
 
-  io.request.rcsr := io.receive.rcsr
-  io.receive.rdata := 0.U
-  when(io.receive.rcsr =/= 0xFFF.U) {
-    when(io.receive.rcsr === io.idOut.wcsr) {
-      io.isWait := 1.B
-    }.elsewhen(io.receive.rcsr === io.exOut.wcsr) {
-      io.receive.rdata := io.exOut.value
-    }.elsewhen(io.receive.rcsr === io.memOut.wcsr) {
-      io.receive.rdata := io.memOut.value
-    }.otherwise {
-      io.receive.rdata := io.request.rdata
+  for (i <- 0 until readCsrsPort) {
+    io.request.rcsr(i) := io.receive.rcsr(i)
+    io.receive.rdata(i) := 0.U
+    when(io.receive.rcsr(i) =/= 0xFFF.U) {
+      io.receive.rdata(i) := io.request.rdata(i)
+      for (j <- 0 until writeCsrsPort)
+        when(io.receive.rcsr(i) === io.memOut.wcsr(j)) {
+          io.receive.rdata(i) := io.memOut.value(j)
+        }
+      for (j <- 0 until writeCsrsPort)
+        when(io.receive.rcsr(i) === io.exOut.wcsr(j)) {
+          io.receive.rdata(i) := io.exOut.value(j)
+        }
+      for (j <- 0 until writeCsrsPort)
+        when(io.receive.rcsr(i) === io.idOut.wcsr(j)) {
+          io.isWait := 1.B
+          io.receive.rdata(i) := 0.U
+        }
     }
   }
 }

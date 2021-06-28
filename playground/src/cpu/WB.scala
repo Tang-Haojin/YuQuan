@@ -49,7 +49,7 @@ class WB extends Module {
   
   when(io.lastVR.VALID) { // ready to start fetching instr
     io.gprsW.wen := (io.input.rd =/= 0.U)
-    io.csrsW.wen := (io.input.wcsr =/= 0xFFF.U)
+    for (i <- 0 until writeCsrsPort) io.csrsW.wen(i) := (io.input.wcsr(i) =/= 0xFFF.U)
     if (showReg) regShowReg := 1.B
     if (Debug) {
       exit  := io.input.debug.exit

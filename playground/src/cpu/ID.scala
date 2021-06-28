@@ -14,14 +14,11 @@ import cpu.InstrTypes._
 
 
 object ExecSpecials {
-  val specials = Enum(11)
-  val non::ld::st::jump::jalr::branch::trap::inv::word::csr::mret::Nil = specials
+  val specials = Enum(12)
+  val non::ld::st::jump::jalr::branch::trap::inv::word::csr::mret::int::Nil = specials
 }
 
-object InstrTypes {
-  val instrtypes = Enum(7)
-  val i::u::s::r::j::b::c::Nil = instrtypes
-}
+object InstrTypes { val i::u::s::r::j::b::c::Nil = Enum(7) }
 
 object NumTypes {
   val numtypes = Enum(8)
@@ -34,7 +31,7 @@ object RVInstr {
 
 class IDOutput extends Bundle {
   val rd      = Output(UInt(5.W))
-  val wcsr    = Output(UInt(12.W))
+  val wcsr    = Output(Vec(writeCsrsPort, UInt(12.W)))
   val num1    = Output(UInt(XLEN.W))
   val num2    = Output(UInt(XLEN.W))
   val num3    = Output(UInt(XLEN.W))
@@ -51,24 +48,29 @@ class IDOutput extends Bundle {
 // instruction decoding module
 class ID extends Module {
   val io = IO(new Bundle {
-    val output = new IDOutput
-    val gprsR  = Flipped(new GPRsR)
-    val csrsR  = Flipped(new cpu.privileged.CSRsR)
-    val lastVR = new LastVR
-    val nextVR = Flipped(new LastVR)
-    val input  = Flipped(new IFOutput)
-    val jmpBch = Output(Bool())
-    val jbAddr = Output(UInt(XLEN.W))
-    val isWait = Input (Bool())
-    val except = Flipped(new cpu.privileged.ExceptIO)
+    val output    = new IDOutput
+    val gprsR     = Flipped(new GPRsR)
+    val csrsR     = Flipped(new cpu.privileged.CSRsR)
+    val lastVR    = new LastVR
+    val nextVR    = Flipped(new LastVR)
+    val input     = Flipped(new IFOutput)
+    val jmpBch    = Output(Bool())
+    val jbAddr    = Output(UInt(XLEN.W))
+    val isWait    = Input (Bool())
+    val except    = Flipped(new cpu.privileged.ExceptIO)
+    val fakeMemIn = Flipped(new cpu.privileged.FakeMemOut)
   })
+
+  class CSRsAddr extends cpu.privileged.CSRsAddr
+  val csrsAddr = new CSRsAddr
 
   val NVALID  = RegInit(0.B)
   val rd      = RegInit(0.U(5.W))
-  val wcsr    = RegInit(0xFFF.U(12.W))
+  val wcsr    = Vec(writeCsrsPort, RegInit(0xFFF.U(12.W)))
   val op1_2   = RegInit(0.U(AluTypeWidth.W))
   val op1_3   = RegInit(0.U(AluTypeWidth.W))
   val special = RegInit(0.U(5.W))
+  val instr   = RegInit(0.U(32.W))
   val pc      = if (Debug) RegInit(0.U(XLEN.W)) else null
 
   val (num1, num2, num3, num4) = (
@@ -85,7 +87,7 @@ class ID extends Module {
   val wireSpecial = WireDefault(UInt(5.W), decoded(8))
   val wireType    = WireDefault(7.U(3.W))
   val wireRd      = Wire(UInt(5.W))
-  val wireCsr     = WireDefault(0xFFF.U(12.W))
+  val wireCsr     = Vec(writeCsrsPort, WireDefault(0xFFF.U(12.W)))
   val wireOp1_2   = WireDefault(UInt(AluTypeWidth.W), decoded(5))
   val wireOp1_3   = WireDefault(UInt(AluTypeWidth.W), decoded(6))
   val wireFunt3   = WireDefault(UInt(3.W), io.input.instr(14, 12))
@@ -125,13 +127,16 @@ class ID extends Module {
   io.gprsR.raddr(0) := 0.U
   io.gprsR.raddr(1) := 0.U
   io.gprsR.raddr(2) := 10.U
-  io.csrsR.rcsr     := 0xFFF.U
+  io.csrsR.rcsr     := Vec(readCsrsPort, 0xFFF.U)
   io.except.except  := 0.B
   io.except.excode  := 0.U
   io.except.int     := 0.B
   io.except.mtval   := 0.U
   io.except.pc      := io.input.pc
   io.except.mret    := 0.B
+
+  io.csrsR.rcsr(1) := csrsAddr.Mstatus
+  io.csrsR.rcsr(2) := csrsAddr.Mie
 
   for (i <- 1 to 4) {
     when(decoded(i) === NumTypes.rs1) {
@@ -223,25 +228,69 @@ class ID extends Module {
         io.jbAddr := io.input.pc + wireImm
       }
     }
-    is(csr) {
-      wireCsr := io.input.instr(31, 20)
-      io.csrsR.rcsr := wireCsr
+    is(csr) { // TODO: CSRs前递. 
+      io.csrsR.rcsr(0) := wireCsr(0)
+
+      wireCsr(0)       := io.input.instr(31, 20)
     }
     is(inv) {
+      io.csrsR.rcsr(0) := csrsAddr.Mtvec
+      io.csrsR.rcsr(1) := csrsAddr.Mstatus
+
+      wireCsr(0) := csrsAddr.Mepc
+      wireCsr(1) := csrsAddr.Mcause
+      wireCsr(2) := csrsAddr.Mtval
+      wireCsr(3) := csrsAddr.Mstatus
+
+      wireNum3 := io.input.instr
+      wireNum4 := io.csrsR.rdata(1)
+
       io.jmpBch        := 1.B
-      io.jbAddr        := Cat(io.except.mtvec(XLEN - 1, 2), "b00".U)
-      io.except.except := 1.B
-      io.except.excode := 2.U
-      io.except.int    := 0.B
-      io.except.mtval  := io.input.instr
-      io.except.pc     := io.input.pc
+      io.jbAddr        := Cat(io.csrsR.rdata(0)(XLEN - 1, 2), 0.U(2.W))
     }
     is(mret) {
+      io.csrsR.rcsr(0) := csrsAddr.Mepc
+      io.csrsR.rcsr(1) := csrsAddr.Mstatus
+
+      wireCsr(0) := csrsAddr.Mstatus
+
+      wireNum1 := io.csrsR.rdata(1)
+
       io.jmpBch      := 1.B
-      io.jbAddr      := io.except.mepc
-      io.except.mret := 1.B
+      io.jbAddr      := io.csrsR.rdata(0)
     }
   }
+
+  when(io.csrsR.rdata(1)(3) && io.csrsR.rdata(2)(7)) { // Machine timer interrupt
+    io.csrsR.rcsr(3) := csrsAddr.Mtime
+    io.csrsR.rcsr(4) := csrsAddr.Mtimecmp
+    when(io.csrsR.rdata(3) >= io.csrsR.rdata(4)) {
+      wireSpecial := int
+      io.csrsR.rcsr(5) := csrsAddr.Mtvec
+
+      wireCsr(0) := csrsAddr.Mepc
+      wireCsr(1) := csrsAddr.Mcause
+      wireCsr(2) := csrsAddr.Mtval
+      wireCsr(3) := csrsAddr.Mstatus
+
+      wireNum1 := io.input.pc
+      wireNum2 := Cat(1.B, 7.U((XLEN - 1).W))
+      wireNum3 := io.input.instr
+      wireNum4 := io.csrsR.rdata(1)
+
+      io.jmpBch := 1.B
+      when(io.csrsR.rdata(5)(0)) { io.jbAddr := Cat(io.csrsR.rdata(5)(XLEN - 1, 2), 0.U(2.W)) + (7 * 4).U }
+      .otherwise { io.jbAddr := Cat(io.csrsR.rdata(5)(XLEN - 1, 2), 0.U(2.W)) }
+    }
+  }
+
+  val fakeMem = Module(new FakeMem)
+
+  fakeMem.io.fake_in <> io.fakeMemIn
+  fakeMem.io.addr_in := wireNum3 + wireNum4
+  fakeMem.io.data_in := wireNum1
+  fakeMem.io.mask    := decoded(6)
+  fakeMem.io.special := decoded(8)
 
   io.lastVR.READY := io.nextVR.READY && !io.isWait
   
@@ -256,6 +305,22 @@ class ID extends Module {
     op1_2   := wireOp1_2
     op1_3   := wireOp1_3
     special := wireSpecial
+    instr   := io.input.instr
+    when(fakeMem.io.addr_out =/= 0xFFF.U) {
+      when(wireSpecial === ld) {
+        num1 := fakeMem.io.data_out
+        num2 := 0.U
+        op1_2 := Operators.add
+        special := non
+      }
+      when(wireSpecial === st) {
+        rd      := 0.U
+        wcsr    := fakeMem.io.addr_out
+        num2    := fakeMem.io.data_out
+        op1_3   := 0.U
+        special := non
+      }
+    }
     if (Debug) pc := io.input.pc
   }.elsewhen(io.isWait && io.nextVR.READY) {
     NVALID  := 0.B

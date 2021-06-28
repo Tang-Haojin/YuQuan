@@ -74,17 +74,20 @@ clean:
 sim:
 	@mkdir $(BUILD_DIR) >>/dev/null 2>&1 | echo >>/dev/null 2>&1
 	@mkdir $(BUILD_DIR)/sim >>/dev/null 2>&1 | echo >>/dev/null 2>&1
-	ln -f $(ROOT_DIR)/sim/src/sim_main.cpp $(BUILD_DIR)/sim/sim_main.cpp
-	ln -f $(ROOT_DIR)/sim/src/sim_main.hpp $(BUILD_DIR)/sim/sim_main.hpp
-	ln -f $(ROOT_DIR)/sim/src/mem.txt $(BUILD_DIR)/sim/mem.txt
+	@ln -f $(ROOT_DIR)/sim/src/sim_main.cpp $(BUILD_DIR)/sim/sim_main.cpp
+	@ln -f $(ROOT_DIR)/sim/src/sim_main.hpp $(BUILD_DIR)/sim/sim_main.hpp
+	@ln -f $(ROOT_DIR)/sim/src/mem.txt $(BUILD_DIR)/sim/mem.txt
+	@ln -f $(ROOT_DIR)/sim/src/cpu/csrcs/uart.cpp $(BUILD_DIR)/sim/uart.cpp
+
 ifneq ($(BIN),)
 	@rm -f $(BUILD_DIR)/sim/mem.txt
 	@xxd -g 1 $(ROOT_DIR)/sim/bin/$(BIN)-$(ISA)-nemu.bin | \
 	grep -oP "(?<=: ).*(?=  .{16})" >$(BUILD_DIR)/sim/mem.txt
 endif
-	mill -i __.sim.runMain Elaborate -td $(BUILD_DIR)/sim
-ifneq ($(TRACE),)
 
+	mill -i __.sim.runMain Elaborate -td $(BUILD_DIR)/sim
+
+ifneq ($(TRACE),)
 	@sed -i '$$d' $(BUILD_DIR)/sim/TestTop.v
 	@echo '  initial' >>$(BUILD_DIR)/sim/TestTop.v
 	@echo '  begin' >>$(BUILD_DIR)/sim/TestTop.v
@@ -92,13 +95,15 @@ ifneq ($(TRACE),)
 	@echo '    $$dumpvars(0, TestTop);' >>$(BUILD_DIR)/sim/TestTop.v
 	@echo '  end' >>$(BUILD_DIR)/sim/TestTop.v
 	@echo 'endmodule' >>$(BUILD_DIR)/sim/TestTop.v
-
 endif
 
 	@cd $(BUILD_DIR)/sim && \
-	verilator -cc TestTop.v --top-module TestTop --exe --build sim_main.cpp \
+	verilator -cc TestTop.v --top-module TestTop --exe \
+	--build sim_main.cpp uart.cpp \
 	--timescale "1ns/1ns" \
 	-CFLAGS -D$(ISA) \
+	-CFLAGS -pthread \
+	-LDFLAGS -pthread \
 	-Wno-WIDTH $(TRACE) \
 	$(VFLAGS) >/dev/null
 

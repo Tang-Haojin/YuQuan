@@ -13,8 +13,8 @@ import cpu.config.Debug._
 class MEMOutput extends Bundle {
   val rd      = Output(UInt(5.W))
   val data    = Output(UInt(XLEN.W))
-  val wcsr    = Output(UInt(12.W))
-  val csrData = Output(UInt(XLEN.W))
+  val wcsr    = Output(Vec(writeCsrsPort, UInt(12.W)))
+  val csrData = Output(Vec(writeCsrsPort, UInt(XLEN.W)))
   val debug   =
   if (Debug) new Bundle {
     val exit  = Output(UInt(3.W))

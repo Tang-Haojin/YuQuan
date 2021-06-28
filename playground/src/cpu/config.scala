@@ -26,10 +26,18 @@ object GeneralConfig {
     val UART0_READBUSY = 0x01
     val UART0_SIZE     = 100
   }
+
+  object CLINT {
+    val CLINT = 0x2000000L
+    val MTIMECMP = (hartid: Int) => CLINT + 0x4000 + 8 * hartid
+    val MTIME = CLINT + 0xBFF8
+  }
 }
 
 object RegisterConfig {
-  val readPortsNum = 3
+  val readPortsNum  = 3
+  val readCsrsPort  = 8
+  val writeCsrsPort = 4
 }
 
 object Debug {
