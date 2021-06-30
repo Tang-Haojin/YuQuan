@@ -253,7 +253,7 @@ class ID extends Module {
         io.jbAddr := io.input.pc + wireImm
       }
     }
-    is(csr) { // TODO: CSRs前递. 
+    is(csr) {
       io.csrsR.rcsr(0) := wireCsr(0)
 
       wireCsr(0)       := io.input.instr(31, 20)

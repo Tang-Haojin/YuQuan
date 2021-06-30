@@ -72,6 +72,14 @@ trait CSRsAddr {
 
   val Mtime         = 0xBFF.U // Customized
   val Mtimecmp      = 0xBFE.U // Customized
+
+  // PLIC
+  val Isp           = 0xBFD.U // Interrupt Source Priority. Low-10-bits are interrupt sources, and high-(XLEN-10)-bits are priority.
+  val Ipb           = (n: UInt) => 0xBDD.U + n // Interrupt Pending Bits. Ipb(0)(0) for #0 and Ipb(1024/XLEN - 1)(XLEN-1) for #1023.
+  val Ieb           = (n: UInt) => 0xBBD.U + n // Interrupt Enable Bits.
+  val Pt            = (n: UInt) => 0xB8D.U + n // Priority Threshold. 64 contexts.
+  val Iclmr         = (n: UInt) => 0xB5D.U + n // Interrupt Claim Register. 64 contexts.
+  val Icmpr         = (n: UInt) => 0xB2D.U + n // Interrupt Completion Register. 64 contexts.
 }
 
 class M_CSRs extends Module with CSRsAddr {
@@ -145,6 +153,13 @@ class M_CSRs extends Module with CSRsAddr {
   val mtime = RegInit(0.U(64.W))
   val mtimecmp = RegInit(0.U(64.W))
 
+  val isp   = RegInit(0.U(XLEN.W))
+  val ipb   = Vec(1024 / XLEN, RegInit(0.U(XLEN.W)))
+  val ieb   = Vec(1024 / XLEN, RegInit(0.U(XLEN.W)))
+  val pt    = RegInit(0.U(32.W))
+  val iclmr = RegInit(0.U(32.W))
+  val icmpr = RegInit(0.U(32.W))
+
   mcycle := mcycle + 1.U
   mtime  := mtime + 1.U
 
@@ -189,29 +204,33 @@ class M_CSRs extends Module with CSRsAddr {
 
             mstatus.WPRI_36 := 0.U
           }
-        }.elsewhen(io.csrsW.wcsr(i) === Mtvec) {
+        }
+        when(io.csrsW.wcsr(i) === Mtvec) {
           mtvec := io.csrsW.wdata(i)
           when(io.csrsW.wdata(i)(1, 0) >= 2.U) {
             mtvec := Cat(io.csrsW.wdata(i)(XLEN - 1, 2), mtvec(1, 0))
           }
           // TODO: What is the legal value?
-        }.elsewhen(io.csrsW.wcsr(i) === Mip) {} // Currently do nothing.
-        .elsewhen(io.csrsW.wcsr(i) === Mie) {
+        }
+        when(io.csrsW.wcsr(i) === Mip) {} // Currently do nothing.
+        when(io.csrsW.wcsr(i) === Mie) {
           val wdata = MieInit(io.csrsW.wdata(i))
           mie.MEIE := wdata.MEIE
           mie.MSIE := wdata.MSIE
           mie.MTIE := wdata.MTIE
-        }.elsewhen(io.csrsW.wcsr(i) === Mtime) { mtime := io.csrsW.wdata(i); mip.MTIP := 0.B }
-        .elsewhen(io.csrsW.wcsr(i) === Mtimecmp) { mtimecmp := io.csrsW.wdata(i); mip.MTIP := 0.B }
-        .elsewhen(io.csrsW.wcsr(i) === Mcycle) { if (XLEN != 32) mcycle := io.csrsW.wdata(i) else mcycle(31, 0) := io.csrsW.wdata(i) }
-        .elsewhen(io.csrsW.wcsr(i) === Minstret) { if (XLEN != 32) minstret := io.csrsW.wdata(i) else minstret(31, 0) := io.csrsW.wdata(i) }
-        .elsewhen(io.csrsW.wcsr(i) >= Mhpmcounter(3.U) && io.csrsW.wcsr(i) <= Mhpmcounter(31.U)) {} // Do nothing.
-        .elsewhen(io.csrsW.wcsr(i) >= Mhpmevent(3.U) && io.csrsW.wcsr(i) <= Mhpmevent(31.U)) {} // Do nothing.
-        .elsewhen(io.csrsW.wcsr(i) === Mcountinhibit) {
+        }
+        when(io.csrsW.wcsr(i) === Mtime) { mtime := io.csrsW.wdata(i); mip.MTIP := 0.B }
+        when(io.csrsW.wcsr(i) === Mtimecmp) { mtimecmp := io.csrsW.wdata(i); mip.MTIP := 0.B }
+        when(io.csrsW.wcsr(i) === Mcycle) { if (XLEN != 32) mcycle := io.csrsW.wdata(i) else mcycle(31, 0) := io.csrsW.wdata(i) }
+        when(io.csrsW.wcsr(i) === Minstret) { if (XLEN != 32) minstret := io.csrsW.wdata(i) else minstret(31, 0) := io.csrsW.wdata(i) }
+        when(io.csrsW.wcsr(i) >= Mhpmcounter(3.U) && io.csrsW.wcsr(i) <= Mhpmcounter(31.U)) {} // Do nothing.
+        when(io.csrsW.wcsr(i) >= Mhpmevent(3.U) && io.csrsW.wcsr(i) <= Mhpmevent(31.U)) {} // Do nothing.
+        when(io.csrsW.wcsr(i) === Mcountinhibit) {
           mcountinhibit := Cat(mcountinhibit(31, 3), io.csrsW.wdata(i)(2), mcountinhibit(1), io.csrsW.wdata(i)(0))
-        }.elsewhen(io.csrsW.wcsr(i) === Mscratch) { mscratch := io.csrsW.wdata(i) }
-        .elsewhen(io.csrsW.wcsr(i) === Mepc) { mepc := Cat(io.csrsW.wdata(i)(XLEN - 1, 2), mepc(1, 0)) }
-        .elsewhen(io.csrsW.wcsr(i) === Mcause) {
+        }
+        when(io.csrsW.wcsr(i) === Mscratch) { mscratch := io.csrsW.wdata(i) }
+        when(io.csrsW.wcsr(i) === Mepc) { mepc := Cat(io.csrsW.wdata(i)(XLEN - 1, 2), mepc(1, 0)) }
+        when(io.csrsW.wcsr(i) === Mcause) {
           when(io.csrsW.wdata(i)(XLEN - 1) === 1.B) {
             when((io.csrsW.wdata(i)(XLEN - 2, 0) === 3.U) ||
                 (io.csrsW.wdata(i)(XLEN - 2, 0) === 7.U) ||
@@ -222,9 +241,19 @@ class M_CSRs extends Module with CSRsAddr {
             }
           }
         }
-        .elsewhen(io.csrsW.wcsr(i) === Mtval) {} // Do nothing. A simple implementation.
-        .elsewhen((io.csrsW.wcsr(i) === Pmpcfg0) || (io.csrsW.wcsr(i) === Pmpcfg2)) {} // Currently do nothing.
-        .elsewhen((io.csrsW.wcsr(i) >= Pmpaddr(0.U)) && (io.csrsW.wcsr(i) <= Pmpaddr(15.U))) {} // Currently do nothing.
+        when(io.csrsW.wcsr(i) === Mtval) {} // Do nothing. A simple implementation.
+        when((io.csrsW.wcsr(i) === Pmpcfg0) || (io.csrsW.wcsr(i) === Pmpcfg2)) {} // Currently do nothing.
+        when((io.csrsW.wcsr(i) >= Pmpaddr(0.U)) && (io.csrsW.wcsr(i) <= Pmpaddr(15.U))) {} // Currently do nothing.
+        when((io.csrsW.wcsr(i) === Isp) && (io.csrsW.wdata(i)(9, 0) =/= 0.U)) { isp := io.csrsW.wdata(i) }
+        when(io.csrsW.wcsr(i) === Pt(0.U)) { pt := io.csrsW.wdata(i) }
+        when(io.csrsW.wcsr(i) === Iclmr(0.U)) { iclmr := io.csrsW.wdata(i) }
+        when(io.csrsW.wcsr(i) === Icmpr(0.U)) { icmpr := io.csrsW.wdata(i) }
+
+        when((io.csrsW.wcsr(i) === Ipb(0.U)) && (~io.csrsW.wdata(i)(0))) { ipb(0) := io.csrsW.wdata(i) }
+        for (j <- 1 until 1024 / XLEN) when(io.csrsW.wcsr(i) === Ipb(j.U)) { ipb(j) := io.csrsW.wdata(i) }
+
+        when((io.csrsW.wcsr(i) === Ieb(0.U)) && (~io.csrsW.wdata(i)(0))) { ieb(0) := io.csrsW.wdata(i) }
+        for (j <- 1 until 1024 / XLEN) when(io.csrsW.wcsr(i) === Ieb(j.U)) { ieb(j) := io.csrsW.wdata(i) }
 
         if (XLEN == 32) {
           when((io.csrsW.wcsr(i) === Pmpcfg1) || (io.csrsW.wcsr(i) === Pmpcfg3)) {} // Currently do nothing.
@@ -239,27 +268,35 @@ class M_CSRs extends Module with CSRsAddr {
   for (i <- 0 until readCsrsPort) {
     io.csrsR.rdata(i) := 0.U
     when(io.csrsR.rcsr(i) === Misa) { io.csrsR.rdata(i) := misa }
-    .elsewhen(io.csrsR.rcsr(i) === Mvendorid) { io.csrsR.rdata(i) := mvendorid }
-    .elsewhen(io.csrsR.rcsr(i) === Marchid) { io.csrsR.rdata(i) := marchid }
-    .elsewhen(io.csrsR.rcsr(i) === Mimpid) { io.csrsR.rdata(i) := mimpid }
-    .elsewhen(io.csrsR.rcsr(i) === Mhartid) { io.csrsR.rdata(i) := mhartid }
-    .elsewhen(io.csrsR.rcsr(i) === Mstatus) { io.csrsR.rdata(i) := mstatus }
-    .elsewhen(io.csrsR.rcsr(i) === Mtvec) { io.csrsR.rdata(i) := mtvec }
-    .elsewhen(io.csrsR.rcsr(i) === Mip) { io.csrsR.rdata(i) := mip }
-    .elsewhen(io.csrsR.rcsr(i) === Mie) { io.csrsR.rdata(i) := mie }
-    .elsewhen(io.csrsR.rcsr(i) === Mtime) { io.csrsR.rdata(i) := mtime }
-    .elsewhen(io.csrsR.rcsr(i) === Mtimecmp) { io.csrsR.rdata(i) := mtimecmp }
-    .elsewhen(io.csrsR.rcsr(i) === Mcycle) { io.csrsR.rdata(i) := mcycle }
-    .elsewhen(io.csrsR.rcsr(i) === Minstret) { io.csrsR.rdata(i) := minstret }
-    .elsewhen(io.csrsR.rcsr(i) >= Mhpmcounter(3.U) && io.csrsR.rcsr(i) <= Mhpmcounter(31.U)) { io.csrsR.rdata(i) := 0.U }
-    .elsewhen(io.csrsR.rcsr(i) >= Mhpmevent(3.U) && io.csrsR.rcsr(i) <= Mhpmevent(31.U)) { io.csrsR.rdata(i) := 0.U }
-    .elsewhen(io.csrsR.rcsr(i) === Mcountinhibit) { io.csrsR.rdata(i) := mcountinhibit }
-    .elsewhen(io.csrsR.rcsr(i) === Mscratch) { io.csrsR.rdata(i) := mscratch }
-    .elsewhen(io.csrsR.rcsr(i) === Mepc) { io.csrsR.rdata(i) := Cat(mepc(XLEN - 1, 2), 0.U, 0.U) }
-    .elsewhen(io.csrsR.rcsr(i) === Mcause) { io.csrsR.rdata(i) := mcause }
-    .elsewhen(io.csrsR.rcsr(i) === Mtval) { io.csrsR.rdata(i) := 0.U } // A simple implementation.
-    .elsewhen((io.csrsR.rcsr(i) === Pmpcfg0) || (io.csrsR.rcsr(i) === Pmpcfg2)) { io.csrsR.rdata(i) := 0.U }
-    .elsewhen((io.csrsR.rcsr(i) >= Pmpaddr(0.U)) && (io.csrsR.rcsr(i) <= Pmpaddr(15.U))) { io.csrsR.rdata(i) := 0.U }
+    when(io.csrsR.rcsr(i) === Mvendorid) { io.csrsR.rdata(i) := mvendorid }
+    when(io.csrsR.rcsr(i) === Marchid) { io.csrsR.rdata(i) := marchid }
+    when(io.csrsR.rcsr(i) === Mimpid) { io.csrsR.rdata(i) := mimpid }
+    when(io.csrsR.rcsr(i) === Mhartid) { io.csrsR.rdata(i) := mhartid }
+    when(io.csrsR.rcsr(i) === Mstatus) { io.csrsR.rdata(i) := mstatus }
+    when(io.csrsR.rcsr(i) === Mtvec) { io.csrsR.rdata(i) := mtvec }
+    when(io.csrsR.rcsr(i) === Mip) { io.csrsR.rdata(i) := mip }
+    when(io.csrsR.rcsr(i) === Mie) { io.csrsR.rdata(i) := mie }
+    when(io.csrsR.rcsr(i) === Mtime) { io.csrsR.rdata(i) := mtime }
+    when(io.csrsR.rcsr(i) === Mtimecmp) { io.csrsR.rdata(i) := mtimecmp }
+    when(io.csrsR.rcsr(i) === Mcycle) { io.csrsR.rdata(i) := mcycle }
+    when(io.csrsR.rcsr(i) === Minstret) { io.csrsR.rdata(i) := minstret }
+    when(io.csrsR.rcsr(i) >= Mhpmcounter(3.U) && io.csrsR.rcsr(i) <= Mhpmcounter(31.U)) { io.csrsR.rdata(i) := 0.U }
+    when(io.csrsR.rcsr(i) >= Mhpmevent(3.U) && io.csrsR.rcsr(i) <= Mhpmevent(31.U)) { io.csrsR.rdata(i) := 0.U }
+    when(io.csrsR.rcsr(i) === Mcountinhibit) { io.csrsR.rdata(i) := mcountinhibit }
+    when(io.csrsR.rcsr(i) === Mscratch) { io.csrsR.rdata(i) := mscratch }
+    when(io.csrsR.rcsr(i) === Mepc) { io.csrsR.rdata(i) := Cat(mepc(XLEN - 1, 2), 0.U, 0.U) }
+    when(io.csrsR.rcsr(i) === Mcause) { io.csrsR.rdata(i) := mcause }
+    when(io.csrsR.rcsr(i) === Mtval) { io.csrsR.rdata(i) := 0.U } // A simple implementation.
+    when((io.csrsR.rcsr(i) === Pmpcfg0) || (io.csrsR.rcsr(i) === Pmpcfg2)) { io.csrsR.rdata(i) := 0.U }
+    when((io.csrsR.rcsr(i) >= Pmpaddr(0.U)) && (io.csrsR.rcsr(i) <= Pmpaddr(15.U))) { io.csrsR.rdata(i) := 0.U }
+    when(io.csrsR.rcsr(i) === Isp) { io.csrsR.rdata(i) := isp }
+    when(io.csrsR.rcsr(i) === Pt(0.U)) { io.csrsR.rdata(i) := pt }
+    when(io.csrsR.rcsr(i) === Iclmr(0.U)) { io.csrsR.rdata(i) := iclmr }
+    when(io.csrsR.rcsr(i) === Icmpr(0.U)) { io.csrsR.rdata(i) := icmpr }
+
+    for (j <- 0 until 1024 / XLEN) when(io.csrsR.rcsr(i) === Ipb(j.U)) { io.csrsR.rdata(i) := ipb(j) }
+
+    for (j <- 0 until 1024 / XLEN) when(io.csrsR.rcsr(i) === Ieb(j.U)) { io.csrsR.rdata(i) := ieb(j) }
     
     if (XLEN == 32) {
       when((io.csrsR.rcsr(i) === Pmpcfg1) || (io.csrsR.rcsr(i) === Pmpcfg3)) { io.csrsR.rdata(i) := 0.U }
