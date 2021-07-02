@@ -2,6 +2,9 @@
 #define _SIM_MAIN_HPP
 
 #include <stdint.h>
+#include <signal.h>
+#include <errno.h>
+#include <termio.h>
 
 extern "C" {
 
@@ -113,10 +116,11 @@ extern CPU_state cpu;
 
 #endif
 
-void uart_getc(char *ch);
 void uart_init(void);
 extern bool uart_isRunning;
 
 }
+
+#define ECHOFLAGS (ECHO | ECHOE | ECHOK | ECHONL)
 
 #endif

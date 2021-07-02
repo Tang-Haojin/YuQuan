@@ -32,6 +32,16 @@ object GeneralConfig {
     val MTIMECMP = (hartid: Int) => CLINT + 0x4000 + 8 * hartid
     val MTIME = CLINT + 0xBFF8
   }
+
+  object PLIC {
+    val PLIC = 0xc000000L
+    val PLIC_SIZE = 0x4000000L
+    val Isp = (source: Int) => PLIC + 4 * source // Interrupt source n priority
+    val Ipb = (source: Int) => PLIC + 0x1000 + 4 * (source / 32) // Interrupt Pending bit
+    val Ieb = (source: Int, context: Int) => PLIC + 0x2000 + 0x80 * context + 4 * (source / 32) // Interrupt Enable Bits
+    val Ipt = (context: Int) => PLIC + 0x200000 + 0x1000 * context
+    val Ic  = (context: Int) => Ipt(context) + 4
+  }
 }
 
 object RegisterConfig {

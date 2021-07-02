@@ -72,20 +72,13 @@ trait CSRsAddr {
 
   val Mtime         = 0xBFF.U // Customized
   val Mtimecmp      = 0xBFE.U // Customized
-
-  // PLIC
-  val Isp           = 0xBFD.U // Interrupt Source Priority. Low-10-bits are interrupt sources, and high-(XLEN-10)-bits are priority.
-  val Ipb           = (n: UInt) => 0xBDD.U + n // Interrupt Pending Bits. Ipb(0)(0) for #0 and Ipb(1024/XLEN - 1)(XLEN-1) for #1023.
-  val Ieb           = (n: UInt) => 0xBBD.U + n // Interrupt Enable Bits.
-  val Pt            = (n: UInt) => 0xB8D.U + n // Priority Threshold. 64 contexts.
-  val Iclmr         = (n: UInt) => 0xB5D.U + n // Interrupt Claim Register. 64 contexts.
-  val Icmpr         = (n: UInt) => 0xB2D.U + n // Interrupt Completion Register. 64 contexts.
 }
 
 class M_CSRs extends Module with CSRsAddr {
   val io = IO(new Bundle {
     val csrsW  = new CSRsW
     val csrsR  = new CSRsR
+    val eip    = Input(Bool())
   })
 
   val MXL   = (log2Down(XLEN) - 4).U(2.W)
@@ -152,13 +145,6 @@ class M_CSRs extends Module with CSRsAddr {
   val mie = MieInit(UInt(XLEN.W), mieInit)
   val mtime = RegInit(0.U(64.W))
   val mtimecmp = RegInit(0.U(64.W))
-
-  val isp   = RegInit(0.U(XLEN.W))
-  val ipb   = Vec(1024 / XLEN, RegInit(0.U(XLEN.W)))
-  val ieb   = Vec(1024 / XLEN, RegInit(0.U(XLEN.W)))
-  val pt    = RegInit(0.U(32.W))
-  val iclmr = RegInit(0.U(32.W))
-  val icmpr = RegInit(0.U(32.W))
 
   mcycle := mcycle + 1.U
   mtime  := mtime + 1.U
@@ -244,16 +230,6 @@ class M_CSRs extends Module with CSRsAddr {
         when(io.csrsW.wcsr(i) === Mtval) {} // Do nothing. A simple implementation.
         when((io.csrsW.wcsr(i) === Pmpcfg0) || (io.csrsW.wcsr(i) === Pmpcfg2)) {} // Currently do nothing.
         when((io.csrsW.wcsr(i) >= Pmpaddr(0.U)) && (io.csrsW.wcsr(i) <= Pmpaddr(15.U))) {} // Currently do nothing.
-        when((io.csrsW.wcsr(i) === Isp) && (io.csrsW.wdata(i)(9, 0) =/= 0.U)) { isp := io.csrsW.wdata(i) }
-        when(io.csrsW.wcsr(i) === Pt(0.U)) { pt := io.csrsW.wdata(i) }
-        when(io.csrsW.wcsr(i) === Iclmr(0.U)) { iclmr := io.csrsW.wdata(i) }
-        when(io.csrsW.wcsr(i) === Icmpr(0.U)) { icmpr := io.csrsW.wdata(i) }
-
-        when((io.csrsW.wcsr(i) === Ipb(0.U)) && (~io.csrsW.wdata(i)(0))) { ipb(0) := io.csrsW.wdata(i) }
-        for (j <- 1 until 1024 / XLEN) when(io.csrsW.wcsr(i) === Ipb(j.U)) { ipb(j) := io.csrsW.wdata(i) }
-
-        when((io.csrsW.wcsr(i) === Ieb(0.U)) && (~io.csrsW.wdata(i)(0))) { ieb(0) := io.csrsW.wdata(i) }
-        for (j <- 1 until 1024 / XLEN) when(io.csrsW.wcsr(i) === Ieb(j.U)) { ieb(j) := io.csrsW.wdata(i) }
 
         if (XLEN == 32) {
           when((io.csrsW.wcsr(i) === Pmpcfg1) || (io.csrsW.wcsr(i) === Pmpcfg3)) {} // Currently do nothing.
@@ -274,7 +250,7 @@ class M_CSRs extends Module with CSRsAddr {
     when(io.csrsR.rcsr(i) === Mhartid) { io.csrsR.rdata(i) := mhartid }
     when(io.csrsR.rcsr(i) === Mstatus) { io.csrsR.rdata(i) := mstatus }
     when(io.csrsR.rcsr(i) === Mtvec) { io.csrsR.rdata(i) := mtvec }
-    when(io.csrsR.rcsr(i) === Mip) { io.csrsR.rdata(i) := mip }
+    when(io.csrsR.rcsr(i) === Mip) { io.csrsR.rdata(i) := Cat(mip(XLEN - 1, 12), io.eip, mip(10, 0)) }
     when(io.csrsR.rcsr(i) === Mie) { io.csrsR.rdata(i) := mie }
     when(io.csrsR.rcsr(i) === Mtime) { io.csrsR.rdata(i) := mtime }
     when(io.csrsR.rcsr(i) === Mtimecmp) { io.csrsR.rdata(i) := mtimecmp }
@@ -289,14 +265,6 @@ class M_CSRs extends Module with CSRsAddr {
     when(io.csrsR.rcsr(i) === Mtval) { io.csrsR.rdata(i) := 0.U } // A simple implementation.
     when((io.csrsR.rcsr(i) === Pmpcfg0) || (io.csrsR.rcsr(i) === Pmpcfg2)) { io.csrsR.rdata(i) := 0.U }
     when((io.csrsR.rcsr(i) >= Pmpaddr(0.U)) && (io.csrsR.rcsr(i) <= Pmpaddr(15.U))) { io.csrsR.rdata(i) := 0.U }
-    when(io.csrsR.rcsr(i) === Isp) { io.csrsR.rdata(i) := isp }
-    when(io.csrsR.rcsr(i) === Pt(0.U)) { io.csrsR.rdata(i) := pt }
-    when(io.csrsR.rcsr(i) === Iclmr(0.U)) { io.csrsR.rdata(i) := iclmr }
-    when(io.csrsR.rcsr(i) === Icmpr(0.U)) { io.csrsR.rdata(i) := icmpr }
-
-    for (j <- 0 until 1024 / XLEN) when(io.csrsR.rcsr(i) === Ipb(j.U)) { io.csrsR.rdata(i) := ipb(j) }
-
-    for (j <- 0 until 1024 / XLEN) when(io.csrsR.rcsr(i) === Ieb(j.U)) { io.csrsR.rdata(i) := ieb(j) }
     
     if (XLEN == 32) {
       when((io.csrsR.rcsr(i) === Pmpcfg1) || (io.csrsR.rcsr(i) === Pmpcfg3)) { io.csrsR.rdata(i) := 0.U }

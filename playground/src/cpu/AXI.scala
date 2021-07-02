@@ -184,3 +184,19 @@ class AXIRMux extends Module {
     }
   }
 }
+
+class AxiSlaveIO extends Bundle {
+  val basic = new BASIC
+  val axiWa = Flipped(new AXIwa)
+  val axiWd = Flipped(new AXIwd)
+  val axiWr = Flipped(new AXIwr)
+  val axiRa = Flipped(new AXIra)
+  val axiRd = Flipped(new AXIrd)
+}
+
+class AxiRouterIO extends Bundle {
+  val input   = new AxiSlaveIO
+  val RamIO   = Flipped(new AxiSlaveIO)
+  val Uart0IO = Flipped(new AxiSlaveIO)
+  val PLICIO  = Flipped(new AxiSlaveIO)
+}

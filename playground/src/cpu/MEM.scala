@@ -43,8 +43,8 @@ class MEM extends Module {
 
   val rd      = RegInit(0.U(5.W));      io.output.rd      := rd
   val data    = RegInit(0.U(XLEN.W));   io.output.data    := data
-  val wcsr    = RegInit(0xFFF.U(12.W)); io.output.wcsr    := wcsr
-  val csrData = RegInit(0.U(XLEN.W));   io.output.csrData := csrData
+  val wcsr    = RegInit(VecInit(Seq.fill(writeCsrsPort)(0xFFF.U(12.W)))); io.output.wcsr    := wcsr
+  val csrData = RegInit(VecInit(Seq.fill(writeCsrsPort)(0.U(XLEN.W))));   io.output.csrData := csrData
   val exit    = if (Debug) RegInit(0.U(3.W)) else null
   val pc      = if (Debug) RegInit(0.U(XLEN.W)) else null
   

@@ -44,7 +44,6 @@ class RAM extends RawModule {
     when(io.axiRd.RVALID && io.axiRd.RREADY) {
       RVALID  := 0.B
       ARREADY := 1.B
-      // printf("RDATA: %x\n", io.axiRd.RDATA)
     }.elsewhen(io.axiRa.ARVALID && io.axiRa.ARREADY) {
       RID := io.axiRa.ARID
       ARADDR := io.axiRa.ARADDR - MEMBase.U

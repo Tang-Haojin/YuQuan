@@ -3,8 +3,27 @@
 #include "sim_main.hpp"
 
 VerilatedContext *const contextp = new VerilatedContext;
+struct termios new_settings, stored_settings;
+int cycles = 0;
+
+void int_handeler(int sig) {
+  tcsetattr(0, TCSAFLUSH, &stored_settings);
+  if (sig != SIGINT) {
+    fprintf(stderr, "Wrong signal type\n");
+    exit(EPERM);
+  }
+  printf("\ndebug: Exit after %d clock cycles.\n", cycles / 2);
+  exit(0);
+}
 
 int main(int argc, char **argv, char **env) {
+  signal(SIGINT, int_handeler);
+
+  tcgetattr(0, &stored_settings);
+  new_settings = stored_settings;
+  new_settings.c_lflag &= ~ECHOFLAGS;
+  tcsetattr(0, TCSAFLUSH, &new_settings);
+
   int ret = 0;
   uart_init();
   VTestTop *top = new VTestTop;
@@ -30,7 +49,7 @@ int main(int argc, char **argv, char **env) {
   }
 
   top->reset = 1;
-  for (int i = 0;;i++) {
+  for (;;cycles++) {
     contextp->timeInc(1);
     top->clock = !top->clock;
     top->eval();
@@ -59,7 +78,7 @@ int main(int argc, char **argv, char **env) {
 #endif
 
     if (top->io_exit == 1) {
-      printf("debug: Exit after %d clock cycles.\n", i / 2);
+      printf("debug: Exit after %d clock cycles.\n", cycles / 2);
       printf("debug: ");
       if (top->io_data) {
         printf("\33[1;31mHIT BAD TRAP");
@@ -71,7 +90,7 @@ int main(int argc, char **argv, char **env) {
       break;
     }
     else if (top->io_exit == 2) {
-      printf("debug: Exit after %d clock cycles.\n", i / 2);
+      printf("debug: Exit after %d clock cycles.\n", cycles / 2);
       printf("debug: ");
       printf("\33[1;31mINVALID INSTRUCTION");
       printf("\33[0m at pc = " FMT_WORD "\n\n", top->io_pc - 4);
@@ -82,5 +101,6 @@ int main(int argc, char **argv, char **env) {
 
   uart_isRunning = false;
   delete top;
+  tcsetattr(0, TCSAFLUSH, &stored_settings);
   return ret;
 }

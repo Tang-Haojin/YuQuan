@@ -35,7 +35,7 @@ class WB extends Module {
   io.gprsW.waddr := io.input.rd
   io.gprsW.wdata := io.input.data
 
-  io.csrsW.wen   := 0.B
+  io.csrsW.wen   := VecInit(Seq.fill(writeCsrsPort)(0.B))
   io.csrsW.wcsr  := io.input.wcsr
   io.csrsW.wdata := io.input.csrData
 

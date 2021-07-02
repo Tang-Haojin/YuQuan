@@ -49,8 +49,8 @@ class EX extends Module {
 
   val rd      = RegInit(0.U(5.W))
   val data    = RegInit(0.U(XLEN.W))
-  val wcsr    = Vec(writeCsrsPort, RegInit(0xFFF.U(12.W)))
-  val csrData = Vec(writeCsrsPort, RegInit(0.U(XLEN.W)))
+  val wcsr    = RegInit(VecInit(Seq.fill(writeCsrsPort)(0xFFF.U(12.W))))
+  val csrData = RegInit(VecInit(Seq.fill(writeCsrsPort)(0.U(XLEN.W))))
   val isMem   = RegInit(0.B)
   val isLd    = RegInit(0.B)
   val addr    = RegInit(0.U(XLEN.W))
@@ -60,7 +60,7 @@ class EX extends Module {
 
   val wireRd      = WireDefault(UInt(5.W), io.input.rd)
   val wireData    = WireDefault(UInt(XLEN.W), alu1_2.io.res.asUInt)
-  val wireCsrData = Vec(writeCsrsPort, WireDefault(0xFFF.U(12.W)))
+  val wireCsrData = WireDefault(VecInit(Seq.fill(writeCsrsPort)(0.U(XLEN.W))))
   val wireIsMem   = WireDefault(Bool(), io.input.special === ld || io.input.special === st)
   val wireIsLd    = WireDefault(Bool(), io.input.special === ld)
   val wireAddr    = WireDefault(UInt(XLEN.W), io.input.num3 + io.input.num4)
@@ -83,8 +83,8 @@ class EX extends Module {
   when(io.input.special === csr) {
     switch(io.input.op1_3) {
       is(0.U) { wireCsrData(0) := io.input.num2 }
-      is(1.U) { wireCsrData(0) := io.input.num2 | io.input.num1 }
-      is(2.U) { wireCsrData(0) := io.input.num2 & (~io.input.num1) }
+      is(1.U) { wireCsrData(0) := io.input.num1 | io.input.num2 }
+      is(2.U) { wireCsrData(0) := io.input.num1 & (~io.input.num2) }
     }
   }
   when(io.input.special === inv) {
@@ -124,6 +124,7 @@ class EX extends Module {
       0.B,
       io.input.num4(2, 0)
     )
+    wireRd := 0.U
   }
 
   if (Debug) switch(io.input.special) {

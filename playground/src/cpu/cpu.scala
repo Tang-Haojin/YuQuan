@@ -27,6 +27,7 @@ class CPU extends RawModule {
     val axiWr = new AXIwr
     val axiRa = new AXIra
     val axiRd = new AXIrd
+    val eip   = Input(Bool())
     val debug = 
     if(Debug)   new DEBUG
     else        null
@@ -39,6 +40,7 @@ class CPU extends RawModule {
     io.axiWr <> cpu.io.axiWr
     io.axiRa <> cpu.io.axiRa
     io.axiRd <> cpu.io.axiRd
+    io.eip   <> cpu.io.eip
     if (Debug) io.debug <> cpu.io.debug
   }
 }
@@ -50,6 +52,7 @@ class InternalCPU extends Module {
     val axiWr = new AXIwr
     val axiRa = new AXIra
     val axiRd = new AXIrd
+    val eip   = Input(Bool())
     val debug = 
     if(Debug)   new DEBUG
     else        null
@@ -120,6 +123,8 @@ class InternalCPU extends Module {
 
   moduleIF.io.jmpBch := moduleID.io.jmpBch
   moduleIF.io.jbAddr := moduleID.io.jbAddr
+
+  moduleCSRs.io.eip <> io.eip
 
   if (Debug) {
     io.debug.exit    := moduleWB.io.debug.exit

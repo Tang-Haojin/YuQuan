@@ -65,17 +65,17 @@ class ID extends Module {
 
   val NVALID  = RegInit(0.B)
   val rd      = RegInit(0.U(5.W))
-  val wcsr    = Vec(writeCsrsPort, RegInit(0xFFF.U(12.W)))
+  val wcsr    = RegInit(VecInit(Seq.fill(writeCsrsPort)(0xFFF.U(12.W))))
   val op1_2   = RegInit(0.U(AluTypeWidth.W))
   val op1_3   = RegInit(0.U(AluTypeWidth.W))
   val special = RegInit(0.U(5.W))
   val instr   = RegInit(0.U(32.W))
   val pc      = if (Debug) RegInit(0.U(XLEN.W)) else null
 
-  val (num1, num2, num3, num4) = (
-    RegInit(0.U(XLEN.W)), RegInit(0.U(XLEN.W)),
-    RegInit(0.U(XLEN.W)), RegInit(0.U(XLEN.W))
-  )
+  val num1 = RegInit(0.U(XLEN.W))
+  val num2 = RegInit(0.U(XLEN.W))
+  val num3 = RegInit(0.U(XLEN.W))
+  val num4 = RegInit(0.U(XLEN.W))
   
   val decoded = ListLookup(
     io.input.instr,
@@ -86,24 +86,19 @@ class ID extends Module {
   val wireSpecial = WireDefault(UInt(5.W), decoded(8))
   val wireType    = WireDefault(7.U(3.W))
   val wireRd      = Wire(UInt(5.W))
-  val wireCsr     = Vec(writeCsrsPort, WireDefault(0xFFF.U(12.W)))
+  val wireCsr     = WireDefault(VecInit(Seq.fill(writeCsrsPort)(0xFFF.U(12.W))))
   val wireOp1_2   = WireDefault(UInt(AluTypeWidth.W), decoded(5))
   val wireOp1_3   = WireDefault(UInt(AluTypeWidth.W), decoded(6))
   val wireFunt3   = WireDefault(UInt(3.W), io.input.instr(14, 12))
-
-  val (wireNum1, wireNum2, wireNum3, wireNum4, wireImm) = (
-    WireDefault(0.U(XLEN.W)), WireDefault(0.U(XLEN.W)),
-    WireDefault(0.U(XLEN.W)), WireDefault(0.U(XLEN.W)),
-    WireDefault(0.U(XLEN.W))
-  )
-
-  val (wireRs1, wireRs2) = (
-    Wire(UInt(5.W)), Wire(UInt(5.W))
-  ); wireRs1 := io.input.instr(19, 15); wireRs2 := io.input.instr(24, 20)
-
-  val (wireDataRs1, wireDataRs2) = (
-    Wire(UInt(XLEN.W)), Wire(UInt(XLEN.W))
-  ); wireDataRs1 := io.gprsR.rdata(0); wireDataRs2 := io.gprsR.rdata(1)
+  val wireNum1    = WireDefault(0.U(XLEN.W))
+  val wireNum2    = WireDefault(0.U(XLEN.W))
+  val wireNum3    = WireDefault(0.U(XLEN.W))
+  val wireNum4    = WireDefault(0.U(XLEN.W))
+  val wireImm     = WireDefault(0.U(XLEN.W))
+  val wireRs1     = WireDefault(UInt(5.W), io.input.instr(19, 15))
+  val wireRs2     = WireDefault(UInt(5.W), io.input.instr(24, 20))
+  val wireDataRs1 = WireDefault(UInt(XLEN.W), io.gprsR.rdata(0))
+  val wireDataRs2 = WireDefault(UInt(XLEN.W), io.gprsR.rdata(1))
 
   val wireData    = Wire(UInt(XLEN.W))
 
@@ -126,10 +121,11 @@ class ID extends Module {
   io.gprsR.raddr(0) := 0.U
   io.gprsR.raddr(1) := 0.U
   io.gprsR.raddr(2) := 10.U
-  io.csrsR.rcsr     := Vec(readCsrsPort, 0xFFF.U)
+  io.csrsR.rcsr     := VecInit(Seq.fill(readCsrsPort)(0xFFF.U(12.W)))
 
   io.csrsR.rcsr(1) := csrsAddr.Mstatus
   io.csrsR.rcsr(2) := csrsAddr.Mie
+  io.csrsR.rcsr(7) := csrsAddr.Mip
 
   for (i <- 1 to 4) {
     when(decoded(i) === NumTypes.rs1) {
@@ -153,7 +149,7 @@ class ID extends Module {
       is(NumTypes.pc  ) { num._1 := io.input.pc }
       is(NumTypes.non ) { num._1 := 0.U }
       is(NumTypes.fun3) { num._1 := wireFunt3 }
-      is(NumTypes.csr ) { num._1 := io.csrsR.rdata }
+      is(NumTypes.csr ) { num._1 := io.csrsR.rdata(0) }
     }
   }
 
@@ -205,7 +201,7 @@ class ID extends Module {
   }
 
   val isClint = Module(new IsCLINT)
-  isClint.io.addr_in := decoded(3) + decoded(4)
+  isClint.io.addr_in := wireDataRs1 + wireImm
 
   io.jmpBch := 0.B
   io.jbAddr := 0.U
@@ -229,11 +225,12 @@ class ID extends Module {
     is(st) {
       when(isClint.io.addr_out =/= 0xFFF.U) {
         io.csrsR.rcsr(0) := isClint.io.addr_out
+        wireCsr(0) := isClint.io.addr_out
         switch(decoded(6)) {
-          is(0.U) { wireNum2 := Cat(csrsRdata(0)(XLEN - 1,  8), decoded(1)( 7, 0)) }
-          is(1.U) { wireNum2 := Cat(csrsRdata(0)(XLEN - 1, 16), decoded(1)(15, 0)) }
-          is(2.U) { wireNum2 := Cat(csrsRdata(0)(XLEN - 1, 32), decoded(1)(31, 0)) }
-          is(3.U) { wireNum2 :=     csrsRdata(0)                                   }
+          is(0.U) { wireNum2 := Cat(csrsRdata(0)(XLEN - 1,  8), wireDataRs2( 7, 0)) }
+          is(1.U) { wireNum2 := Cat(csrsRdata(0)(XLEN - 1, 16), wireDataRs2(15, 0)) }
+          is(2.U) { wireNum2 := Cat(csrsRdata(0)(XLEN - 1, 32), wireDataRs2(31, 0)) }
+          is(3.U) { wireNum2 :=                                 wireDataRs2         }
         }
         wireNum1  := non; wireNum3  := non; wireNum4    := non
         wireOp1_2 := non; wireOp1_3 := 0.U; wireSpecial := csr
@@ -282,15 +279,15 @@ class ID extends Module {
       wireNum1 := io.csrsR.rdata(1)
 
       io.jmpBch      := 1.B
-      io.jbAddr      := io.csrsR.rdata(0)
+      io.jbAddr      := Cat(io.csrsR.rdata(0)(XLEN - 1, 2), 0.U(2.W))
     }
   }
 
-  when(io.csrsR.rdata(1)(3) && io.csrsR.rdata(2)(7)) { // Machine timer interrupt
-    io.csrsR.rcsr(3) := csrsAddr.Mtime
-    io.csrsR.rcsr(4) := csrsAddr.Mtimecmp
-    when(io.csrsR.rdata(3) >= io.csrsR.rdata(4)) {
+  val handelExtInt = io.csrsR.rdata(1)(3) && io.csrsR.rdata(2)(11) && io.csrsR.rdata(7)(11)
+  when(io.lastVR.VALID) {
+    when(handelExtInt) {
       wireSpecial := int
+      wireRd := 0.U
       io.csrsR.rcsr(5) := csrsAddr.Mtvec
 
       wireCsr(0) := csrsAddr.Mepc
@@ -299,18 +296,41 @@ class ID extends Module {
       wireCsr(3) := csrsAddr.Mstatus
 
       wireNum1 := io.input.pc
-      wireNum2 := Cat(1.B, 7.U((XLEN - 1).W))
+      wireNum2 := Cat(1.B, 11.U((XLEN - 1).W))
       wireNum3 := io.input.instr
       wireNum4 := io.csrsR.rdata(1)
 
       io.jmpBch := 1.B
-      when(io.csrsR.rdata(5)(0)) { io.jbAddr := Cat(io.csrsR.rdata(5)(XLEN - 1, 2), 0.U(2.W)) + (7 * 4).U }
+      when(io.csrsR.rdata(5)(0)) { io.jbAddr := Cat(io.csrsR.rdata(5)(XLEN - 1, 2), 0.U(2.W)) + (11 * 4).U }
       .otherwise { io.jbAddr := Cat(io.csrsR.rdata(5)(XLEN - 1, 2), 0.U(2.W)) }
+    }
+    when((~handelExtInt) && io.csrsR.rdata(1)(3) && io.csrsR.rdata(2)(7)) { // Machine timer interrupt
+      io.csrsR.rcsr(3) := csrsAddr.Mtime
+      io.csrsR.rcsr(4) := csrsAddr.Mtimecmp
+      when(io.csrsR.rdata(3) >= io.csrsR.rdata(4)) {
+        wireSpecial := int
+        wireRd := 0.U
+        io.csrsR.rcsr(5) := csrsAddr.Mtvec
+
+        wireCsr(0) := csrsAddr.Mepc
+        wireCsr(1) := csrsAddr.Mcause
+        wireCsr(2) := csrsAddr.Mtval
+        wireCsr(3) := csrsAddr.Mstatus
+
+        wireNum1 := io.input.pc
+        wireNum2 := Cat(1.B, 7.U((XLEN - 1).W))
+        wireNum3 := io.input.instr
+        wireNum4 := io.csrsR.rdata(1)
+
+        io.jmpBch := 1.B
+        when(io.csrsR.rdata(5)(0)) { io.jbAddr := Cat(io.csrsR.rdata(5)(XLEN - 1, 2), 0.U(2.W)) + (7 * 4).U }
+        .otherwise { io.jbAddr := Cat(io.csrsR.rdata(5)(XLEN - 1, 2), 0.U(2.W)) }
+      }
     }
   }
 
   io.lastVR.READY := io.nextVR.READY && !io.isWait
-  
+
   when(io.lastVR.VALID && io.lastVR.READY) { // let's start working
     NVALID  := 1.B
     rd      := wireRd
@@ -327,7 +347,7 @@ class ID extends Module {
   }.elsewhen(io.isWait && io.nextVR.READY) {
     NVALID  := 0.B
     rd      := 0.U
-    wcsr    := 0xFFF.U
+    wcsr    := VecInit(Seq.fill(writeCsrsPort)(0xFFF.U(12.W)))
     num1    := 0.U
     num2    := 0.U
     num3    := 0.U
