@@ -4,19 +4,21 @@
 
 VerilatedContext *const contextp = new VerilatedContext;
 struct termios new_settings, stored_settings;
-int cycles = 0;
+uint64_t cycles = 0;
 
 void int_handeler(int sig) {
   tcsetattr(0, TCSAFLUSH, &stored_settings);
+  setlinebuf(stdout);
   if (sig != SIGINT) {
     fprintf(stderr, "Wrong signal type\n");
     exit(EPERM);
   }
-  printf("\ndebug: Exit after %d clock cycles.\n", cycles / 2);
+  printf("\ndebug: Exit after %ld clock cycles.\n", cycles / 2);
   exit(0);
 }
 
 int main(int argc, char **argv, char **env) {
+  setbuf(stdout, NULL);
   signal(SIGINT, int_handeler);
 
   tcgetattr(0, &stored_settings);
@@ -78,7 +80,7 @@ int main(int argc, char **argv, char **env) {
 #endif
 
     if (top->io_exit == 1) {
-      printf("debug: Exit after %d clock cycles.\n", cycles / 2);
+      printf("debug: Exit after %ld clock cycles.\n", cycles / 2);
       printf("debug: ");
       if (top->io_data) {
         printf("\33[1;31mHIT BAD TRAP");
@@ -90,7 +92,7 @@ int main(int argc, char **argv, char **env) {
       break;
     }
     else if (top->io_exit == 2) {
-      printf("debug: Exit after %d clock cycles.\n", cycles / 2);
+      printf("debug: Exit after %ld clock cycles.\n", cycles / 2);
       printf("debug: ");
       printf("\33[1;31mINVALID INSTRUCTION");
       printf("\33[0m at pc = " FMT_WORD "\n\n", top->io_pc - 4);
@@ -102,5 +104,6 @@ int main(int argc, char **argv, char **env) {
   uart_isRunning = false;
   delete top;
   tcsetattr(0, TCSAFLUSH, &stored_settings);
+  setlinebuf(stdout);
   return ret;
 }

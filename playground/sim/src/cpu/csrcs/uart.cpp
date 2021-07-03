@@ -74,11 +74,8 @@ extern "C" void uart_read(char addr, char *ch) {
 extern "C" void uart_write(char addr, char data) {
   switch (addr) {
     case Transmit_Holding:
-      if (!divisor_latch) {
-        setbuf(stdout, NULL);
+      if (!divisor_latch)
         putchar(data);
-        setlinebuf(stdout);
-      }
       break;
     case Interrupt_Enable:
       if (!divisor_latch) receive_interrupt = (data & 1U); break;

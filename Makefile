@@ -15,7 +15,7 @@ export XLEN = 32
 endif
 
 ifeq ($(TRACE),1)
-override TRACE = --trace
+override TRACE = --trace --trace-fst
 else
 override TRACE = 
 endif
@@ -72,8 +72,8 @@ clean:
 	-rm -rf $(BUILD_DIR)
 
 sim:
-	@mkdir $(BUILD_DIR) >>/dev/null 2>&1 | echo >>/dev/null 2>&1
-	@mkdir $(BUILD_DIR)/sim >>/dev/null 2>&1 | echo >>/dev/null 2>&1
+	-@mkdir $(BUILD_DIR) >>/dev/null 2>&1 || echo >>/dev/null
+	-@mkdir $(BUILD_DIR)/sim >>/dev/null 2>&1 || echo >>/dev/null
 	@ln -f $(ROOT_DIR)/sim/src/sim_main.cpp $(BUILD_DIR)/sim/sim_main.cpp
 	@ln -f $(ROOT_DIR)/sim/src/sim_main.hpp $(BUILD_DIR)/sim/sim_main.hpp
 	@ln -f $(ROOT_DIR)/sim/src/mem.txt $(BUILD_DIR)/sim/mem.txt
@@ -91,7 +91,7 @@ ifneq ($(TRACE),)
 	@sed -i '$$d' $(BUILD_DIR)/sim/TestTop.v
 	@echo '  initial' >>$(BUILD_DIR)/sim/TestTop.v
 	@echo '  begin' >>$(BUILD_DIR)/sim/TestTop.v
-	@echo '    $$dumpfile("dump.vcd");' >>$(BUILD_DIR)/sim/TestTop.v
+	@echo '    $$dumpfile("dump.fst");' >>$(BUILD_DIR)/sim/TestTop.v
 	@echo '    $$dumpvars(0, TestTop);' >>$(BUILD_DIR)/sim/TestTop.v
 	@echo '  end' >>$(BUILD_DIR)/sim/TestTop.v
 	@echo 'endmodule' >>$(BUILD_DIR)/sim/TestTop.v
@@ -108,10 +108,6 @@ endif
 	$(VFLAGS) >/dev/null
 
 	@cd $(BUILD_DIR)/sim && ./obj_dir/VTestTop $(BINFILE)
-
-ifneq ($(TRACE),)
-	@vcd2fst $(BUILD_DIR)/sim/dump.vcd $(BUILD_DIR)/sim/dump.fst
-endif
 
 simall:
 	@for x in `cd $(ROOT_DIR)/sim/bin && ls *-$(ISA)-nemu.bin | grep -oP ".*(?=-$(ISA)-nemu.bin)"`; do \

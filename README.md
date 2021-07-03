@@ -1,5 +1,5 @@
-Nutshell-xs Project (Temporary name)
-=======================
+YuQuan Project
+==============
 
 Contents at a glance:
 
@@ -17,22 +17,33 @@ Contents at a glance:
 First, install mill by referring to the documentation [here](https://com-lihaoyi.github.io/mill).
 
 To run all tests in this design (recommended for test-driven development):
+
 ```bash
 make test
 ```
 
 To generate Verilog:
+
 ```bash
 make verilog
 ```
 
 To run simple test:
+
 ```bash
 make sim
 ```
 
 To load program from bin and run test, copy `$BIN-$ISA-nemu.bin` to `playground/sim/bin/`, and run:
+
 ```bash
-make BIN=$BIN ISA=$ISA sim
+make BIN=$BIN [ISA=$ISA] sim
 ```
+
 If `ISA` is not specified, it defaults to riscv64.
+
+To disable difftest, run:
+
+```bash
+make BIN=$BIN DIFF=0 sim
+```
