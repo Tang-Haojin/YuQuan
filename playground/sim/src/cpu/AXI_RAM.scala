@@ -61,7 +61,6 @@ class RAM extends RawModule {
       WDATA  := io.axiWd.WDATA
       WSTRB  := io.axiWd.WSTRB
       WREADY := 0.B
-      // printf("WDATA: %x\n", io.axiWd.WDATA)
     }
 
     when(~io.axiWa.AWREADY && ~io.axiWd.WREADY) {

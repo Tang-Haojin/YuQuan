@@ -1,7 +1,10 @@
-BUILD_DIR = ./build
-ROOT_DIR = $(shell cat build.sc | grep -oP "(?<=object ).*(?= extends ScalaModule)")
-SUB_DIR = $(shell cd $(ROOT_DIR); ls -d */ | tr -d / | grep -v src; cd ..)
 pwd = $(shell pwd)
+site = https://tanghaojin.site/static
+BUILD_DIR = ./build
+ROOT_DIR  = $(shell cat build.sc | grep -oP "(?<=object ).*(?= extends ScalaModule)")
+SUB_DIR   = $(shell cd $(ROOT_DIR); ls -d */ | tr -d / | grep -v src; cd ..)
+LIB_DIR   = $(pwd)/$(ROOT_DIR)/sim/lib
+SSRC_DIR  = $(pwd)/$(ROOT_DIR)/sim/src
 $(shell mkdir $(ROOT_DIR)/sim/bin >>/dev/null 2>&1 | echo >>/dev/null 2>&1)
 
 ifeq ($(ISA),)
@@ -14,36 +17,34 @@ xlens = 32
 export XLEN = 32
 endif
 
+CSRCS   += $(SSRC_DIR)/sim_main.cpp $(SSRC_DIR)/cpu/csrcs/uart.cpp
+CFLAGS  += -D$(ISA) -pthread -I$(pwd)/$(ROOT_DIR)/sim/include
+LDFLAGS += -pthread
+VFLAGS  += -cc TestTop.v --top TestTop --exe --timescale "1ns/1ns" -Wno-WIDTH
+
 ifeq ($(TRACE),1)
-override TRACE = --trace --trace-fst
-else
-override TRACE = 
+VFLAGS += --trace --trace-fst
 endif
 
 ifneq ($(DIFF),)
 export DIFF = 0
 else
-LIB_DIR = $(pwd)/$(ROOT_DIR)/sim/lib
-LIBNEMU = $(pwd)/$(ROOT_DIR)/sim/lib/librv$(xlens)nemu.so
+LIBNEMU = $(LIB_DIR)/librv$(xlens)nemu.so
 $(shell mkdir $(LIB_DIR) >>/dev/null 2>&1 | echo >>/dev/null 2>&1)
 ifeq ($(wildcard $(LIBNEMU)),)
-$(shell wget https://tanghaojin.site/static/librv64nemu.so -O $(LIBNEMU) || rm $(LIBNEMU))
+$(shell wget $(site)/librv64nemu.so -O $(LIBNEMU) || rm $(LIBNEMU))
 endif
 export LD_LIBRARY_PATH := $(LIB_DIR):$(LD_LIBRARY_PATH)
-VFLAGS = -LDFLAGS -L$(pwd)/$(ROOT_DIR)/sim/lib \
-         -LDFLAGS -lrv64nemu \
-	     -LDFLAGS -lSDL2 \
-	     -LDFLAGS -lreadline \
-		 -CFLAGS  -DDIFFTEST
+LDFLAGS += -L$(pwd)/$(ROOT_DIR)/sim/lib -lrv64nemu -lSDL2 -lreadline
+CFLAGS  += -DDIFFTEST
 endif
 
 ifneq ($(BIN),)
 BINFILE = $(pwd)/$(ROOT_DIR)/sim/bin/$(BIN)-$(ISA)-nemu.bin
 ifeq ($(wildcard $(BINFILE)),)
-$(shell wget https://tanghaojin.site/static/$(BIN)-$(ISA)-nemu.bin -O $(BINFILE) || rm $(BINFILE))
+$(shell wget $(site)/$(BIN)-$(ISA)-nemu.bin -O $(BINFILE) || rm $(BINFILE))
 endif
 endif
-
 
 test:
 	mill -i __.test
@@ -74,10 +75,7 @@ clean:
 sim:
 	-@mkdir $(BUILD_DIR) >>/dev/null 2>&1 || echo >>/dev/null
 	-@mkdir $(BUILD_DIR)/sim >>/dev/null 2>&1 || echo >>/dev/null
-	@ln -f $(ROOT_DIR)/sim/src/sim_main.cpp $(BUILD_DIR)/sim/sim_main.cpp
-	@ln -f $(ROOT_DIR)/sim/src/sim_main.hpp $(BUILD_DIR)/sim/sim_main.hpp
 	@ln -f $(ROOT_DIR)/sim/src/mem.txt $(BUILD_DIR)/sim/mem.txt
-	@ln -f $(ROOT_DIR)/sim/src/cpu/csrcs/uart.cpp $(BUILD_DIR)/sim/uart.cpp
 
 ifneq ($(BIN),)
 	@rm -f $(BUILD_DIR)/sim/mem.txt
@@ -98,14 +96,7 @@ ifneq ($(TRACE),)
 endif
 
 	@cd $(BUILD_DIR)/sim && \
-	verilator -cc TestTop.v --top-module TestTop --exe \
-	--build sim_main.cpp uart.cpp \
-	--timescale "1ns/1ns" \
-	-CFLAGS -D$(ISA) \
-	-CFLAGS -pthread \
-	-LDFLAGS -pthread \
-	-Wno-WIDTH $(TRACE) \
-	$(VFLAGS) >/dev/null
+	verilator $(VFLAGS) --build $(CSRCS) -CFLAGS "$(CFLAGS)" -LDFLAGS "$(LDFLAGS)" >/dev/null
 
 	@cd $(BUILD_DIR)/sim && ./obj_dir/VTestTop $(BINFILE)
 

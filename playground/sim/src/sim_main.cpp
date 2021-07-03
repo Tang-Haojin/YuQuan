@@ -1,6 +1,6 @@
-#include "obj_dir/VTestTop.h"
+#include "VTestTop.h"
 #include "verilated.h"
-#include "sim_main.hpp"
+#include <sim_main.hpp>
 
 VerilatedContext *const contextp = new VerilatedContext;
 struct termios new_settings, stored_settings;
