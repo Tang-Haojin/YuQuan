@@ -11,6 +11,7 @@ static bool divisor_latch = false;
 static bool receive_interrupt = false;
 static char scratch = 0;
 
+/* http://byterunner.com/16550.html */
 enum {
   Receive_Holding  = 0b000,
   Interrupt_Status = 0b010,

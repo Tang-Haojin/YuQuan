@@ -7,6 +7,58 @@ import cpu.axi._
 import cpu.config.GeneralConfig._
 import chisel3.util.experimental.loadMemoryFromFileInline
 
+class RamRead extends BlackBox with HasBlackBoxInline {
+  val io = IO(new Bundle {
+    val clock = Input (Clock())
+    val addr  = Input (UInt(64.W))
+    val data  = Output(UInt(64.W))
+  })
+
+  setInline("RamRead.v",s"""
+    |import "DPI-C" function void ram_read(input longint addr, output longint data);
+    |
+    |module RamRead (
+    |  input  clock,
+    |  input  [63:0] addr,
+    |  output reg [63:0] data
+    |);
+    |
+    |  always@(posedge clock) begin
+    |    ram_read(addr, data);
+    |  end
+    |
+    |endmodule
+  """.stripMargin)
+}
+
+class RamWrite extends BlackBox with HasBlackBoxInline {
+  val io = IO(new Bundle {
+    val clock = Input (Clock())
+    val wen   = Input (Bool())
+    val addr  = Input (UInt(64.W))
+    val data  = Input (UInt(64.W))
+    val mask  = Input (UInt(8.W))
+  })
+
+  setInline("RamWrite.v",s"""
+    |import "DPI-C" function void ram_write(input longint addr, input longint data, input byte mask);
+    |
+    |module RamWrite (
+    |  input  clock,
+    |  input  wen,
+    |  input  [63:0] addr,
+    |  input  [63:0] data,
+    |  input  [ 7:0] mask
+    |);
+    |
+    |  always@(posedge clock) begin
+    |    if (wen) ram_write(addr, data, mask);
+    |  end
+    |
+    |endmodule
+  """.stripMargin)
+}
+
 class RAM extends RawModule {
   val io = IO(new AxiSlaveIO)
 
@@ -18,11 +70,7 @@ class RAM extends RawModule {
   io.axiRd.RUSER := DontCare
   io.axiRd.RRESP := DontCare
 
-
   withClockAndReset(io.basic.ACLK, ~io.basic.ARESETn) {
-    val syncRAM = SyncReadMem(MEMSize, UInt(8.W))
-    loadMemoryFromFileInline(syncRAM, "mem.txt")
-
     val AWREADY = RegInit(1.B); io.axiWa.AWREADY := AWREADY
     val WREADY  = RegInit(1.B); io.axiWd.WREADY  := WREADY
     val BVALID  = RegInit(0.B); io.axiWr.BVALID  := BVALID
@@ -35,11 +83,19 @@ class RAM extends RawModule {
     val WDATA  = RegInit(0.U(XLEN.W))
     val WSTRB  = RegInit(0.U((XLEN / 8).W))
 
-    val wireARADDR = Wire(UInt(XLEN.W))
-    wireARADDR := ARADDR
-    
-    io.axiRd.RDATA := 
-      Cat((for { a <- 0 until XLEN / 8 } yield syncRAM.read(wireARADDR + a.U)).reverse)
+    val wireARADDR = WireDefault(UInt(XLEN.W), ARADDR)
+
+    val ram_read = Module(new RamRead)
+    ram_read.io.clock := io.basic.ACLK
+    ram_read.io.addr  := wireARADDR
+    io.axiRd.RDATA    := ram_read.io.data
+
+    val ram_write = Module(new RamWrite)
+    ram_write.io.clock := io.basic.ACLK
+    ram_write.io.wen   := 0.B
+    ram_write.io.addr  := AWADDR
+    ram_write.io.data  := WDATA
+    ram_write.io.mask  := WSTRB
 
     when(io.axiRd.RVALID && io.axiRd.RREADY) {
       RVALID  := 0.B
@@ -64,14 +120,10 @@ class RAM extends RawModule {
     }
 
     when(~io.axiWa.AWREADY && ~io.axiWd.WREADY) {
-      AWREADY := 1.B
-      WREADY  := 1.B
-      for (i <- 0 until XLEN / 8) {
-        when(WSTRB(i)) {
-          syncRAM.write(AWADDR + i.U, WDATA(i * 8 + 7, i * 8))
-        }
-      }
-      BVALID  := 1.B
+      AWREADY          := 1.B
+      WREADY           := 1.B
+      BVALID           := 1.B
+      ram_write.io.wen := 1.B
     }
 
     when(io.axiWr.BVALID && io.axiWr.BREADY) {

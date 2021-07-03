@@ -28,6 +28,7 @@ int main(int argc, char **argv, char **env) {
 
   int ret = 0;
   uart_init();
+  ram_init(argv[1]);
   VTestTop *top = new VTestTop;
 
 #ifdef DIFFTEST

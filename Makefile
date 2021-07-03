@@ -17,7 +17,7 @@ xlens = 32
 export XLEN = 32
 endif
 
-CSRCS   += $(SSRC_DIR)/sim_main.cpp $(SSRC_DIR)/cpu/csrcs/uart.cpp
+CSRCS   += $(SSRC_DIR)/sim_main.cpp $(SSRC_DIR)/cpu/csrcs/uart.cpp $(SSRC_DIR)/cpu/csrcs/ram.cpp
 CFLAGS  += -D$(ISA) -pthread -I$(pwd)/$(ROOT_DIR)/sim/include
 LDFLAGS += -pthread
 VFLAGS  += -cc TestTop.v --top TestTop --exe --timescale "1ns/1ns" -Wno-WIDTH
@@ -73,16 +73,6 @@ clean:
 	-rm -rf $(BUILD_DIR)
 
 sim:
-	-@mkdir $(BUILD_DIR) >>/dev/null 2>&1 || echo >>/dev/null
-	-@mkdir $(BUILD_DIR)/sim >>/dev/null 2>&1 || echo >>/dev/null
-	@ln -f $(ROOT_DIR)/sim/src/mem.txt $(BUILD_DIR)/sim/mem.txt
-
-ifneq ($(BIN),)
-	@rm -f $(BUILD_DIR)/sim/mem.txt
-	@xxd -g 1 $(ROOT_DIR)/sim/bin/$(BIN)-$(ISA)-nemu.bin | \
-	grep -oP "(?<=: ).*(?=  .{16})" >$(BUILD_DIR)/sim/mem.txt
-endif
-
 	mill -i __.sim.runMain Elaborate -td $(BUILD_DIR)/sim
 
 ifneq ($(TRACE),)
@@ -98,7 +88,7 @@ endif
 	@cd $(BUILD_DIR)/sim && \
 	verilator $(VFLAGS) --build $(CSRCS) -CFLAGS "$(CFLAGS)" -LDFLAGS "$(LDFLAGS)" >/dev/null
 
-	@cd $(BUILD_DIR)/sim && ./obj_dir/VTestTop $(BINFILE)
+	@$(BUILD_DIR)/sim/obj_dir/VTestTop $(BINFILE)
 
 simall:
 	@for x in `cd $(ROOT_DIR)/sim/bin && ls *-$(ISA)-nemu.bin | grep -oP ".*(?=-$(ISA)-nemu.bin)"`; do \
