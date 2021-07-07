@@ -17,13 +17,14 @@ xlens = 32
 export XLEN = 32
 endif
 
-CSRCS   += $(SSRC_DIR)/sim_main.cpp $(SSRC_DIR)/cpu/csrcs/uart.cpp $(SSRC_DIR)/cpu/csrcs/ram.cpp
+CSRCS   += $(SSRC_DIR)/sim_main.cpp $(SSRC_DIR)/cpu/csrc/scanKbd.cpp $(SSRC_DIR)/cpu/csrc/ram.cpp
 CFLAGS  += -D$(ISA) -pthread -I$(pwd)/$(ROOT_DIR)/sim/include
 LDFLAGS += -pthread
-VFLAGS  += -cc TestTop.v --top TestTop --exe --timescale "1ns/1ns" -Wno-WIDTH
+VFLAGS  += -cc TestTop.v --top TestTop --exe --timescale "1ns/1ns" -Wno-WIDTH -I$(pwd)/$(ROOT_DIR)/src/cpu/vsrc/peripheral
 
 ifeq ($(TRACE),1)
-VFLAGS += --trace --trace-fst
+VFLAGS += --trace-fst
+CFLAGS += DTRACE
 endif
 
 ifneq ($(DIFF),)
@@ -74,16 +75,6 @@ clean:
 
 sim:
 	mill -i __.sim.runMain Elaborate -td $(BUILD_DIR)/sim
-
-ifneq ($(TRACE),)
-	@sed -i '$$d' $(BUILD_DIR)/sim/TestTop.v
-	@echo '  initial' >>$(BUILD_DIR)/sim/TestTop.v
-	@echo '  begin' >>$(BUILD_DIR)/sim/TestTop.v
-	@echo '    $$dumpfile("dump.fst");' >>$(BUILD_DIR)/sim/TestTop.v
-	@echo '    $$dumpvars(0, TestTop);' >>$(BUILD_DIR)/sim/TestTop.v
-	@echo '  end' >>$(BUILD_DIR)/sim/TestTop.v
-	@echo 'endmodule' >>$(BUILD_DIR)/sim/TestTop.v
-endif
 
 	@cd $(BUILD_DIR)/sim && \
 	verilator $(VFLAGS) --build $(CSRCS) -CFLAGS "$(CFLAGS)" -LDFLAGS "$(LDFLAGS)" >/dev/null

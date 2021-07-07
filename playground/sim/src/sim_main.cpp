@@ -1,14 +1,22 @@
 #include "VTestTop.h"
 #include "verilated.h"
+#include "verilated_fst_c.h"
 #include <sim_main.hpp>
 
 VerilatedContext *const contextp = new VerilatedContext;
+#ifdef TRACE
+VerilatedFstC *tfp = new VerilatedFstC;
+#endif
 struct termios new_settings, stored_settings;
 uint64_t cycles = 0;
 
 void int_handeler(int sig) {
   tcsetattr(0, TCSAFLUSH, &stored_settings);
   setlinebuf(stdout);
+  setlinebuf(stderr);
+#ifdef TRACE
+  tfp->close();
+#endif
   if (sig != SIGINT) {
     fprintf(stderr, "Wrong signal type\n");
     exit(EPERM);
@@ -19,17 +27,24 @@ void int_handeler(int sig) {
 
 int main(int argc, char **argv, char **env) {
   setbuf(stdout, NULL);
+  setbuf(stderr, NULL);
   signal(SIGINT, int_handeler);
 
   tcgetattr(0, &stored_settings);
   new_settings = stored_settings;
   new_settings.c_lflag &= ~ECHOFLAGS;
   tcsetattr(0, TCSAFLUSH, &new_settings);
-
+  contextp->commandArgs(argc, argv);
+  
   int ret = 0;
-  uart_init();
+  scan_init();
   ram_init(argv[1]);
   VTestTop *top = new VTestTop;
+#ifdef TRACE
+  contextp->traceEverOn(true);
+  top->trace(tfp, 0);
+  tfp->open("dump.fst");
+#endif
 
 #ifdef DIFFTEST
   vaddr_t pc, nemu_pc;
@@ -38,8 +53,6 @@ int main(int argc, char **argv, char **env) {
   QData *gprs = &top->io_gprs_0;
 #endif
 
-  contextp->commandArgs(argc, argv);
-  contextp->traceEverOn(true);
 
   top->reset = 0;
   top->clock = 0;
@@ -56,6 +69,10 @@ int main(int argc, char **argv, char **env) {
     contextp->timeInc(1);
     top->clock = !top->clock;
     top->eval();
+#ifdef TRACE
+    if (cycles >= 17000000)
+      tfp->dump(contextp->time());
+#endif
 
 #ifdef DIFFTEST
     if (top->io_wbValid && top->clock) {
@@ -102,9 +119,13 @@ int main(int argc, char **argv, char **env) {
     }
   }
 
-  uart_isRunning = false;
+  scan_isRunning = false;
   delete top;
   tcsetattr(0, TCSAFLUSH, &stored_settings);
   setlinebuf(stdout);
+  setlinebuf(stderr);
+#ifdef TRACE
+  tfp->close();
+#endif
   return ret;
 }

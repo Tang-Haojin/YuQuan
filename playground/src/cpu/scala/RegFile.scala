@@ -1,7 +1,6 @@
 package cpu.register
 
 import chisel3._
-import cpu.axi._
 import cpu.config.GeneralConfig._
 import cpu.config.RegisterConfig._
 import cpu.config.Debug._

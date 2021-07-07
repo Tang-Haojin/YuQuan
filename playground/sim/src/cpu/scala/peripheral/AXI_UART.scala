@@ -3,7 +3,7 @@ package sim
 import chisel3._
 import chisel3.util._
 
-import cpu.axi._
+import tools._
 import cpu.config.GeneralConfig._
 
 class UartRead extends BlackBox with HasBlackBoxInline {
@@ -99,7 +99,7 @@ class UART extends RawModule {
     val RVALID  = RegInit(0.B); io.axiRd.RVALID  := RVALID
 
     val RID    = RegInit(0.U(4.W)); io.axiRd.RID := RID
-    val WDATA  = RegInit(0.U(XLEN.W))
+    val WDATA  = RegInit(0.U(8.W))
     val RDATA  = RegInit(0.U(8.W))
     
     io.axiRd.RDATA := Cat(Fill(XLEN - 8, 0.U), RDATA)
@@ -113,7 +113,7 @@ class UART extends RawModule {
     uart_write.io.clock := io.basic.ACLK
     uart_write.io.wen   := 0.B
     uart_write.io.waddr := io.axiWa.AWADDR - UART0_MMIO.UART0_BASE.U
-    uart_write.io.wdata := io.axiWd.WDATA
+    uart_write.io.wdata := WDATA
 
     when(io.axiRd.RVALID && io.axiRd.RREADY) {
       RVALID  := 0.B

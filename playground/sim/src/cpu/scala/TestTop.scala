@@ -7,18 +7,18 @@ import utest._
 import chisel3.tester._
 
 import cpu._
-import cpu.axi._
 import cpu.config.GeneralConfig._
-import chisel3.internal.firrtl.Node
+import cpu.peripheral._
 
 class TestTop extends Module {
   val io = IO(new DEBUG)
 
   val cpu = Module(new CPU)
   val mem = Module(new RAM)
-  val uart0 = Module(new UART)
+  val uart0 = Module(new Uart16550)
   val plic = Module(new Plic)
   val router = Module(new ROUTER)
+  val tty = Module(new TTY)
 
   io <> cpu.io.debug
 
@@ -47,10 +47,11 @@ class TestTop extends Module {
   router.io.PLICIO.axiRd <> plic.io.axiRd
 
   plic.io.inter := VecInit(Seq.fill(plic.io.inter.length)(0.B))
-  val uart_int = Module(new UartInt)
-  uart_int.io.clock := clock
-  plic.io.inter(10) := uart_int.io.inter
+  plic.io.inter(10) := uart0.io.interrupt
   cpu.io.eip        := plic.io.eip
+
+  tty.io.srx := uart0.io.stx
+  uart0.io.srx := tty.io.stx
   
   cpu.io.basic.ACLK             := clock
   cpu.io.basic.ARESETn          := reset

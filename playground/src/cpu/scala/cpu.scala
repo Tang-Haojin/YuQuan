@@ -4,7 +4,7 @@ import chisel3._
 import chisel3.util._
 
 import cpu.register._
-import cpu.axi._
+import tools._
 import cpu.config.Debug._
 import cpu.config.GeneralConfig._
 import cpu.config.RegisterConfig._

@@ -3,8 +3,6 @@ package cpu
 import chisel3._
 import chisel3.util._
 
-import cpu.axi._
-
 import cpu.register._
 import cpu.config.GeneralConfig._
 import cpu.config.RegisterConfig._

@@ -3,8 +3,15 @@ package cpu
 import chisel3._
 import chisel3.util._
 
-import cpu.axi._
+import tools.AxiSlaveIO
 import cpu.config.GeneralConfig._
+
+class AxiRouterIO extends Bundle {
+  val input   = new AxiSlaveIO
+  val RamIO   = Flipped(new AxiSlaveIO)
+  val Uart0IO = Flipped(new AxiSlaveIO)
+  val PLICIO  = Flipped(new AxiSlaveIO)
+}
 
 class ROUTER extends RawModule {
   val io = IO(new AxiRouterIO)
@@ -163,6 +170,6 @@ class ROUTER extends RawModule {
     when(
       (io.input.axiWa.AWADDR >= PLIC.PLIC.U) &&
       (io.input.axiWa.AWADDR < (PLIC.PLIC + PLIC.PLIC_SIZE).U)
-    ) { wireWdevice := uart0 }
+    ) { wireWdevice := plic }
   }
 }

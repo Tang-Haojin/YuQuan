@@ -116,9 +116,9 @@ extern CPU_state cpu;
 
 #endif
 
-void uart_init(void);
+void scan_init(void);
 void ram_init(char *img);
-extern bool uart_isRunning;
+extern bool scan_isRunning;
 
 }
 
