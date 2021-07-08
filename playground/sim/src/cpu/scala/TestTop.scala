@@ -15,10 +15,9 @@ class TestTop extends Module {
 
   val cpu = Module(new CPU)
   val mem = Module(new RAM)
-  val uart0 = Module(new Uart16550)
+  val uart0 = Module(if (IsRealUart) new UartReal else new UartSim)
   val plic = Module(new Plic)
   val router = Module(new ROUTER)
-  val tty = Module(new TTY)
 
   io <> cpu.io.debug
 
@@ -50,9 +49,6 @@ class TestTop extends Module {
   plic.io.inter(10) := uart0.io.interrupt
   cpu.io.eip        := plic.io.eip
 
-  tty.io.srx := uart0.io.stx
-  uart0.io.srx := tty.io.stx
-  
   cpu.io.basic.ACLK             := clock
   cpu.io.basic.ARESETn          := reset
   mem.io.basic.ACLK             := clock

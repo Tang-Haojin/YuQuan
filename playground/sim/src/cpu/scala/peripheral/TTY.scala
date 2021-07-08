@@ -29,8 +29,10 @@ class ScanRead extends BlackBox with HasBlackBoxInline {
   """.stripMargin)
 }
 
-class TTY extends Module {
+class TTY extends RawModule {
   val io = IO(new Bundle {
+    val clock = Input (Clock())
+    val reset = Input (Bool())
 	  val stx   = Output(UInt(1.W))
     val srx   = Input (UInt(1.W))
   })
@@ -42,7 +44,7 @@ class TTY extends Module {
 
   io.stx := 1.U
 
-  withReset(~(reset.asBool)) {
+  withClockAndReset(io.clock, ~io.reset) {
     val readState = RegInit(0.U(2.W))
     val readWaitCounter = RegInit(0.U(14.W))
     val readBitIndex = RegInit(0.U(3.W))
@@ -89,7 +91,7 @@ class TTY extends Module {
     val writeData = RegInit(0.U(8.W))
 
     val scanRead = Module(new ScanRead)
-    scanRead.io.clock := clock
+    scanRead.io.clock := io.clock
     scanRead.io.getch := 0.B
 
     when(writeState === idle) {

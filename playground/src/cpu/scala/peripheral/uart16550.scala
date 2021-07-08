@@ -86,7 +86,7 @@ class Uart16550 extends RawModule {
       RVALID  := 0.B
     }.elsewhen(io.axiRa.ARVALID && io.axiRa.ARREADY) {
       uregs.io.wb_re_i := 1.B
-      uregs.io.wb_addr_i := io.axiRa.ARADDR - UART0_MMIO.UART0_BASE.U
+      uregs.io.wb_addr_i := io.axiRa.ARADDR - UART0_MMIO.BASE.U
       RID := io.axiRa.ARID
       RVALID := 1.B
       RDATA := uregs.io.wb_dat_o
@@ -106,7 +106,7 @@ class Uart16550 extends RawModule {
       AWREADY := 1.B
       WREADY  := 1.B
       uregs.io.wb_we_i := 1.B
-      uregs.io.wb_addr_i := WADDR - UART0_MMIO.UART0_BASE.U
+      uregs.io.wb_addr_i := WADDR - UART0_MMIO.BASE.U
       BVALID  := 1.B
     }
 

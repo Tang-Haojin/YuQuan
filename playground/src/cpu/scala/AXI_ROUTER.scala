@@ -151,8 +151,8 @@ class ROUTER extends RawModule {
       (io.input.axiRa.ARADDR < (MEMBase + MEMSize).U)
     ) { wireRdevice := mem }
     when(
-      (io.input.axiRa.ARADDR >= UART0_MMIO.UART0_BASE.U) &&
-      (io.input.axiRa.ARADDR < (UART0_MMIO.UART0_BASE + UART0_MMIO.UART0_SIZE).U)
+      (io.input.axiRa.ARADDR >= UART0_MMIO.BASE.U) &&
+      (io.input.axiRa.ARADDR < (UART0_MMIO.BASE + UART0_MMIO.SIZE).U)
     ) { wireRdevice := uart0 }
     when(
       (io.input.axiRa.ARADDR >= PLIC.PLIC.U) &&
@@ -164,8 +164,8 @@ class ROUTER extends RawModule {
       (io.input.axiWa.AWADDR < (MEMBase + MEMSize).U)
     ) { wireWdevice := mem }
     when(
-      (io.input.axiWa.AWADDR >= UART0_MMIO.UART0_BASE.U) &&
-      (io.input.axiWa.AWADDR < (UART0_MMIO.UART0_BASE + UART0_MMIO.UART0_SIZE).U)
+      (io.input.axiWa.AWADDR >= UART0_MMIO.BASE.U) &&
+      (io.input.axiWa.AWADDR < (UART0_MMIO.BASE + UART0_MMIO.SIZE).U)
     ) { wireWdevice := uart0 }
     when(
       (io.input.axiWa.AWADDR >= PLIC.PLIC.U) &&

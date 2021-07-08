@@ -13,18 +13,14 @@ object GeneralConfig {
                  else if (Extensions.contains('U')) 2
                  else if (Extensions.contains('M')) 1
                  else 1
+  val IsRealUart = (sys.env.getOrElse("UART", 0).toString.toInt != 0)
 
   val IALIGN = 32 // compressed instructions are not implemented yet
   val ILEN = 32 // base instruction set supported only
 
   object UART0_MMIO {
-    val UART0_BASE     = 0x10000000L
-    val UART0_WADDR    = UART0_BASE
-    val UART0_RADDR    = UART0_BASE + 1L
-    val UART0_STATE    = UART0_BASE + 2L
-    val UART0_FREE     = 0x00
-    val UART0_READBUSY = 0x01
-    val UART0_SIZE     = 100
+    val BASE = 0x10000000L
+    val SIZE = 100
   }
 
   object CLINT {

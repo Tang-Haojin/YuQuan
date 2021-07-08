@@ -17,7 +17,16 @@ xlens = 32
 export XLEN = 32
 endif
 
-CSRCS   += $(SSRC_DIR)/sim_main.cpp $(SSRC_DIR)/cpu/csrc/scanKbd.cpp $(SSRC_DIR)/cpu/csrc/ram.cpp
+ifeq ($(UART),1)
+export UART = 1
+CSRCS  += $(SSRC_DIR)/cpu/csrc/scanKbd.cpp
+CFLAGS += -DUART
+else
+export UART = 0
+CSRCS  += $(SSRC_DIR)/cpu/csrc/uart.cpp
+endif
+
+CSRCS   += $(SSRC_DIR)/sim_main.cpp $(SSRC_DIR)/cpu/csrc/ram.cpp
 CFLAGS  += -D$(ISA) -pthread -I$(pwd)/$(ROOT_DIR)/sim/include
 LDFLAGS += -pthread
 VFLAGS  += -cc TestTop.v --top TestTop --exe --timescale "1ns/1ns" -Wno-WIDTH -I$(pwd)/$(ROOT_DIR)/src/cpu/vsrc/peripheral

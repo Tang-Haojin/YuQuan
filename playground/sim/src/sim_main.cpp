@@ -14,6 +14,7 @@ void int_handeler(int sig) {
   tcsetattr(0, TCSAFLUSH, &stored_settings);
   setlinebuf(stdout);
   setlinebuf(stderr);
+  scan_uart(_isRunning) = false;
 #ifdef TRACE
   tfp->close();
 #endif
@@ -37,7 +38,7 @@ int main(int argc, char **argv, char **env) {
   contextp->commandArgs(argc, argv);
   
   int ret = 0;
-  scan_init();
+  scan_uart(_init)();
   ram_init(argv[1]);
   VTestTop *top = new VTestTop;
 #ifdef TRACE
@@ -119,7 +120,7 @@ int main(int argc, char **argv, char **env) {
     }
   }
 
-  scan_isRunning = false;
+  scan_uart(_isRunning) = false;
   delete top;
   tcsetattr(0, TCSAFLUSH, &stored_settings);
   setlinebuf(stdout);

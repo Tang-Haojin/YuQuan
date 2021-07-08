@@ -6,7 +6,8 @@
 #include <errno.h>
 #include <termio.h>
 
-extern "C" {
+#define concat_temp(x, y) x##y
+#define concat(x, y) concat_temp(x, y)
 
 #ifdef riscv32
 #define FMT_WORD "0x%08x"
@@ -93,6 +94,18 @@ typedef struct {
 
 #endif
 
+#ifdef UART
+ #define SCAN_OR_UART scan 
+#else
+ #define SCAN_OR_UART uart
+#endif
+
+#define scan_uart(x) concat(SCAN_OR_UART, x)
+
+extern CPU_state cpu;
+
+extern "C" {
+
 #ifdef DIFFTEST
 
 /* Initialize the monitor. */
@@ -112,13 +125,12 @@ void cpu_exec(uint64_t n);
 
 vaddr_t isa_exec_once();
 
-extern CPU_state cpu;
-
 #endif
 
-void scan_init(void);
+
+void scan_uart(_init)(void);
 void ram_init(char *img);
-extern bool scan_isRunning;
+extern bool scan_uart(_isRunning);
 
 }
 

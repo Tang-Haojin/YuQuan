@@ -5,6 +5,7 @@ import chisel3.util._
 
 import tools._
 import cpu.config.GeneralConfig._
+import cpu.peripheral._
 
 class UartRead extends BlackBox with HasBlackBoxInline {
   val io = IO(new Bundle {
@@ -80,9 +81,15 @@ class UartInt extends BlackBox with HasBlackBoxInline {
   """.stripMargin)
 }
 
-class UART extends RawModule {
-  val io = IO(new AxiSlaveIO)
+class UartWrapperIO extends AxiSlaveIO {
+  val interrupt = Output(Bool())    // interrupt request (active-high)
+}
 
+abstract class UartWrapper extends RawModule {
+  val io = IO(new UartWrapperIO)
+}
+
+class UartSim extends UartWrapper {
   io.axiWr.BID := 1.U // since only cpu requests writing now
   io.axiWr.BRESP := DontCare
   io.axiWr.BUSER := DontCare
@@ -107,13 +114,17 @@ class UART extends RawModule {
     val uart_read = Module(new UartRead)
     uart_read.io.clock := io.basic.ACLK
     uart_read.io.getc  := 0.B
-    uart_read.io.addr  := io.axiRa.ARADDR - UART0_MMIO.UART0_BASE.U
+    uart_read.io.addr  := io.axiRa.ARADDR - UART0_MMIO.BASE.U
 
     val uart_write = Module(new UartWrite)
     uart_write.io.clock := io.basic.ACLK
     uart_write.io.wen   := 0.B
-    uart_write.io.waddr := io.axiWa.AWADDR - UART0_MMIO.UART0_BASE.U
+    uart_write.io.waddr := io.axiWa.AWADDR - UART0_MMIO.BASE.U
     uart_write.io.wdata := WDATA
+
+    val uart_int = Module(new UartInt)
+    uart_int.io.clock := io.basic.ACLK
+    io.interrupt      := uart_int.io.inter
 
     when(io.axiRd.RVALID && io.axiRd.RREADY) {
       RVALID  := 0.B
@@ -144,4 +155,23 @@ class UART extends RawModule {
       BVALID := 0.B
     }
   }
+}
+
+class UartReal extends UartWrapper {
+  val uart16550 = Module(new Uart16550)
+  val tty       = Module(new TTY)
+
+  tty.io.clock     := io.basic.ACLK
+  tty.io.reset     := io.basic.ARESETn
+  tty.io.srx       := uart16550.io.stx
+  uart16550.io.srx := tty.io.stx
+
+  io.basic <> uart16550.io.basic
+  io.axiRa <> uart16550.io.axiRa
+  io.axiRd <> uart16550.io.axiRd
+  io.axiWa <> uart16550.io.axiWa
+  io.axiWd <> uart16550.io.axiWd
+  io.axiWr <> uart16550.io.axiWr
+
+  io.interrupt <> uart16550.io.interrupt
 }
