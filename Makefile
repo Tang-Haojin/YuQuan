@@ -1,21 +1,21 @@
 pwd = $(shell pwd)
+NO_ERR = >>/dev/null 2>&1 | echo >>/dev/null 2>&1
 site = https://tanghaojin.site/static
 BUILD_DIR = ./build
 ROOT_DIR  = $(shell cat build.sc | grep -oP "(?<=object ).*(?= extends ScalaModule)")
 SUB_DIR   = $(shell cd $(ROOT_DIR); ls -d */ | tr -d / | grep -v src; cd ..)
 LIB_DIR   = $(pwd)/$(ROOT_DIR)/sim/lib
 SSRC_DIR  = $(pwd)/$(ROOT_DIR)/sim/src
-$(shell mkdir $(ROOT_DIR)/sim/bin >>/dev/null 2>&1 | echo >>/dev/null 2>&1)
+$(shell mkdir $(ROOT_DIR)/sim/bin $(NO_ERR))
 
 ifeq ($(ISA),)
 ISA = riscv64
 xlens = 64
-export XLEN = 64
 endif
 ifeq ($(ISA),riscv32)
 xlens = 32
-export XLEN = 32
 endif
+export XLEN = $(xlens)
 
 ifeq ($(UART),1)
 export UART = 1
@@ -40,12 +40,12 @@ ifneq ($(DIFF),)
 export DIFF = 0
 else
 LIBNEMU = $(LIB_DIR)/librv$(xlens)nemu.so
-$(shell mkdir $(LIB_DIR) >>/dev/null 2>&1 | echo >>/dev/null 2>&1)
+$(shell mkdir $(LIB_DIR) $(NO_ERR))
 ifeq ($(wildcard $(LIBNEMU)),)
 $(shell wget $(site)/librv64nemu.so -O $(LIBNEMU) || rm $(LIBNEMU))
 endif
 export LD_LIBRARY_PATH := $(LIB_DIR):$(LD_LIBRARY_PATH)
-LDFLAGS += -L$(pwd)/$(ROOT_DIR)/sim/lib -lrv64nemu -lSDL2 -lreadline
+LDFLAGS += -L$(LIB_DIR) -lrv64nemu -lSDL2 -lreadline
 CFLAGS  += -DDIFFTEST
 endif
 
@@ -55,6 +55,8 @@ ifeq ($(wildcard $(BINFILE)),)
 $(shell wget $(site)/$(BIN)-$(ISA)-nemu.bin -O $(BINFILE) || rm $(BINFILE))
 endif
 endif
+
+SIMBIN = $(filter-out rtthread,$(shell cd $(ROOT_DIR)/sim/bin && ls *-$(ISA)-nemu.bin | grep -oP ".*(?=-$(ISA)-nemu.bin)"))
 
 test:
 	mill -i __.test
@@ -82,24 +84,19 @@ checkformat:
 clean:
 	-rm -rf $(BUILD_DIR)
 
-sim:
+elaborateSim:
 	mill -i __.sim.runMain Elaborate -td $(BUILD_DIR)/sim
 
+sim: elaborateSim
 	@cd $(BUILD_DIR)/sim && \
 	verilator $(VFLAGS) --build $(CSRCS) -CFLAGS "$(CFLAGS)" -LDFLAGS "$(LDFLAGS)" >/dev/null
-
 	@$(BUILD_DIR)/sim/obj_dir/VTestTop $(BINFILE)
 
-simall:
-	@for x in `cd $(ROOT_DIR)/sim/bin && ls *-$(ISA)-nemu.bin | grep -oP ".*(?=-$(ISA)-nemu.bin)"`; do \
-		make BIN=$$x ISA=$(ISA) sim >/dev/null 2>&1; \
-		cd $(BUILD_DIR)/sim && ./obj_dir/VTestTop $(pwd)/$(ROOT_DIR)/sim/bin/$$x-$(ISA)-nemu.bin >/dev/null 2>&1; \
-		if [ $$? -eq 0 ]; then \
-			printf "[$$x] \33[1;32mpass\33[0m\n"; \
-		else \
-			printf "[$$x] \33[1;31mfail\33[0m\n"; \
-		fi; \
-		cd $(pwd); \
+simall: elaborateSim
+	@for x in $(SIMBIN); do \
+		$(BUILD_DIR)/sim/obj_dir/VTestTop $(ROOT_DIR)/sim/bin/$$x-$(ISA)-nemu.bin >/dev/null 2>&1; \
+		if [ $$? -eq 0 ]; then printf "[$$x] \33[1;32mpass\33[0m\n"; \
+		else                   printf "[$$x] \33[1;31mfail\33[0m\n"; fi; \
 	done
 
 .PHONY: test verilog help compile bsp reformat checkformat clean sim simall

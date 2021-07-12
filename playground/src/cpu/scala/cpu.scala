@@ -20,7 +20,7 @@ class DEBUG extends Bundle {
 }
 
 class CPU extends RawModule {
-	val io = IO(new Bundle {
+  val io = IO(new Bundle {
     val basic = new BASIC
     val axiWa = new AXIwa
     val axiWd = new AXIwd
@@ -46,7 +46,7 @@ class CPU extends RawModule {
 }
 
 class InternalCPU extends Module {
-	val io = IO(new Bundle {
+  val io = IO(new Bundle {
     val axiWa = new AXIwa
     val axiWd = new AXIwd
     val axiWr = new AXIwr
