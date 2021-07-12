@@ -82,6 +82,19 @@ class BASIC extends Bundle {
   val ARESETn  = Input (Bool())
 }
 
+class AxiMasterReadChannel extends Bundle {
+  val axiRa = new AXIra
+  val axiRd = new AXIrd
+}
+
+class AxiMasterChannel extends Bundle {
+  val axiWa = new AXIwa
+  val axiWd = new AXIwd
+  val axiWr = new AXIwr
+  val axiRa = new AXIra
+  val axiRd = new AXIrd
+}
+
 class AxiSlaveChannel extends Bundle {
   val axiWa = Flipped(new AXIwa)
   val axiWd = Flipped(new AXIwd)

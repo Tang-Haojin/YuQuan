@@ -104,7 +104,7 @@ class AXIRMux extends Module {
     when(io.axiRdIn0.RREADY && io.axiRdIn0.RVALID && !(io.axiRaIn0.ARREADY && io.axiRaIn0.ARVALID)) {
       pending := pending - 1.U
     }.elsewhen(!(io.axiRdIn0.RREADY && io.axiRdIn0.RVALID) && io.axiRaIn0.ARREADY && io.axiRaIn0.ARVALID) {
-      pending := pending + 1.U
+      pending := pending + 1.U + io.axiRaIn0.ARLEN
     }
   }
 }

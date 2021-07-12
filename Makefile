@@ -84,19 +84,22 @@ checkformat:
 clean:
 	-rm -rf $(BUILD_DIR)
 
-elaborateSim:
-	mill -i __.sim.runMain Elaborate -td $(BUILD_DIR)/sim
+clean-all: clean
+	-rm -rf ./out
 
-sim: elaborateSim
+sim-env:
+	mill -i __.sim.runMain Elaborate -td $(BUILD_DIR)/sim
 	@cd $(BUILD_DIR)/sim && \
 	verilator $(VFLAGS) --build $(CSRCS) -CFLAGS "$(CFLAGS)" -LDFLAGS "$(LDFLAGS)" >/dev/null
+
+sim: sim-env
 	@$(BUILD_DIR)/sim/obj_dir/VTestTop $(BINFILE)
 
-simall: elaborateSim
+simall: sim-env
 	@for x in $(SIMBIN); do \
 		$(BUILD_DIR)/sim/obj_dir/VTestTop $(ROOT_DIR)/sim/bin/$$x-$(ISA)-nemu.bin >/dev/null 2>&1; \
 		if [ $$? -eq 0 ]; then printf "[$$x] \33[1;32mpass\33[0m\n"; \
 		else                   printf "[$$x] \33[1;31mfail\33[0m\n"; fi; \
 	done
 
-.PHONY: test verilog help compile bsp reformat checkformat clean sim simall
+.PHONY: test verilog help compile bsp reformat checkformat clean clean-all sim-env sim simall
