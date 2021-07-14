@@ -6,7 +6,11 @@ ROOT_DIR  = $(shell cat build.sc | grep -oP "(?<=object ).*(?= extends ScalaModu
 SUB_DIR   = $(shell cd $(ROOT_DIR); ls -d */ | tr -d / | grep -v src; cd ..)
 LIB_DIR   = $(pwd)/$(ROOT_DIR)/sim/lib
 SSRC_DIR  = $(pwd)/$(ROOT_DIR)/sim/src
+SRCS      = $(shell find $(ROOT_DIR) | grep -xPo '.*\.(v|c|h|cpp|hpp|scala)')
+ALL_C     = $(shell echo $(SRCS) | grep -xPo '.*\.(c|h|cpp|hpp)')
+ALL_SCALA = $(shell echo $(SRCS) | grep -xPo '.*\.(v|scala)')
 $(shell mkdir $(ROOT_DIR)/sim/bin $(NO_ERR))
+$(shell cat .config >>/dev/null 2>&1 || echo >.config)
 
 ifeq ($(ISA),)
 ISA = riscv64
@@ -17,6 +21,7 @@ xlens = 32
 endif
 export XLEN = $(xlens)
 
+UART ?= 0
 ifeq ($(UART),1)
 export UART = 1
 CSRCS  += $(SSRC_DIR)/cpu/csrc/scanKbd.cpp
@@ -24,6 +29,10 @@ CFLAGS += -DUART
 else
 export UART = 0
 CSRCS  += $(SSRC_DIR)/cpu/csrc/uart.cpp
+endif
+
+ifneq ($(shell cat .config | grep 'UART'),UART=$(UART))
+$(shell rm -rf $(BUILD_DIR) out)
 endif
 
 CSRCS   += $(SSRC_DIR)/sim_main.cpp $(SSRC_DIR)/cpu/csrc/ram.cpp
@@ -36,7 +45,8 @@ VFLAGS += --trace-fst
 CFLAGS += DTRACE
 endif
 
-ifneq ($(DIFF),)
+DIFF ?= 1
+ifeq ($(DIFF),0)
 export DIFF = 0
 else
 LIBNEMU = $(LIB_DIR)/librv$(xlens)nemu.so
@@ -47,6 +57,10 @@ endif
 export LD_LIBRARY_PATH := $(LIB_DIR):$(LD_LIBRARY_PATH)
 LDFLAGS += -L$(LIB_DIR) -lrv64nemu -lSDL2 -lreadline
 CFLAGS  += -DDIFFTEST
+endif
+
+ifneq ($(shell cat .config | grep 'DIFF'),DIFF=$(DIFF))
+$(shell rm -rf $(BUILD_DIR))
 endif
 
 ifneq ($(BIN),)
@@ -87,15 +101,19 @@ clean:
 clean-all: clean
 	-rm -rf ./out
 
-sim-env:
+$(BUILD_DIR)/sim/*.v: $(ALL_SCALA)
 	mill -i __.sim.runMain Elaborate -td $(BUILD_DIR)/sim
+	@echo DIFF=$(DIFF) >.config
+	@echo UART=$(UART) >>.config
+
+$(BUILD_DIR)/sim/obj_dir/VTestTop: $(BUILD_DIR)/sim/*.v $(ALL_C)
 	@cd $(BUILD_DIR)/sim && \
 	verilator $(VFLAGS) --build $(CSRCS) -CFLAGS "$(CFLAGS)" -LDFLAGS "$(LDFLAGS)" >/dev/null
 
-sim: sim-env
+sim: $(BUILD_DIR)/sim/obj_dir/VTestTop
 	@$(BUILD_DIR)/sim/obj_dir/VTestTop $(BINFILE)
 
-simall: sim-env
+simall: $(BUILD_DIR)/sim/obj_dir/VTestTop
 	@for x in $(SIMBIN); do \
 		$(BUILD_DIR)/sim/obj_dir/VTestTop $(ROOT_DIR)/sim/bin/$$x-$(ISA)-nemu.bin >/dev/null 2>&1; \
 		if [ $$? -eq 0 ]; then printf "[$$x] \33[1;32mpass\33[0m\n"; \

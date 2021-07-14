@@ -66,7 +66,7 @@ class RAM extends RawModule {
   io.axiWr.BRESP := DontCare
   io.axiWr.BUSER := DontCare
 
-  io.axiRd.RLAST := 1.B
+  io.axiRd.RLAST := 0.B
   io.axiRd.RUSER := DontCare
   io.axiRd.RRESP := DontCare
 
@@ -76,6 +76,8 @@ class RAM extends RawModule {
     val BVALID  = RegInit(0.B); io.axiWr.BVALID  := BVALID
     val ARREADY = RegInit(1.B); io.axiRa.ARREADY := ARREADY
     val RVALID  = RegInit(0.B); io.axiRd.RVALID  := RVALID
+    val ARSIZE  = RegInit(0.U(3.W))
+    val ARLEN   = RegInit(0.U(8.W))
 
     val RID    = RegInit(0.U(4.W)); io.axiRd.RID := RID
     val ARADDR = RegInit(0.U(XLEN.W))
@@ -84,6 +86,13 @@ class RAM extends RawModule {
     val WSTRB  = RegInit(0.U((XLEN / 8).W))
 
     val wireARADDR = WireDefault(UInt(XLEN.W), ARADDR)
+    val wireRStep  = WireDefault(0.U(128.W))
+
+    for (i <- 0 until 8) {
+      when(ARSIZE === i.U) {
+        wireRStep := (1 << i).U
+      }
+    }
 
     val ram_read = Module(new RamRead)
     ram_read.io.clock := io.basic.ACLK
@@ -98,14 +107,23 @@ class RAM extends RawModule {
     ram_write.io.mask  := WSTRB
 
     when(io.axiRd.RVALID && io.axiRd.RREADY) {
-      RVALID  := 0.B
-      ARREADY := 1.B
+      when(ARLEN === 0.U) {
+        RVALID  := 0.B
+        ARREADY := 1.B
+        io.axiRd.RLAST := 1.B
+      }.otherwise {
+        ARADDR := ARADDR + wireRStep
+        wireARADDR := ARADDR + wireRStep
+        ARLEN := ARLEN - 1.U
+      }
     }.elsewhen(io.axiRa.ARVALID && io.axiRa.ARREADY) {
       RID := io.axiRa.ARID
       ARADDR := io.axiRa.ARADDR - MEMBase.U
       wireARADDR := io.axiRa.ARADDR - MEMBase.U
       ARREADY := 0.B
       RVALID := 1.B
+      ARSIZE := io.axiRa.ARSIZE
+      ARLEN := io.axiRa.ARLEN
     }
 
     when(io.axiWa.AWVALID && io.axiWa.AWREADY) {
