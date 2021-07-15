@@ -3,16 +3,16 @@ package cpu
 import chisel3._
 import chisel3.util._
 
-import cpu.register._
+import register._
 import tools._
-import cpu.config.Debug._
-import cpu.config.GeneralConfig._
-import cpu.config.RegisterConfig._
+import config.Debug._
+import config.GeneralConfig._
+import config.RegisterConfig._
+import cache._
 
 class DEBUG extends Bundle {
   val exit    = Output(UInt(3.W))
   val data    = Output(UInt(XLEN.W))
-  val pc      = Output(UInt(XLEN.W))
   val wbPC    = Output(UInt(XLEN.W))
   val wbValid = Output(Bool())
   val wbRd    = Output(UInt(5.W))
@@ -58,12 +58,13 @@ class InternalCPU extends Module {
     else        null
   })
 
-  val modulePC        = Module(new PC)
   val moduleGPRs      = Module(new GPRs)
   val moduleCSRs      = Module(new cpu.privileged.M_CSRs)
   val moduleBypass    = Module(new Bypass)
   val moduleBypassCsr = Module(new Bypass_csr)
   val moduleAXIRMux   = Module(new AXIRMux)
+
+  val moduleICache = Module(new ICache)
 
   val moduleIF  = Module(new IF)
   val moduleID  = Module(new ID)
@@ -71,19 +72,17 @@ class InternalCPU extends Module {
   val moduleMEM = Module(new MEM)
   val moduleWB  = Module(new WB)
 
-  moduleIF.io.axiRa  <> moduleAXIRMux.io.axiRaIn0
-  moduleMEM.io.axiRa <> moduleAXIRMux.io.axiRaIn1
-  io.axiRa           <> moduleAXIRMux.io.axiRaOut
+  moduleICache.io.memIO.axiRa <> moduleAXIRMux.io.axiRaIn0
+  moduleMEM.io.axiRa          <> moduleAXIRMux.io.axiRaIn1
+  io.axiRa                    <> moduleAXIRMux.io.axiRaOut
 
-  moduleIF.io.axiRd  <> moduleAXIRMux.io.axiRdIn0
-  moduleMEM.io.axiRd <> moduleAXIRMux.io.axiRdIn1
-  io.axiRd           <> moduleAXIRMux.io.axiRdOut
+  moduleICache.io.memIO.axiRd <> moduleAXIRMux.io.axiRdIn0
+  moduleMEM.io.axiRd          <> moduleAXIRMux.io.axiRdIn1
+  io.axiRd                    <> moduleAXIRMux.io.axiRdOut
 
   io.axiWa <> moduleMEM.io.axiWa
   io.axiWd <> moduleMEM.io.axiWd
   io.axiWr <> moduleMEM.io.axiWr
-
-  moduleIF.io.pcIo  <> modulePC.io.pcIo
 
   moduleID.io.gprsR <> moduleBypass.io.receive
   moduleID.io.csrsR <> moduleBypassCsr.io.receive
@@ -100,6 +99,8 @@ class InternalCPU extends Module {
   moduleEX.io.nextVR  <> moduleMEM.io.lastVR
   moduleMEM.io.nextVR <> moduleWB.io.lastVR
 
+  moduleIF.io.icache <> moduleICache.io.cpuIO
+
   moduleBypass.io.request <> moduleGPRs.io.gprsR
   moduleBypass.io.idOut.index  := moduleID.io.output.rd & Fill(5, moduleID.io.nextVR.VALID.asUInt)
   moduleBypass.io.idOut.value  := DontCare
@@ -113,7 +114,7 @@ class InternalCPU extends Module {
   for (i <- 0 until writeCsrsPort) {
     moduleBypassCsr.io.idOut.wcsr(i)   := moduleID.io.output.wcsr(i)  | Fill(12, ~moduleID.io.nextVR.VALID.asUInt)
     moduleBypassCsr.io.exOut.wcsr(i)   := moduleEX.io.output.wcsr(i)  | Fill(12, ~moduleEX.io.nextVR.VALID.asUInt)
-    moduleBypassCsr.io.memOut.wcsr(i)  := moduleMEM.io.output.wcsr(i) | Fill(12, ~moduleEX.io.nextVR.VALID.asUInt)
+    moduleBypassCsr.io.memOut.wcsr(i)  := moduleMEM.io.output.wcsr(i) | Fill(12, ~moduleMEM.io.nextVR.VALID.asUInt)
   }
   moduleBypassCsr.io.idOut.value  := DontCare
   moduleBypassCsr.io.exOut.value  := moduleEX.io.output.csrData
@@ -129,7 +130,6 @@ class InternalCPU extends Module {
   if (Debug) {
     io.debug.exit    := moduleWB.io.debug.exit
     io.debug.data    := moduleGPRs.io.gprsR.rdata(2)
-    io.debug.pc      := modulePC.io.pcIo.rdata
     io.debug.wbPC    := moduleWB.io.debug.pc
     io.debug.wbValid := moduleWB.io.debug.wbvalid
     io.debug.wbRd    := moduleWB.io.debug.rd
@@ -144,6 +144,5 @@ class InternalCPU extends Module {
 
   if (showReg) {
     moduleGPRs.io.debug.showReg := (moduleWB.io.debug.showReg)
-    modulePC.io.debug.showReg   := (moduleWB.io.debug.showReg)
   }
 }

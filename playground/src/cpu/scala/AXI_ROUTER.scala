@@ -122,8 +122,10 @@ class ROUTER extends RawModule {
     }
 
     when(io.input.axiRd.RVALID && io.input.axiRd.RREADY) {
-      ARREADY := 1.B
-      RVALID  := 0.B
+      when(io.input.axiRd.RLAST) {
+        ARREADY := 1.B
+        RVALID  := 0.B
+      }
     }.elsewhen(io.input.axiRa.ARVALID && io.input.axiRa.ARREADY) {
       ARREADY := 0.B
       RVALID  := 1.B

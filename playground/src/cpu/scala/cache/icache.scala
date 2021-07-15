@@ -16,8 +16,18 @@ class ICache extends Module {
 
   val rand = GaloisLFSR.maxPeriod(16)
 
+  val idle::compare::allocate::Nil = Enum(3)
+  val state = RegInit(UInt(2.W), idle)
+  val received = RegInit(0.U(LogBurstLen.W))
+
   val ARVALID = RegInit(0.B)
   val RREADY  = RegInit(0.B)
+
+  val addr       = RegInit(0.U(XLEN.W))
+  val addrOffset = addr(Offset - 1, 0)
+  val addrIndex  = WireDefault(UInt(Index.W), addr(Index + Offset - 1, Offset))
+  val addrTag    = addr(XLEN - 1, Index + Offset)
+  val memAddr    = Cat(addr(XLEN - 1, Offset), 0.U(Offset.W))
 
   io.memIO.axiRa.ARID     := 0.U // 0 for IF
   io.memIO.axiRa.ARLEN    := (BurstLen - 1).U // (ARLEN + 1) AXI Burst per AXI Transfer (a.k.a. AXI Beat)
@@ -30,21 +40,14 @@ class ICache extends Module {
   io.memIO.axiRa.ARUSER   := DontCare
   io.memIO.axiRa.ARREGION := DontCare
   io.memIO.axiRa.ARVALID  := ARVALID
+  io.memIO.axiRa.ARADDR   := memAddr
 
   io.memIO.axiRd.RREADY := RREADY
 
-  val idle::compare::allocate::Nil = Enum(3)
-  val state = RegInit(UInt(2.W), idle)
-  val received = RegInit(0.U(LogBurstLen.W))
-
   val ramValid = SyncReadMem(IndexSize, Vec(Associativity, Bool()))
   val ramTag   = SyncReadMem(IndexSize, Vec(Associativity, UInt(Tag.W)))
-  val ramData  = SyncReadMem(IndexSize, Vec(Associativity, UInt((Offset + 3).W)))
+  val ramData  = SyncReadMem(IndexSize, Vec(Associativity, UInt((BlockSize * 8).W)))
 
-  val addr       = RegInit(0.U(XLEN.W))
-  val addrOffset = addr(Offset - 1, 0)
-  val addrIndex  = addr(Index + Offset - 1, Offset)
-  val addrTag    = addr(XLEN - 1, Index + Offset)
 
   val ren = WireDefault(0.B)
   val hit = WireDefault(0.B)
@@ -77,9 +80,10 @@ class ICache extends Module {
 
   when(state === idle) {
     when(io.cpuIO.cpuReq.valid) {
-      state := compare
-      addr  := io.cpuIO.cpuReq.addr
-      ren   := 1.B
+      state     := compare
+      addr      := io.cpuIO.cpuReq.addr
+      addrIndex := io.cpuIO.cpuReq.addr(Index + Offset - 1, Offset)
+      ren       := 1.B
     }
   }
   when(state === compare) {

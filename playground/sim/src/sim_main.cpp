@@ -54,7 +54,6 @@ int main(int argc, char **argv, char **env) {
   QData *gprs = &top->io_gprs_0;
 #endif
 
-
   top->reset = 0;
   top->clock = 0;
   top->eval();
@@ -71,7 +70,7 @@ int main(int argc, char **argv, char **env) {
     top->clock = !top->clock;
     top->eval();
 #ifdef TRACE
-    if (cycles >= 17000000)
+    if (cycles >= 0)
       tfp->dump(contextp->time());
 #endif
 
@@ -80,6 +79,8 @@ int main(int argc, char **argv, char **env) {
       pc = top->io_wbPC;
       nemu_pc = cpu.pc;
       if (pc != nemu_pc) {
+        printf("debug: Exit after %ld clock cycles.\n", cycles / 2);
+        printf("debug: ");
         printf("\33[1;31mPC Diff\33[0m\n");
         printf("pc = " FMT_WORD "\tnemu_pc=" FMT_WORD "\n", top->io_wbPC, cpu.pc);
         ret = 1;
@@ -87,6 +88,8 @@ int main(int argc, char **argv, char **env) {
       }
       isa_exec_once();
       if (cpu.gpr[top->io_wbRd]._64 != gprs[top->io_wbRd]) {
+        printf("debug: Exit after %ld clock cycles.\n", cycles / 2);
+        printf("debug: ");
         printf("\33[1;31mGPR[%d] Diff\33[0m ", top->io_wbRd);
         printf("at pc = " FMT_WORD "\n", pc);
         printf("GPR[%d] = " FMT_WORD "\tnemu_GPR[%d]=" FMT_WORD "\n",
@@ -107,14 +110,14 @@ int main(int argc, char **argv, char **env) {
       }
       else
         printf("\33[1;32mHIT GOOD TRAP");
-      printf("\33[0m at pc = " FMT_WORD "\n\n", top->io_pc - 4);
+      printf("\33[0m at pc = " FMT_WORD "\n\n", top->io_wbPC - 4);
       break;
     }
     else if (top->io_exit == 2) {
       printf("debug: Exit after %ld clock cycles.\n", cycles / 2);
       printf("debug: ");
       printf("\33[1;31mINVALID INSTRUCTION");
-      printf("\33[0m at pc = " FMT_WORD "\n\n", top->io_pc - 4);
+      printf("\33[0m at pc = " FMT_WORD "\n\n", top->io_wbPC - 4);
       ret = 1;
       break;
     }

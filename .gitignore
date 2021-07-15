@@ -13,4 +13,5 @@ lib/
 build/
 /playground/sim/bin/*
 *.fst
+*.hier
 .config

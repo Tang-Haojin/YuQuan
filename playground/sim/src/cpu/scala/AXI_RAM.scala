@@ -88,9 +88,9 @@ class RAM extends RawModule {
     val wireARADDR = WireDefault(UInt(XLEN.W), ARADDR)
     val wireRStep  = WireDefault(0.U(128.W))
 
-    for (i <- 0 until 8) {
+    for (i <- 3 until 8) {
       when(ARSIZE === i.U) {
-        wireRStep := (1 << i).U
+        wireRStep := (1 << (i - 3)).U
       }
     }
 

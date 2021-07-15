@@ -40,9 +40,14 @@ CFLAGS  += -D$(ISA) -pthread -I$(pwd)/$(ROOT_DIR)/sim/include
 LDFLAGS += -pthread
 VFLAGS  += -cc TestTop.v --top TestTop --exe --timescale "1ns/1ns" -Wno-WIDTH -I$(pwd)/$(ROOT_DIR)/src/cpu/vsrc/peripheral
 
+TRACE ?= 0
 ifeq ($(TRACE),1)
 VFLAGS += --trace-fst
-CFLAGS += DTRACE
+CFLAGS += -DTRACE
+endif
+
+ifneq ($(shell cat .config | grep 'TRACE'),TRACE=$(TRACE))
+$(shell rm -rf $(BUILD_DIR))
 endif
 
 DIFF ?= 1
@@ -105,6 +110,7 @@ $(BUILD_DIR)/sim/*.v: $(ALL_SCALA)
 	mill -i __.sim.runMain Elaborate -td $(BUILD_DIR)/sim
 	@echo DIFF=$(DIFF) >.config
 	@echo UART=$(UART) >>.config
+	@echo TRACE=$(TRACE) >>.config
 
 $(BUILD_DIR)/sim/obj_dir/VTestTop: $(BUILD_DIR)/sim/*.v $(ALL_C)
 	@cd $(BUILD_DIR)/sim && \

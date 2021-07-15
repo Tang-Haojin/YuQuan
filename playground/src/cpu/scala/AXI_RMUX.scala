@@ -16,13 +16,13 @@ class AXIRMux extends Module {
     val axiRdOut    = new AXIrd
   })
 
-  val pending = RegInit(0.U(3.W))
+  val pending = RegInit(0.U(4.W))
 
-  val RID_FIFO = Module(new Queue(UInt(4.W), 4))
-  val RDATA_FIFO = Module(new Queue(UInt(XLEN.W), 4))
-  val RRESP_FIFO = Module(new Queue(UInt(2.W), 4))
-  val RLAST_FIFO = Module(new Queue(Bool(), 4))
-  val RUSER_FIFO = Module(new Queue(UInt(1.W), 4))
+  val RID_FIFO = Module(new Queue(UInt(4.W), 8))
+  val RDATA_FIFO = Module(new Queue(UInt(XLEN.W), 8))
+  val RRESP_FIFO = Module(new Queue(UInt(2.W), 8))
+  val RLAST_FIFO = Module(new Queue(Bool(), 8))
+  val RUSER_FIFO = Module(new Queue(UInt(1.W), 8))
 
   RID_FIFO.io.enq.valid   := 0.B; RID_FIFO.io.deq.ready   := 0.B
   RDATA_FIFO.io.enq.valid := 0.B; RDATA_FIFO.io.deq.ready := 0.B
@@ -95,7 +95,7 @@ class AXIRMux extends Module {
     }
   }
 
-  when(pending === 4.U) {
+  when(pending === 8.U) {
     io.axiRaIn0.ARREADY := 0.B
     when(io.axiRdIn0.RREADY && io.axiRdIn0.RVALID) {
       pending := pending - 1.U
