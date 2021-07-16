@@ -11,6 +11,7 @@ import cpu.config.RegisterConfig._
 import cpu.config.Debug._
 import cpu.ExecSpecials._
 import cpu.InstrTypes._
+import cpu.privileged._
 
 
 object ExecSpecials {
@@ -26,7 +27,7 @@ object NumTypes {
 }
 
 object RVInstr {
-  val table = RVI.table ++ cpu.privileged.Zicsr.table ++ (if (HasRVM) RVM.table else Nil)
+  val table = RVI.table ++ Zicsr.table ++ Privileged.table ++ (if (HasRVM) RVM.table else Nil)
 }
 
 class IDOutput extends Bundle {
