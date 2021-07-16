@@ -53,32 +53,6 @@ class GPRs extends Module {
   }
 }
 
-class PCIO extends Bundle {
-  val wen   = Input (Bool())
-  val wdata = Input (UInt(XLEN.W))
-  val rdata = Output(UInt(XLEN.W))
-}
-
-class PC extends Module {
-  val io = IO(new Bundle {
-    val pcIo  = new PCIO
-    val debug = if (showReg) new Bundle {
-      val showReg = Input(Bool())
-    } else null
-  })
-
-  val reg = RegInit(MEMBase.U(XLEN.W))
-  when(io.pcIo.wen) {
-    reg := io.pcIo.wdata
-  }
-  io.pcIo.rdata := reg
-
-  if (showReg)
-    when(io.debug.showReg) {
-      printf("\n\tPC\t%x\n", reg)
-    }
-}
-
 object regNames {
   val regNames = List(
     "$0 ", "ra ", "sp ", "gp ", "tp ", "t0 ", "t1 ", "t2 ",
