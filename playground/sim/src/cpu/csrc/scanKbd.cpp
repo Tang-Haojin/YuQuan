@@ -7,7 +7,7 @@
 static char fifo[FIFO_SIZE] = {0};
 static short head = 0, tail = 0;
 
-bool scan_isRunning = false;
+volatile bool scan_isRunning = false;
 pthread_t thread_scan;
 pthread_mutex_t mutex_fifo_opt = PTHREAD_MUTEX_INITIALIZER;
 

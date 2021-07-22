@@ -62,7 +62,7 @@ class RamWrite extends BlackBox with HasBlackBoxInline {
 class RAM extends RawModule {
   val io = IO(new AxiSlaveIO)
 
-  io.axiWr.BID := 1.U // since only cpu requests writing now
+  io.axiWr.BID   := 1.U // since only cpu requests writing now
   io.axiWr.BRESP := DontCare
   io.axiWr.BUSER := DontCare
 
@@ -72,26 +72,26 @@ class RAM extends RawModule {
 
   withClockAndReset(io.basic.ACLK, ~io.basic.ARESETn) {
     val AWREADY = RegInit(1.B); io.axiWa.AWREADY := AWREADY
-    val WREADY  = RegInit(1.B); io.axiWd.WREADY  := WREADY
+    val WREADY  = RegInit(0.B); io.axiWd.WREADY  := WREADY
     val BVALID  = RegInit(0.B); io.axiWr.BVALID  := BVALID
     val ARREADY = RegInit(1.B); io.axiRa.ARREADY := ARREADY
     val RVALID  = RegInit(0.B); io.axiRd.RVALID  := RVALID
     val ARSIZE  = RegInit(0.U(3.W))
     val ARLEN   = RegInit(0.U(8.W))
+    val AWSIZE  = RegInit(0.U(3.W))
+    val AWLEN   = RegInit(0.U(8.W))
 
     val RID    = RegInit(0.U(4.W)); io.axiRd.RID := RID
     val ARADDR = RegInit(0.U(XLEN.W))
     val AWADDR = RegInit(0.U(XLEN.W))
-    val WDATA  = RegInit(0.U(XLEN.W))
-    val WSTRB  = RegInit(0.U((XLEN / 8).W))
 
     val wireARADDR = WireDefault(UInt(XLEN.W), ARADDR)
     val wireRStep  = WireDefault(0.U(128.W))
+    val wireWStep  = WireDefault(0.U(128.W))
 
     for (i <- 3 until 8) {
-      when(ARSIZE === i.U) {
-        wireRStep := (1 << (i - 3)).U
-      }
+      when(ARSIZE === i.U) { wireRStep := (1 << (i - 3)).U }
+      when(AWSIZE === i.U) { wireWStep := (1 << (i - 3)).U }
     }
 
     val ram_read = Module(new RamRead)
@@ -103,45 +103,47 @@ class RAM extends RawModule {
     ram_write.io.clock := io.basic.ACLK
     ram_write.io.wen   := 0.B
     ram_write.io.addr  := AWADDR
-    ram_write.io.data  := WDATA
-    ram_write.io.mask  := WSTRB
+    ram_write.io.data  := io.axiWd.WDATA
+    ram_write.io.mask  := io.axiWd.WSTRB
 
     when(io.axiRd.RVALID && io.axiRd.RREADY) {
       when(ARLEN === 0.U) {
-        RVALID  := 0.B
-        ARREADY := 1.B
+        RVALID         := 0.B
+        ARREADY        := 1.B
         io.axiRd.RLAST := 1.B
       }.otherwise {
-        ARADDR := ARADDR + wireRStep
+        ARADDR     := ARADDR + wireRStep
         wireARADDR := ARADDR + wireRStep
-        ARLEN := ARLEN - 1.U
+        ARLEN      := ARLEN - 1.U
       }
     }.elsewhen(io.axiRa.ARVALID && io.axiRa.ARREADY) {
-      RID := io.axiRa.ARID
-      ARADDR := io.axiRa.ARADDR - MEMBase.U
+      RID        := io.axiRa.ARID
+      ARADDR     := io.axiRa.ARADDR - MEMBase.U
       wireARADDR := io.axiRa.ARADDR - MEMBase.U
-      ARREADY := 0.B
-      RVALID := 1.B
-      ARSIZE := io.axiRa.ARSIZE
-      ARLEN := io.axiRa.ARLEN
+      ARREADY    := 0.B
+      RVALID     := 1.B
+      ARSIZE     := io.axiRa.ARSIZE
+      ARLEN      := io.axiRa.ARLEN
     }
 
     when(io.axiWa.AWVALID && io.axiWa.AWREADY) {
-      AWADDR  := io.axiWa.AWADDR - MEMBase.U
-      AWREADY := 0.B
+      AWADDR     := io.axiWa.AWADDR - MEMBase.U
+      AWREADY    := 0.B
+      WREADY     := 1.B
+      AWSIZE     := io.axiWa.AWSIZE
+      AWLEN      := io.axiWa.AWLEN
     }
 
     when(io.axiWd.WVALID && io.axiWd.WREADY) {
-      WDATA  := io.axiWd.WDATA
-      WSTRB  := io.axiWd.WSTRB
-      WREADY := 0.B
-    }
-
-    when(~io.axiWa.AWREADY && ~io.axiWd.WREADY) {
-      AWREADY          := 1.B
-      WREADY           := 1.B
-      BVALID           := 1.B
       ram_write.io.wen := 1.B
+      when(AWLEN === 0.U) {
+        AWREADY := 1.B
+        WREADY  := 0.B
+        BVALID  := 1.B
+      }.otherwise {
+        AWADDR := AWADDR + wireWStep
+        AWLEN  := AWLEN - 1.U
+      }
     }
 
     when(io.axiWr.BVALID && io.axiWr.BREADY) {

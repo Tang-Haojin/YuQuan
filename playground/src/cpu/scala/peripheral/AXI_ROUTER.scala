@@ -80,32 +80,20 @@ class ROUTER extends RawModule {
     when(wireWdevice === mem) {
       io.input.axiWa <> io.RamIO.axiWa
       io.input.axiWd <> io.RamIO.axiWd
-      io.input.axiWa.AWREADY := AWREADY && 
-                                io.input.axiWa.AWVALID && 
-                                io.input.axiWd.WVALID && 
-                                io.RamIO.axiWa.AWREADY && 
-                                io.RamIO.axiWd.WREADY
-      io.input.axiWd.WREADY := io.input.axiWa.AWREADY
+      io.input.axiWa.AWREADY := AWREADY && io.input.axiWa.AWVALID && io.RamIO.axiWa.AWREADY
+      io.input.axiWd.WREADY  := WREADY  && io.input.axiWd.WVALID  && io.RamIO.axiWd.WREADY
     }
     when(wireWdevice === uart0) {
       io.input.axiWa <> io.Uart0IO.axiWa
       io.input.axiWd <> io.Uart0IO.axiWd
-      io.input.axiWa.AWREADY := AWREADY && 
-                                io.input.axiWa.AWVALID && 
-                                io.input.axiWd.WVALID && 
-                                io.Uart0IO.axiWa.AWREADY && 
-                                io.Uart0IO.axiWd.WREADY
-      io.input.axiWd.WREADY := io.input.axiWa.AWREADY
+      io.input.axiWa.AWREADY := AWREADY && io.input.axiWa.AWVALID && io.Uart0IO.axiWa.AWREADY
+      io.input.axiWd.WREADY  := WREADY  && io.input.axiWd.WVALID  && io.Uart0IO.axiWd.WREADY
     }
     when(wireWdevice === plic) {
       io.input.axiWa <> io.PLICIO.axiWa
       io.input.axiWd <> io.PLICIO.axiWd
-      io.input.axiWa.AWREADY := AWREADY && 
-                                io.input.axiWa.AWVALID && 
-                                io.input.axiWd.WVALID && 
-                                io.PLICIO.axiWa.AWREADY && 
-                                io.PLICIO.axiWd.WREADY
-      io.input.axiWd.WREADY := io.input.axiWa.AWREADY
+      io.input.axiWa.AWREADY := AWREADY && io.input.axiWa.AWVALID && io.PLICIO.axiWa.AWREADY
+      io.input.axiWd.WREADY  := WREADY  && io.input.axiWd.WVALID  && io.PLICIO.axiWd.WREADY
     }
 
     when(wdevice === mem) {
@@ -134,12 +122,12 @@ class ROUTER extends RawModule {
 
     when(io.input.axiWa.AWVALID && io.input.axiWa.AWREADY) {
       AWREADY := 0.B
-      BVALID  := 1.B
       wdevice := wireWdevice
     }
 
-    when(io.input.axiWd.WVALID && io.input.axiWd.WREADY) {
+    when(io.input.axiWd.WVALID && io.input.axiWd.WREADY && io.input.axiWd.WLAST) {
       WREADY := 0.B
+      BVALID := 1.B
     }
 
     when(io.input.axiWr.BVALID && io.input.axiWr.BREADY) {
