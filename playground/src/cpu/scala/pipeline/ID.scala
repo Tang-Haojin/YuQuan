@@ -77,7 +77,7 @@ class ID extends Module {
   val num2 = RegInit(0.U(XLEN.W))
   val num3 = RegInit(0.U(XLEN.W))
   val num4 = RegInit(0.U(XLEN.W))
-  
+
   val decoded = ListLookup(
     io.input.instr,
     List(7.U, 0.U, 0.U, 0.U, 0.U, 0.U, 0.U, 0.U, inv),
@@ -140,7 +140,7 @@ class ID extends Module {
     (wireNum1, decoded(1)), (wireNum2, decoded(2)),
     (wireNum3, decoded(3)), (wireNum4, decoded(4))
   )
-  
+
   for (num <- numList) {
     switch(num._2) {
       is(NumTypes.rs1 ) { num._1 := wireDataRs1 }
@@ -194,7 +194,7 @@ class ID extends Module {
       wireImm := Cat(Fill(XLEN - 5, 0.U), io.input.instr(19, 15))
     }
   }
-  
+
   when(decoded(7) === 1.U) {
     wireRd := io.input.instr(11, 7)
   }.otherwise {

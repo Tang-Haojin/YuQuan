@@ -14,7 +14,7 @@ class ICache extends Module {
     val memIO = new AxiMasterReadChannel
   })
 
-  val rand = GaloisLFSR.maxPeriod(16)
+  val rand = GaloisLFSR.maxPeriod(2)
 
   val idle::compare::allocate::Nil = Enum(3)
   val state = RegInit(UInt(2.W), idle)
@@ -47,7 +47,6 @@ class ICache extends Module {
   val ramValid = SyncReadMem(IndexSize, Vec(Associativity, Bool()))
   val ramTag   = SyncReadMem(IndexSize, Vec(Associativity, UInt(Tag.W)))
   val ramData  = SyncReadMem(IndexSize, Vec(Associativity, UInt((BlockSize * 8).W)))
-
 
   val ren = WireDefault(0.B)
   val hit = WireDefault(0.B)
@@ -90,15 +89,10 @@ class ICache extends Module {
     ARVALID := 1.B
     state   := allocate
     way     := rand
+    when(hit) { state := idle; ARVALID := 0.B }
     for (i <- 0 until Associativity)
-      when(valid(i.U)) {
-        when(tag(i.U) === addrTag) {
-          hit     := 1.B
-          grp     := i.U
-          state   := idle
-          ARVALID := 0.B
-        }
-      }.otherwise { way := i.U }
+      when(valid(i.U)) { when(tag(i.U) === addrTag) { hit := 1.B; grp := i.U } }
+      .otherwise       { way := i.U }
   }
   when(state === allocate) {
     when(io.memIO.axiRd.RREADY && io.memIO.axiRd.RVALID) {
