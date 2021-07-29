@@ -2,22 +2,8 @@ package cpu.privileged
 
 import chisel3._
 import chisel3.util._
-import cpu.config.{GeneralConfig => p}
-import p._
+import cpu.config.GeneralConfig._
 import cpu.config.RegisterConfig._
-
-class ExceptIO extends Bundle {
-  val except  = Input (Bool())
-  val pc      = Input (UInt(XLEN.W))
-  val int     = Input (Bool())
-  val excode  = Input (UInt(4.W))
-  val mtval   = Input (UInt(XLEN.W))
-  val mtvec   = Output(UInt(XLEN.W))
-  val mepc    = Output(UInt(XLEN.W))
-  val mret    = Input (Bool())
-  val mie     = Output(UInt(XLEN.W))
-  val mstatus = Output(UInt(XLEN.W))
-}
 
 class CSRsW extends Bundle {
   val wen   = Input(Vec(writeCsrsPort, Bool()))
@@ -27,11 +13,6 @@ class CSRsW extends Bundle {
 class CSRsR extends Bundle {
   val rcsr  = Input (Vec(readCsrsPort, UInt(12.W)))
   val rdata = Output(Vec(readCsrsPort, UInt(XLEN.W)))
-}
-
-class FakeMemOut extends Bundle {
-  val mtime    = Output(UInt(64.W))
-  val mtimecmp = Output(UInt(64.W))
 }
 
 trait CSRsAddr {
@@ -87,8 +68,8 @@ class M_CSRs extends Module with CSRsAddr {
 
   val SPPInit  = 0
   val MPPInit  = 3
-  val UXLInit  = if (p.Extensions.contains('S')) (log2Down(XLEN) - 4) else 0
-  val SXLInit  = if (p.Extensions.contains('S')) (log2Down(XLEN) - 4) else 0
+  val UXLInit  = if (Extensions.contains('S')) (log2Down(XLEN) - 4) else 0
+  val SXLInit  = if (Extensions.contains('S')) (log2Down(XLEN) - 4) else 0
   val MPRVInit = 0
   val MXRInit  = 0
   val SUMInit  = 0
@@ -107,9 +88,9 @@ class M_CSRs extends Module with CSRsAddr {
   val mipInit = 0x888.U
   val mieInit = 0x888.U
 
-  val Extensions = p.Extensions.foldLeft(0)((res, x) => res | 1 << x - 'A').U
+  val extensions = Extensions.foldLeft(0)((res, x) => res | 1 << x - 'A').U
 
-  val misa      = MXL << MXLEN | Extensions
+  val misa      = MXL << MXLEN | extensions
   val mvendorid = 0.U(32.W) // non-commercial implementation
   val marchid   = 0.U(XLEN.W) // the field is not implemented
   val mimpid    = 0.U(XLEN.W) // the field is not implemented
@@ -164,8 +145,7 @@ class M_CSRs extends Module with CSRsAddr {
         }.elsewhen(io.csrsW.wcsr(i) === Mhartid) {
           // TODO: Raise an illegal instruction exception.
         }.elsewhen(io.csrsW.wcsr(i) === Mstatus) {
-          val wdata = MstatusInit(io.csrsW.wdata(i))
-          mstatus := wdata
+          mstatus := io.csrsW.wdata(i)
 
           mstatus.SPP  := 0.B
           mstatus.MPP  := "b11".U
@@ -179,16 +159,9 @@ class M_CSRs extends Module with CSRsAddr {
           mstatus.TSR  := 0.B
           mstatus.SD   := 0.B
 
-          mstatus.WPRI_2  := 0.B
-          mstatus.WPRI_6  := 0.B
-          mstatus.WPRI_9  := 0.U
-          mstatus.WPRI_23 := 0.U
-            
           if (XLEN != 32) {
             mstatus.UXL  := 0.B
             mstatus.SXL  := 0.B
-
-            mstatus.WPRI_36 := 0.U
           }
         }
         when(io.csrsW.wcsr(i) === Mtvec) {
@@ -198,13 +171,8 @@ class M_CSRs extends Module with CSRsAddr {
           }
           // TODO: What is the legal value?
         }
-        when(io.csrsW.wcsr(i) === Mip) {} // Currently do nothing.
-        when(io.csrsW.wcsr(i) === Mie) {
-          val wdata = MieInit(io.csrsW.wdata(i))
-          mie.MEIE := wdata.MEIE
-          mie.MSIE := wdata.MSIE
-          mie.MTIE := wdata.MTIE
-        }
+        when(io.csrsW.wcsr(i) === Mip) {} // TODO: Currently do nothing.
+        when(io.csrsW.wcsr(i) === Mie) { mie := io.csrsW.wdata(i) }
         when(io.csrsW.wcsr(i) === Mtime) { mtime := io.csrsW.wdata(i); mip.MTIP := 0.B }
         when(io.csrsW.wcsr(i) === Mtimecmp) { mtimecmp := io.csrsW.wdata(i); mip.MTIP := 0.B }
         when(io.csrsW.wcsr(i) === Mcycle) { if (XLEN != 32) mcycle := io.csrsW.wdata(i) else mcycle(31, 0) := io.csrsW.wdata(i) }

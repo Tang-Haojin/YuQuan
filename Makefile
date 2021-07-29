@@ -126,4 +126,4 @@ simall: $(BUILD_DIR)/sim/obj_dir/VTestTop
 		else                   printf "[$$x] \33[1;31mfail\33[0m\n"; fi; \
 	done
 
-.PHONY: test verilog help compile bsp reformat checkformat clean clean-all sim-env sim simall
+.PHONY: test verilog help compile bsp reformat checkformat clean clean-all sim simall
