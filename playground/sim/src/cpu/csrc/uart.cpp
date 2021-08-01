@@ -114,5 +114,5 @@ extern "C" void uart_reset() {
 }
 
 extern "C" void uart_int(svBit *interrupt) {
-  if (interrupt) *interrupt = (head != tail);
+  if (interrupt) *interrupt = receive_interrupt && (head != tail);
 }

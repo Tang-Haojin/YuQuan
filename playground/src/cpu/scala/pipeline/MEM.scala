@@ -2,6 +2,7 @@ package cpu
 
 import chisel3._
 import chisel3.util._
+import math._
 
 import tools._
 
@@ -35,22 +36,24 @@ class MEM extends Module {
     val output = new MEMOutput
   })
 
-  val wireMask = WireDefault(0.U(8.W))
-  val wireSign = WireDefault(0.B)
   val mask     = RegInit(0.U(8.W))
-  val sign     = RegInit(0.B)
   val addr     = RegInit(0.U(XLEN.W))
+  val extType  = RegInit(0.U(3.W))
 
-  val rd      = RegInit(0.U(5.W));      io.output.rd      := rd
-  val data    = RegInit(0.U(XLEN.W));   io.output.data    := data
+  val rd      = RegInit(0.U(5.W));    io.output.rd   := rd
+  val data    = RegInit(0.U(XLEN.W)); io.output.data := data
   val wcsr    = RegInit(VecInit(Seq.fill(writeCsrsPort)(0xFFF.U(12.W)))); io.output.wcsr    := wcsr
   val csrData = RegInit(VecInit(Seq.fill(writeCsrsPort)(0.U(XLEN.W))));   io.output.csrData := csrData
   val exit    = if (Debug) RegInit(0.U(3.W)) else null
   val pc      = if (Debug) RegInit(0.U(XLEN.W)) else null
 
+  val offset   = addr(AxSIZE - 1, 0)
+
+  val wireOff = io.input.addr(AxSIZE - 1, 0)
+
   io.axiRa.ARID     := 1.U // 1 for MEM
   io.axiRa.ARLEN    := 0.U // (ARLEN + 1) AXI Burst per AXI Transfer (a.k.a. AXI Beat)
-  io.axiRa.ARSIZE   := log2Ceil(XLEN / 8).U // 2^(ARSIZE) bytes per AXI Transfer
+  io.axiRa.ARSIZE   := AxSIZE.U // 2^(ARSIZE) bytes per AXI Transfer
   io.axiRa.ARBURST  := 1.U // 1 for INCR type
   io.axiRa.ARLOCK   := 0.U // since we do not use it yet
   io.axiRa.ARCACHE  := 0.U // since we do not use it yet
@@ -62,7 +65,7 @@ class MEM extends Module {
 
   io.axiWa.AWID     := 1.U
   io.axiWa.AWLEN    := 0.U
-  io.axiWa.AWSIZE   := log2Ceil(XLEN / 8).U
+  io.axiWa.AWSIZE   := AxSIZE.U
   io.axiWa.AWBURST  := 1.U
   io.axiWa.AWLOCK   := 0.U
   io.axiWa.AWCACHE  := 0.U
@@ -87,32 +90,19 @@ class MEM extends Module {
   val WVALID  = RegInit(0.B); io.axiWd.WVALID  := WVALID
   val BREADY  = RegInit(0.B); io.axiWr.BREADY  := BREADY
 
-  switch(io.input.mask) {
-    is(0.U) {
-      wireMask := "b00000001".U; wireSign := 1.B
-    }
-    is(1.U) {
-      wireMask := "b00000011".U; wireSign := 1.B
-    }
-    is(2.U) {
-      wireMask := "b00001111".U; wireSign := 1.B
-    }
-    is(3.U) {
-      wireMask := (
-    if(XLEN == 64)"b11111111".U
-    else          "b00000000".U
-      );                         wireSign := 0.B
-    }
-    is(4.U) {
-      wireMask := "b00000001".U; wireSign := 0.B
-    }
-    is(5.U) {
-      wireMask := "b00000011".U; wireSign := 0.B
-    }
-    is(6.U) {
-      wireMask := "b00001111".U; wireSign := 0.B
-    }
-  }
+  val shiftRdata = VecInit((0 until 8).map { i => io.axiRd.RDATA >> (8 * i) })(offset)
+  val extRdata   = VecInit((0 until 7).map { i => i match {
+    case 0 => Fill(XLEN - 8 , shiftRdata(7 )) ## shiftRdata(7 , 0)
+    case 1 => Fill(XLEN - 16, shiftRdata(15)) ## shiftRdata(15, 0)
+    case 2 => Fill(XLEN - 32, shiftRdata(31)) ## shiftRdata(31, 0)
+    case 4 => shiftRdata(7 , 0)
+    case 5 => shiftRdata(15, 0)
+    case 6 => shiftRdata(31, 0)
+    case 3 if (XLEN >= 64) => shiftRdata(63, 0)
+    case _ => 0.U(XLEN.W)
+  }})(extType)
+
+  val rawStrb = VecInit((0 until 4).map { i => Fill(pow(2, i).round.toInt, 1.B) })(io.input.mask)
 
   io.lastVR.READY := isFree && io.nextVR.READY
 
@@ -143,22 +133,7 @@ class MEM extends Module {
       RREADY := 0.B
       NVALID := 1.B
       isFree := 1.B
-      when(sign === 0.B) {
-        // printf("data: %x\tmask: %b\n", io.axiRd.RDATA, mask)
-        data := io.axiRd.RDATA & Cat((for { a <- 0 until XLEN / 8 } yield Fill(8, mask(a))).reverse)
-      }.otherwise {
-        switch(mask) {
-          is("b00000001".U) {
-            data := Cat(Fill(XLEN - 8, io.axiRd.RDATA(7)), io.axiRd.RDATA(7, 0))
-          }
-          is("b00000011".U) {
-            data := Cat(Fill(XLEN - 16, io.axiRd.RDATA(15)), io.axiRd.RDATA(15, 0))
-          }
-          is("b00001111".U) {
-            data := Cat(if (XLEN == 64) Fill(XLEN - 32, io.axiRd.RDATA(31)) else 0.U, io.axiRd.RDATA(31, 0))
-          }
-        }
-      }
+      data   := extRdata
     }
   }.elsewhen(io.axiRa.ARVALID && io.axiRa.ARREADY) { // ready to send request to BUS
     ARVALID := 0.B
@@ -170,8 +145,8 @@ class MEM extends Module {
     wcsr    := io.input.wcsr
     csrData := io.input.csrData
     data    := io.input.data
-    mask    := wireMask
-    sign    := wireSign
+    mask    := VecInit((0 until 8).map { i => rawStrb << i })(wireOff)
+    extType := io.input.mask
     if (Debug) {
       exit := io.input.debug.exit
       pc   := io.input.debug.pc
@@ -184,6 +159,7 @@ class MEM extends Module {
       }.otherwise {
         AWVALID := 1.B
         WVALID  := 1.B
+        data    := VecInit((0 until 8).map { i => io.input.data << (8 * i) })(wireOff)
       }
     }.otherwise {
       NVALID := 1.B

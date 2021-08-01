@@ -34,15 +34,19 @@ class Plic extends RawModule {
     val ARREADY = RegInit(1.B); io.axiRa.ARREADY := ARREADY
     val RVALID  = RegInit(0.B); io.axiRd.RVALID  := RVALID
 
-    val RID   = RegInit(0.U(4.W));    io.axiRd.RID   := RID
-    val RDATA = RegInit(0.U(XLEN.W)); io.axiRd.RDATA := RDATA
+    val RID   = RegInit(0.U(4.W)); io.axiRd.RID := RID
+    val RDATA = RegInit(0.U(XLEN.W))
     val WADDR = RegInit(0.U(XLEN.W))
     val WDATA = RegInit(0.U(XLEN.W))
     val WSTRB = RegInit(0.U((XLEN / 8).W))
 
+    val offset = RegInit(0.U(3.W))
+
     val isp = RegInit(VecInit(Seq.concat(Seq(0.U(32.W)), Seq.fill(15)(1.U(32.W)))))
     val ieb = RegInit(VecInit(Seq.fill( 1)(0.U(32.W))))
     val ipt = RegInit(VecInit(Seq.fill( 1)(0.U(32.W))))
+
+    io.axiRd.RDATA := VecInit((0 until 8).map { i => RDATA << (8 * i) })(offset)
     
     when(io.axiRd.RVALID && io.axiRd.RREADY) {
       RVALID  := 0.B
@@ -50,6 +54,7 @@ class Plic extends RawModule {
     }.elsewhen(io.axiRa.ARVALID && io.axiRa.ARREADY) {
       RID   := io.axiRa.ARID
       RDATA := 0.U
+      offset := io.axiRa.ARADDR
       ARREADY := 0.B
       RVALID  := 1.B
       for (i <- 0 until 16) when(io.axiRa.ARADDR === PLIC.Isp(i).U) { RDATA := isp(i) }
@@ -65,8 +70,8 @@ class Plic extends RawModule {
     }
 
     when(io.axiWd.WVALID && io.axiWd.WREADY) {
-      WDATA  := io.axiWd.WDATA
-      WSTRB  := io.axiWd.WSTRB
+      WDATA  := VecInit((0 until 8).map { i => io.axiWd.WDATA >> (8 * i) })(WADDR)
+      WSTRB  := VecInit((0 until 8).map { i => io.axiWd.WSTRB >> i })(WADDR)
       WREADY := 0.B
     }
 

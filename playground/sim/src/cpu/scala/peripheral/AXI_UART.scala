@@ -90,7 +90,7 @@ abstract class UartWrapper extends RawModule {
 }
 
 class UartSim extends UartWrapper {
-  io.axiWr.BID := 1.U // since only cpu requests writing now
+  io.axiWr.BID := 1.U // since only MEM requests writing now
   io.axiWr.BRESP := DontCare
   io.axiWr.BUSER := DontCare
 
@@ -100,27 +100,28 @@ class UartSim extends UartWrapper {
 
   withClockAndReset(io.basic.ACLK, ~io.basic.ARESETn) {
     val AWREADY = RegInit(1.B); io.axiWa.AWREADY := AWREADY
-    val WREADY  = RegInit(1.B); io.axiWd.WREADY  := WREADY
+    val WREADY  = RegInit(0.B); io.axiWd.WREADY  := WREADY
     val BVALID  = RegInit(0.B); io.axiWr.BVALID  := BVALID
-                                io.axiRa.ARREADY := 1.B
+    val ARREADY = RegInit(1.B); io.axiRa.ARREADY := ARREADY
     val RVALID  = RegInit(0.B); io.axiRd.RVALID  := RVALID
 
     val RID    = RegInit(0.U(4.W)); io.axiRd.RID := RID
-    val WDATA  = RegInit(0.U(8.W))
-    val RDATA  = RegInit(0.U(8.W))
-    
-    io.axiRd.RDATA := Cat(Fill(XLEN - 8, 0.U), RDATA)
+    val ARADDR = RegInit(0.U(3.W))
+    val AWADDR = RegInit(0.U(3.W))
+
+    val wireARADDR = WireDefault(UInt(3.W), ARADDR)
 
     val uart_read = Module(new UartRead)
     uart_read.io.clock := io.basic.ACLK
     uart_read.io.getc  := 0.B
-    uart_read.io.addr  := io.axiRa.ARADDR - UART0_MMIO.BASE.U
+    uart_read.io.addr  := wireARADDR
+    io.axiRd.RDATA     := VecInit((0 until 8).map { i => uart_read.io.ch << (8 * i) })(ARADDR)
 
     val uart_write = Module(new UartWrite)
     uart_write.io.clock := io.basic.ACLK
     uart_write.io.wen   := 0.B
-    uart_write.io.waddr := io.axiWa.AWADDR - UART0_MMIO.BASE.U
-    uart_write.io.wdata := WDATA
+    uart_write.io.waddr := AWADDR
+    uart_write.io.wdata := VecInit((0 until 8).map { i => io.axiWd.WDATA >> (8 * i) })(AWADDR)
 
     val uart_int = Module(new UartInt)
     uart_int.io.clock := io.basic.ACLK
@@ -128,31 +129,31 @@ class UartSim extends UartWrapper {
 
     when(io.axiRd.RVALID && io.axiRd.RREADY) {
       RVALID  := 0.B
+      ARREADY := 1.B
     }.elsewhen(io.axiRa.ARVALID && io.axiRa.ARREADY) {
       uart_read.io.getc := 1.B
-      RID := io.axiRa.ARID
-      RVALID := 1.B
-      RDATA := uart_read.io.ch
+      wireARADDR := io.axiRa.ARADDR
+      ARADDR  := wireARADDR
+      RID     := io.axiRa.ARID
+      ARREADY := 0.B
+      RVALID  := 1.B
     }
 
     when(io.axiWa.AWVALID && io.axiWa.AWREADY) {
+      AWADDR  := io.axiWa.AWADDR
       AWREADY := 0.B
+      WREADY  := 1.B
     }
 
     when(io.axiWd.WVALID && io.axiWd.WREADY) {
-      WDATA  := io.axiWd.WDATA
-      WREADY := 0.B
-    }
-
-    when(~io.axiWa.AWREADY && ~io.axiWd.WREADY) {
-      AWREADY := 1.B
-      WREADY  := 1.B
       uart_write.io.wen := 1.B
-      BVALID  := 1.B
+      WREADY := 0.B
+      BVALID := 1.B
     }
 
     when(io.axiWr.BVALID && io.axiWr.BREADY) {
-      BVALID := 0.B
+      AWREADY := 1.B
+      BVALID  := 0.B
     }
   }
 }

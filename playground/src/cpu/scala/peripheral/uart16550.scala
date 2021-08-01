@@ -59,59 +59,58 @@ class Uart16550 extends RawModule {
 
   withClockAndReset(io.basic.ACLK, ~io.basic.ARESETn) {
     val AWREADY = RegInit(1.B); io.axiWa.AWREADY := AWREADY
-    val WREADY  = RegInit(1.B); io.axiWd.WREADY  := WREADY
+    val WREADY  = RegInit(0.B); io.axiWd.WREADY  := WREADY
     val BVALID  = RegInit(0.B); io.axiWr.BVALID  := BVALID
-                                io.axiRa.ARREADY := 1.B
+    val ARREADY = RegInit(1.B); io.axiRa.ARREADY := ARREADY
     val RVALID  = RegInit(0.B); io.axiRd.RVALID  := RVALID
 
     val RID    = RegInit(0.U(4.W)); io.axiRd.RID := RID
-    val WDATA  = RegInit(0.U(XLEN.W))
-    val WADDR  = RegInit(0.U(XLEN.W))
-    val RDATA  = RegInit(0.U(8.W))
+    val ARADDR = RegInit(0.U(3.W))
+    val AWADDR = RegInit(0.U(XLEN.W))
+
+    val wireARADDR = WireDefault(UInt(3.W), ARADDR)
 
     val uregs = Module(new uart_regs)
     uregs.io.clk := io.basic.ACLK
     uregs.io.wb_rst_i := ~io.basic.ARESETn
-    uregs.io.wb_addr_i := 0.U
-    uregs.io.wb_dat_i := WDATA
+    uregs.io.wb_addr_i := wireARADDR
+    uregs.io.wb_dat_i := VecInit((0 until 8).map { i => io.axiWd.WDATA >> (8 * i) })(AWADDR)
     uregs.io.wb_we_i := 0.B
     uregs.io.wb_re_i := 0.B
     uregs.io.modem_inputs := Cat(~ctsn, dsr_pad_i, ri_pad_i, dcd_pad_i)
     uregs.io.srx_pad_i := io.srx
-    io.axiRd.RDATA := Cat(Fill(XLEN - 8, 0.U), RDATA)
+    io.axiRd.RDATA := VecInit((0 until 8).map { i => uregs.io.wb_dat_o << (8 * i) })(ARADDR)
     io.stx := uregs.io.stx_pad_o
     io.interrupt := uregs.io.int_o
+    when(uregs.io.wb_we_i) { uregs.io.wb_addr_i := AWADDR }
 
     when(io.axiRd.RVALID && io.axiRd.RREADY) {
       RVALID  := 0.B
+      ARREADY := 1.B
     }.elsewhen(io.axiRa.ARVALID && io.axiRa.ARREADY) {
       uregs.io.wb_re_i := 1.B
-      uregs.io.wb_addr_i := io.axiRa.ARADDR - UART0_MMIO.BASE.U
-      RID := io.axiRa.ARID
-      RVALID := 1.B
-      RDATA := uregs.io.wb_dat_o
+      wireARADDR := io.axiRa.ARADDR
+      ARADDR  := wireARADDR
+      RID     := io.axiRa.ARID
+      ARREADY := 0.B
+      RVALID  := 1.B
     }
 
     when(io.axiWa.AWVALID && io.axiWa.AWREADY) {
+      AWADDR  := io.axiWa.AWADDR
       AWREADY := 0.B
-      WADDR := io.axiWa.AWADDR
+      WREADY  := 1.B
     }
 
     when(io.axiWd.WVALID && io.axiWd.WREADY) {
-      WDATA  := io.axiWd.WDATA
-      WREADY := 0.B
-    }
-
-    when(~io.axiWa.AWREADY && ~io.axiWd.WREADY) {
-      AWREADY := 1.B
-      WREADY  := 1.B
       uregs.io.wb_we_i := 1.B
-      uregs.io.wb_addr_i := WADDR - UART0_MMIO.BASE.U
-      BVALID  := 1.B
+      WREADY := 0.B
+      BVALID := 1.B
     }
 
     when(io.axiWr.BVALID && io.axiWr.BREADY) {
-      BVALID := 0.B
+      AWREADY := 1.B
+      BVALID  := 0.B
     }
   }
 }

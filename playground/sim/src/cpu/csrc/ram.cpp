@@ -21,13 +21,13 @@ extern "C" void ram_read(uint64_t addr, uint64_t *data) {
 }
 
 extern "C" void ram_write(uint64_t addr, uint64_t data, uint8_t mask) {
-  void *p = &pmem[addr];
+  uint8_t *p = &pmem[addr];
   if (in_pmem(addr))
-    switch (mask) {
-      case 0b00000001U: *(uint8_t  *)p = data; break;
-      case 0b00000011U: *(uint16_t *)p = data; break;
-      case 0b00001111U: *(uint32_t *)p = data; break;
-      case 0b11111111U: *(uint64_t *)p = data; break;
+    for (int i = 0; i < 8; i++) {
+      if (mask & 1) *p = data;
+      p++;
+      data >>= 8;
+      mask >>= 1;
     }
 }
 

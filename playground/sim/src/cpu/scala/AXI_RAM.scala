@@ -112,14 +112,14 @@ class RAM extends RawModule {
         ARREADY        := 1.B
         io.axiRd.RLAST := 1.B
       }.otherwise {
-        ARADDR     := ARADDR + wireRStep
         wireARADDR := ARADDR + wireRStep
+        ARADDR     := wireARADDR
         ARLEN      := ARLEN - 1.U
       }
     }.elsewhen(io.axiRa.ARVALID && io.axiRa.ARREADY) {
       RID        := io.axiRa.ARID
-      ARADDR     := io.axiRa.ARADDR - MEMBase.U
-      wireARADDR := io.axiRa.ARADDR - MEMBase.U
+      wireARADDR := io.axiRa.ARADDR(XLEN - 1, AxSIZE) ## 0.U(AxSIZE.W) - MEMBase.U
+      ARADDR     := wireARADDR
       ARREADY    := 0.B
       RVALID     := 1.B
       ARSIZE     := io.axiRa.ARSIZE
@@ -127,7 +127,7 @@ class RAM extends RawModule {
     }
 
     when(io.axiWa.AWVALID && io.axiWa.AWREADY) {
-      AWADDR     := io.axiWa.AWADDR - MEMBase.U
+      AWADDR     := io.axiWa.AWADDR(XLEN - 1, AxSIZE) ## 0.U(AxSIZE.W) - MEMBase.U
       AWREADY    := 0.B
       WREADY     := 1.B
       AWSIZE     := io.axiWa.AWSIZE
@@ -137,7 +137,6 @@ class RAM extends RawModule {
     when(io.axiWd.WVALID && io.axiWd.WREADY) {
       ram_write.io.wen := 1.B
       when(AWLEN === 0.U) {
-        AWREADY := 1.B
         WREADY  := 0.B
         BVALID  := 1.B
       }.otherwise {
@@ -147,6 +146,7 @@ class RAM extends RawModule {
     }
 
     when(io.axiWr.BVALID && io.axiWr.BREADY) {
+      AWREADY := 1.B
       BVALID := 0.B
     }
   }

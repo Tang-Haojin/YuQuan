@@ -7,6 +7,7 @@ import GeneralConfig._
 object GeneralConfig {
   val AluTypeWidth = 5
   val XLEN = sys.env.getOrElse("XLEN", 64).toString.toInt
+  val AxSIZE = log2Ceil(XLEN / 8)
   val HasRVM = true
   val MEMBase = 0x80100000L
   val MEMSize = 90 * 1024 * 1024
