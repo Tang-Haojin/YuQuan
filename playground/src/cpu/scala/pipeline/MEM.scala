@@ -72,7 +72,6 @@ class MEM extends Module {
   io.axiWa.AWREGION := DontCare
   io.axiWa.AWADDR   := addr
 
-  io.axiWd.WID   := 1.U
   io.axiWd.WLAST := 1.B // since we do not enable burst yet
   io.axiWd.WDATA := data
   io.axiWd.WSTRB := mask

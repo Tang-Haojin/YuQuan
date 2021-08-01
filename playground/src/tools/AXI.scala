@@ -24,7 +24,6 @@ class AXIwa extends Bundle {
 
 // Write data channel signals
 class AXIwd extends Bundle {
-  val WID      = Output(UInt(0.W))
   val WDATA    = Output(UInt(XLEN.W))
   val WSTRB    = Output(UInt((XLEN / 8).W))
   val WLAST    = Output(Bool())
