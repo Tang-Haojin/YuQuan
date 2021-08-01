@@ -89,9 +89,9 @@ class RAM extends RawModule {
     val wireRStep  = WireDefault(0.U(128.W))
     val wireWStep  = WireDefault(0.U(128.W))
 
-    for (i <- 3 until 8) {
-      when(ARSIZE === i.U) { wireRStep := (1 << (i - 3)).U }
-      when(AWSIZE === i.U) { wireWStep := (1 << (i - 3)).U }
+    for (i <- 0 until 8) {
+      when(ARSIZE === i.U) { wireRStep := (1 << i).U }
+      when(AWSIZE === i.U) { wireWStep := (1 << i).U }
     }
 
     val ram_read = Module(new RamRead)

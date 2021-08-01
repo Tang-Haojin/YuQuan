@@ -31,7 +31,7 @@ class ICache extends Module {
 
   io.memIO.axiRa.ARID     := 0.U // 0 for IF
   io.memIO.axiRa.ARLEN    := (BurstLen - 1).U // (ARLEN + 1) AXI Burst per AXI Transfer (a.k.a. AXI Beat)
-  io.memIO.axiRa.ARSIZE   := log2Ceil(XLEN).U // 2^(ARSIZE) data bit width per AXI Transfer
+  io.memIO.axiRa.ARSIZE   := log2Ceil(XLEN / 8).U // 2^(ARSIZE) bytes per AXI Transfer
   io.memIO.axiRa.ARBURST  := 1.U // 1 for INCR type
   io.memIO.axiRa.ARLOCK   := 0.U // since we do not use it yet
   io.memIO.axiRa.ARCACHE  := 0.U // since we do not use it yet

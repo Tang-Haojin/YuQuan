@@ -47,10 +47,10 @@ class MEM extends Module {
   val csrData = RegInit(VecInit(Seq.fill(writeCsrsPort)(0.U(XLEN.W))));   io.output.csrData := csrData
   val exit    = if (Debug) RegInit(0.U(3.W)) else null
   val pc      = if (Debug) RegInit(0.U(XLEN.W)) else null
-  
+
   io.axiRa.ARID     := 1.U // 1 for MEM
   io.axiRa.ARLEN    := 0.U // (ARLEN + 1) AXI Burst per AXI Transfer (a.k.a. AXI Beat)
-  io.axiRa.ARSIZE   := 6.U // 2^(ARSIZE) data bit width per AXI Transfer
+  io.axiRa.ARSIZE   := log2Ceil(XLEN / 8).U // 2^(ARSIZE) bytes per AXI Transfer
   io.axiRa.ARBURST  := 1.U // 1 for INCR type
   io.axiRa.ARLOCK   := 0.U // since we do not use it yet
   io.axiRa.ARCACHE  := 0.U // since we do not use it yet
@@ -62,7 +62,7 @@ class MEM extends Module {
 
   io.axiWa.AWID     := 1.U
   io.axiWa.AWLEN    := 0.U
-  io.axiWa.AWSIZE   := 6.U
+  io.axiWa.AWSIZE   := log2Ceil(XLEN / 8).U
   io.axiWa.AWBURST  := 1.U
   io.axiWa.AWLOCK   := 0.U
   io.axiWa.AWCACHE  := 0.U
@@ -195,12 +195,12 @@ class MEM extends Module {
   }
 
   if (debugIO) {
-    printf("mem_last_ready   = %d\n", io.lastVR.READY )
-    printf("mem_last_valid   = %d\n", io.lastVR.VALID )
-    printf("mem_next_ready   = %d\n", io.nextVR.READY )
-    printf("mem_next_valid   = %d\n", io.nextVR.VALID )
-    printf("io.output.rd     = %d\n", io.output.rd    )
-    printf("io.output.data   = %d\n", io.output.data  )
+    printf("mem_last_ready = %d\n", io.lastVR.READY )
+    printf("mem_last_valid = %d\n", io.lastVR.VALID )
+    printf("mem_next_ready = %d\n", io.nextVR.READY )
+    printf("mem_next_valid = %d\n", io.nextVR.VALID )
+    printf("io.output.rd   = %d\n", io.output.rd    )
+    printf("io.output.data = %d\n", io.output.data  )
   }
 
   if (Debug) {
