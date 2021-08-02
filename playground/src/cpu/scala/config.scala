@@ -6,16 +6,14 @@ import GeneralConfig._
 
 object GeneralConfig {
   val AluTypeWidth = 5
-  val XLEN = sys.env.getOrElse("XLEN", 64).toString.toInt
-  val AxSIZE = log2Ceil(XLEN / 8)
-  val HasRVM = true
-  val MEMBase = 0x80100000L
-  val MEMSize = 90 * 1024 * 1024
+  val ALEN       = 32
+  val XLEN       = sys.env.getOrElse("XLEN", 64).toString.toInt
+  val IDLEN      = 4
+  val AxSIZE     = log2Ceil(XLEN / 8)
+  val HasRVM     = true
+  val MEMBase    = 0x80100000L
+  val MEMSize    = 90 * 1024 * 1024
   val Extensions = List('I', 'M')
-  val privilegeMode = if (Extensions.contains('S')) 3
-                 else if (Extensions.contains('U')) 2
-                 else if (Extensions.contains('M')) 1
-                 else 1
   val IsRealUart = (sys.env.getOrElse("UART", 0).toString.toInt != 0)
 
   val IALIGN = 32 // compressed instructions are not implemented yet

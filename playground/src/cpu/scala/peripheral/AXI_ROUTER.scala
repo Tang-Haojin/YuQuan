@@ -46,10 +46,10 @@ class ROUTER extends RawModule {
     val ARREADY = RegInit(1.B);
     val RVALID  = RegInit(0.B);
 
-    val rdevice = RegInit(0.U(4.W))
-    val wdevice = RegInit(0.U(4.W))
-    val wireRdevice = WireDefault(0.U(4.W))
-    val wireWdevice = WireDefault(0.U(4.W))
+    val rdevice = RegInit(0.U(IDLEN.W))
+    val wdevice = RegInit(0.U(IDLEN.W))
+    val wireRdevice = WireDefault(0.U(IDLEN.W))
+    val wireWdevice = WireDefault(0.U(IDLEN.W))
 
     when(wireRdevice === mem) {
       io.input.axiRa <> io.RamIO.axiRa

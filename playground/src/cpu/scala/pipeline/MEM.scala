@@ -37,7 +37,7 @@ class MEM extends Module {
   })
 
   val mask     = RegInit(0.U(8.W))
-  val addr     = RegInit(0.U(XLEN.W))
+  val addr     = RegInit(0.U(ALEN.W))
   val extType  = RegInit(0.U(3.W))
 
   val rd      = RegInit(0.U(5.W));    io.output.rd   := rd

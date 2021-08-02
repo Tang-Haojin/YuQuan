@@ -7,8 +7,8 @@ import cpu.config._
 
 // Write address channel signals
 class AXIwa extends Bundle {
-  val AWID     = Output(UInt(4.W))
-  val AWADDR   = Output(UInt(XLEN.W))
+  val AWID     = Output(UInt(IDLEN.W))
+  val AWADDR   = Output(UInt(ALEN.W))
   val AWLEN    = Output(UInt(8.W))
   val AWSIZE   = Output(UInt(3.W))
   val AWBURST  = Output(UInt(2.W))
@@ -34,7 +34,7 @@ class AXIwd extends Bundle {
 
 // Write response channel signals
 class AXIwr extends Bundle {
-  val BID      = Input (UInt(4.W))
+  val BID      = Input (UInt(IDLEN.W))
   val BRESP    = Input (UInt(2.W))
   val BUSER    = Input (UInt(1.W))
   val BVALID   = Input (Bool())
@@ -43,8 +43,8 @@ class AXIwr extends Bundle {
 
 // Read address channel signals
 class AXIra extends Bundle {
-  val ARID     = Output(UInt(4.W))
-  val ARADDR   = Output(UInt(XLEN.W))
+  val ARID     = Output(UInt(IDLEN.W))
+  val ARADDR   = Output(UInt(ALEN.W))
   val ARLEN    = Output(UInt(8.W))
   val ARSIZE   = Output(UInt(3.W))
   val ARBURST  = Output(UInt(2.W))
@@ -60,7 +60,7 @@ class AXIra extends Bundle {
 
 // Read data channel signals
 class AXIrd extends Bundle {
-  val RID      = Input (UInt(4.W))
+  val RID      = Input (UInt(IDLEN.W))
   val RDATA    = Input (UInt(XLEN.W))
   val RRESP    = Input (UInt(2.W))
   val RLAST    = Input (Bool())

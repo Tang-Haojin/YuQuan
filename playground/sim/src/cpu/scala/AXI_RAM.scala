@@ -62,13 +62,12 @@ class RamWrite extends BlackBox with HasBlackBoxInline {
 class RAM extends RawModule {
   val io = IO(new AxiSlaveIO)
 
-  io.axiWr.BID   := 1.U // since only cpu requests writing now
-  io.axiWr.BRESP := DontCare
+  io.axiWr.BRESP := 0.U
   io.axiWr.BUSER := DontCare
 
   io.axiRd.RLAST := 0.B
   io.axiRd.RUSER := DontCare
-  io.axiRd.RRESP := DontCare
+  io.axiRd.RRESP := 0.U
 
   withClockAndReset(io.basic.ACLK, ~io.basic.ARESETn) {
     val AWREADY = RegInit(1.B); io.axiWa.AWREADY := AWREADY
@@ -81,11 +80,12 @@ class RAM extends RawModule {
     val AWSIZE  = RegInit(0.U(3.W))
     val AWLEN   = RegInit(0.U(8.W))
 
-    val RID    = RegInit(0.U(4.W)); io.axiRd.RID := RID
-    val ARADDR = RegInit(0.U(XLEN.W))
-    val AWADDR = RegInit(0.U(XLEN.W))
+    val RID    = RegInit(0.U(IDLEN.W)); io.axiRd.RID := RID
+    val BID    = RegInit(0.U(IDLEN.W)); io.axiWr.BID := BID
+    val ARADDR = RegInit(0.U(ALEN.W))
+    val AWADDR = RegInit(0.U(ALEN.W))
 
-    val wireARADDR = WireDefault(UInt(XLEN.W), ARADDR)
+    val wireARADDR = WireDefault(UInt(ALEN.W), ARADDR)
     val wireRStep  = WireDefault(0.U(128.W))
     val wireWStep  = WireDefault(0.U(128.W))
 
@@ -118,7 +118,7 @@ class RAM extends RawModule {
       }
     }.elsewhen(io.axiRa.ARVALID && io.axiRa.ARREADY) {
       RID        := io.axiRa.ARID
-      wireARADDR := io.axiRa.ARADDR(XLEN - 1, AxSIZE) ## 0.U(AxSIZE.W) - MEMBase.U
+      wireARADDR := io.axiRa.ARADDR(ALEN - 1, AxSIZE) ## 0.U(AxSIZE.W) - MEMBase.U
       ARADDR     := wireARADDR
       ARREADY    := 0.B
       RVALID     := 1.B
@@ -127,11 +127,12 @@ class RAM extends RawModule {
     }
 
     when(io.axiWa.AWVALID && io.axiWa.AWREADY) {
-      AWADDR     := io.axiWa.AWADDR(XLEN - 1, AxSIZE) ## 0.U(AxSIZE.W) - MEMBase.U
-      AWREADY    := 0.B
-      WREADY     := 1.B
-      AWSIZE     := io.axiWa.AWSIZE
-      AWLEN      := io.axiWa.AWLEN
+      AWADDR  := io.axiWa.AWADDR(ALEN - 1, AxSIZE) ## 0.U(AxSIZE.W) - MEMBase.U
+      BID     := io.axiWa.AWID
+      AWREADY := 0.B
+      WREADY  := 1.B
+      AWSIZE  := io.axiWa.AWSIZE
+      AWLEN   := io.axiWa.AWLEN
     }
 
     when(io.axiWd.WVALID && io.axiWd.WREADY) {

@@ -90,13 +90,12 @@ abstract class UartWrapper extends RawModule {
 }
 
 class UartSim extends UartWrapper {
-  io.axiWr.BID := 1.U // since only MEM requests writing now
-  io.axiWr.BRESP := DontCare
+  io.axiWr.BRESP := 0.U
   io.axiWr.BUSER := DontCare
 
   io.axiRd.RLAST := 1.B
   io.axiRd.RUSER := DontCare
-  io.axiRd.RRESP := DontCare
+  io.axiRd.RRESP := 0.U
 
   withClockAndReset(io.basic.ACLK, ~io.basic.ARESETn) {
     val AWREADY = RegInit(1.B); io.axiWa.AWREADY := AWREADY
@@ -105,7 +104,8 @@ class UartSim extends UartWrapper {
     val ARREADY = RegInit(1.B); io.axiRa.ARREADY := ARREADY
     val RVALID  = RegInit(0.B); io.axiRd.RVALID  := RVALID
 
-    val RID    = RegInit(0.U(4.W)); io.axiRd.RID := RID
+    val RID    = RegInit(0.U(IDLEN.W)); io.axiRd.RID := RID
+    val BID    = RegInit(0.U(IDLEN.W)); io.axiWr.BID := BID
     val ARADDR = RegInit(0.U(3.W))
     val AWADDR = RegInit(0.U(3.W))
 
@@ -141,6 +141,7 @@ class UartSim extends UartWrapper {
 
     when(io.axiWa.AWVALID && io.axiWa.AWREADY) {
       AWADDR  := io.axiWa.AWADDR
+      BID     := io.axiWa.AWID
       AWREADY := 0.B
       WREADY  := 1.B
     }

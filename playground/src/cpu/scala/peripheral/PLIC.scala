@@ -19,13 +19,12 @@ class PlicIO extends AxiSlaveIO {
 class Plic extends RawModule {
   val io = IO(new PlicIO)
 
-  io.axiWr.BID := 1.U // since only cpu requests writing now
-  io.axiWr.BRESP := DontCare
+  io.axiWr.BRESP := 0.U
   io.axiWr.BUSER := DontCare
 
   io.axiRd.RLAST := 1.B
   io.axiRd.RUSER := DontCare
-  io.axiRd.RRESP := DontCare
+  io.axiRd.RRESP := 0.U
 
   withClockAndReset(io.basic.ACLK, ~io.basic.ARESETn) {
     val AWREADY = RegInit(1.B); io.axiWa.AWREADY := AWREADY
@@ -34,9 +33,10 @@ class Plic extends RawModule {
     val ARREADY = RegInit(1.B); io.axiRa.ARREADY := ARREADY
     val RVALID  = RegInit(0.B); io.axiRd.RVALID  := RVALID
 
-    val RID   = RegInit(0.U(4.W)); io.axiRd.RID := RID
+    val RID   = RegInit(0.U(IDLEN.W)); io.axiRd.RID := RID
+    val BID   = RegInit(0.U(IDLEN.W)); io.axiWr.BID := BID
     val RDATA = RegInit(0.U(XLEN.W))
-    val WADDR = RegInit(0.U(XLEN.W))
+    val WADDR = RegInit(0.U(ALEN.W))
     val WDATA = RegInit(0.U(XLEN.W))
     val WSTRB = RegInit(0.U((XLEN / 8).W))
 
@@ -66,6 +66,7 @@ class Plic extends RawModule {
     
     when(io.axiWa.AWVALID && io.axiWa.AWREADY) {
       WADDR   := io.axiWa.AWADDR
+      BID     := io.axiWa.AWID
       AWREADY := 0.B
     }
 

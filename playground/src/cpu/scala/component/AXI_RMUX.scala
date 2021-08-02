@@ -18,7 +18,7 @@ class AXIRMux extends Module {
 
   val pending = RegInit(0.U(4.W))
 
-  val RID_FIFO = Module(new Queue(UInt(4.W), 8))
+  val RID_FIFO = Module(new Queue(UInt(IDLEN.W), 8))
   val RDATA_FIFO = Module(new Queue(UInt(XLEN.W), 8))
   val RRESP_FIFO = Module(new Queue(UInt(2.W), 8))
   val RLAST_FIFO = Module(new Queue(Bool(), 8))
