@@ -98,7 +98,7 @@ class ICache extends Module {
     when(io.memIO.axiRd.RREADY && io.memIO.axiRd.RVALID) {
       when(received === (BurstLen - 1).U) {
         received := 0.U
-        state    := idle
+        state    := compare
         wen(way) := 1.B
         RREADY   := 0.B
       }.otherwise {
