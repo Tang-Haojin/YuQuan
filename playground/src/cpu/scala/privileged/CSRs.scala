@@ -167,7 +167,7 @@ class M_CSRs extends Module with CSRsAddr {
         when(io.csrsW.wcsr(i) === Mtvec) {
           mtvec := io.csrsW.wdata(i)
           when(io.csrsW.wdata(i)(1, 0) >= 2.U) {
-            mtvec := Cat(io.csrsW.wdata(i)(XLEN - 1, 2), mtvec(1, 0))
+            mtvec := io.csrsW.wdata(i)(XLEN - 1, 2) ## mtvec(1, 0)
           }
           // TODO: What is the legal value?
         }
@@ -183,7 +183,7 @@ class M_CSRs extends Module with CSRsAddr {
           mcountinhibit := Cat(mcountinhibit(31, 3), io.csrsW.wdata(i)(2), mcountinhibit(1), io.csrsW.wdata(i)(0))
         }
         when(io.csrsW.wcsr(i) === Mscratch) { mscratch := io.csrsW.wdata(i) }
-        when(io.csrsW.wcsr(i) === Mepc) { mepc := Cat(io.csrsW.wdata(i)(XLEN - 1, 2), mepc(1, 0)) }
+        when(io.csrsW.wcsr(i) === Mepc) { mepc := io.csrsW.wdata(i)(XLEN - 1, 2) ## mepc(1, 0) }
         when(io.csrsW.wcsr(i) === Mcause) {
           when(io.csrsW.wdata(i)(XLEN - 1) === 1.B) {
             when((io.csrsW.wdata(i)(XLEN - 2, 0) === 3.U) ||
@@ -228,7 +228,7 @@ class M_CSRs extends Module with CSRsAddr {
     when(io.csrsR.rcsr(i) >= Mhpmevent(3.U) && io.csrsR.rcsr(i) <= Mhpmevent(31.U)) { io.csrsR.rdata(i) := 0.U }
     when(io.csrsR.rcsr(i) === Mcountinhibit) { io.csrsR.rdata(i) := mcountinhibit }
     when(io.csrsR.rcsr(i) === Mscratch) { io.csrsR.rdata(i) := mscratch }
-    when(io.csrsR.rcsr(i) === Mepc) { io.csrsR.rdata(i) := Cat(mepc(XLEN - 1, 2), 0.U, 0.U) }
+    when(io.csrsR.rcsr(i) === Mepc) { io.csrsR.rdata(i) := Cat(mepc(XLEN - 1, 2), 0.B, 0.B) }
     when(io.csrsR.rcsr(i) === Mcause) { io.csrsR.rdata(i) := mcause }
     when(io.csrsR.rcsr(i) === Mtval) { io.csrsR.rdata(i) := 0.U } // A simple implementation.
     when((io.csrsR.rcsr(i) === Pmpcfg0) || (io.csrsR.rcsr(i) === Pmpcfg2)) { io.csrsR.rdata(i) := 0.U }

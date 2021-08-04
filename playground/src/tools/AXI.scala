@@ -102,6 +102,7 @@ class AxiSlaveChannel extends Bundle {
   val axiRd = Flipped(new AXIrd)
 }
 
-class AxiSlaveIO extends AxiSlaveChannel {
-  val basic = new BASIC
+class AxiSlaveIO extends Bundle {
+  val basic   = new BASIC
+  val channel = Flipped(new AxiMasterChannel)
 }

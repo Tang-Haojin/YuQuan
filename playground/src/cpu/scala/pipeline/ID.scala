@@ -156,7 +156,7 @@ class ID extends Module {
 
   switch(decoded(0)) {
     is(i) {
-      wireImm := Cat(Fill(XLEN - 12, io.input.instr(31)), io.input.instr(31, 20))
+      wireImm := Fill(XLEN - 12, io.input.instr(31)) ## io.input.instr(31, 20)
     }
     is(u) {
       wireImm := Cat(
@@ -191,7 +191,7 @@ class ID extends Module {
       )
     }
     is(c) {
-      wireImm := Cat(Fill(XLEN - 5, 0.U), io.input.instr(19, 15))
+      wireImm := Fill(XLEN - 5, 0.U) ## io.input.instr(19, 15)
     }
   }
 
@@ -211,13 +211,13 @@ class ID extends Module {
       when(isClint.io.addr_out =/= 0xFFF.U) {
         io.csrsR.rcsr(0) := isClint.io.addr_out
         switch(decoded(6)) {
-          is(0.U) { wireNum1 := Cat(Fill(XLEN - 8 , csrsRdata(0)( 7)), csrsRdata(0)( 7, 0)) }
-          is(1.U) { wireNum1 := Cat(Fill(XLEN - 16, csrsRdata(0)(15)), csrsRdata(0)(15, 0)) }
-          is(2.U) { wireNum1 := Cat(Fill(XLEN - 32, csrsRdata(0)(31)), csrsRdata(0)(31, 0)) }
-          is(3.U) { wireNum1 :=                                        csrsRdata(0)         }
-          is(4.U) { wireNum1 := Cat(Fill(XLEN - 8 ,              0.B), csrsRdata(0)( 7, 0)) }
-          is(5.U) { wireNum1 := Cat(Fill(XLEN - 16,              0.B), csrsRdata(0)(15, 0)) }
-          is(6.U) { wireNum1 := Cat(Fill(XLEN - 32,              0.B), csrsRdata(0)(31, 0)) }
+          is(0.U) { wireNum1 := Fill(XLEN - 8 , csrsRdata(0)( 7)) ## csrsRdata(0)( 7, 0) }
+          is(1.U) { wireNum1 := Fill(XLEN - 16, csrsRdata(0)(15)) ## csrsRdata(0)(15, 0) }
+          is(2.U) { wireNum1 := Fill(XLEN - 32, csrsRdata(0)(31)) ## csrsRdata(0)(31, 0) }
+          is(3.U) { wireNum1 :=                                      csrsRdata(0)        }
+          is(4.U) { wireNum1 := Fill(XLEN - 8 ,              0.B) ## csrsRdata(0)( 7, 0) }
+          is(5.U) { wireNum1 := Fill(XLEN - 16,              0.B) ## csrsRdata(0)(15, 0) }
+          is(6.U) { wireNum1 := Fill(XLEN - 32,              0.B) ## csrsRdata(0)(31, 0) }
         }
         wireNum2  := non; wireNum3  := non; wireNum4    := non
         wireOp1_2 := non; wireOp1_3 := non; wireSpecial := non
@@ -228,10 +228,10 @@ class ID extends Module {
         io.csrsR.rcsr(0) := isClint.io.addr_out
         wireCsr(0) := isClint.io.addr_out
         switch(decoded(6)) {
-          is(0.U) { wireNum2 := Cat(csrsRdata(0)(XLEN - 1,  8), wireDataRs2( 7, 0)) }
-          is(1.U) { wireNum2 := Cat(csrsRdata(0)(XLEN - 1, 16), wireDataRs2(15, 0)) }
-          is(2.U) { wireNum2 := Cat(csrsRdata(0)(XLEN - 1, 32), wireDataRs2(31, 0)) }
-          is(3.U) { wireNum2 :=                                 wireDataRs2         }
+          is(0.U) { wireNum2 := csrsRdata(0)(XLEN - 1,  8) ## wireDataRs2( 7, 0) }
+          is(1.U) { wireNum2 := csrsRdata(0)(XLEN - 1, 16) ## wireDataRs2(15, 0) }
+          is(2.U) { wireNum2 := csrsRdata(0)(XLEN - 1, 32) ## wireDataRs2(31, 0) }
+          is(3.U) { wireNum2 :=                               wireDataRs2        }
         }
         wireNum1  := non; wireNum3  := non; wireNum4    := non
         wireOp1_2 := non; wireOp1_3 := 0.U; wireSpecial := csr
@@ -243,7 +243,7 @@ class ID extends Module {
     }
     is(jalr) {
       io.jmpBch := 1.B
-      io.jbAddr := Cat((wireImm + wireDataRs1)(XLEN - 1, 1), 0.U)
+      io.jbAddr := (wireImm + wireDataRs1)(XLEN - 1, 1) ## 0.U
     }
     is(branch) {
       when(wireData === 1.U) {
@@ -269,7 +269,7 @@ class ID extends Module {
       wireNum4 := io.csrsR.rdata(1)
 
       io.jmpBch        := 1.B
-      io.jbAddr        := Cat(io.csrsR.rdata(0)(XLEN - 1, 2), 0.U(2.W))
+      io.jbAddr        := io.csrsR.rdata(0)(XLEN - 1, 2) ## 0.U(2.W)
     }
     is(mret) {
       io.csrsR.rcsr(0) := csrsAddr.Mepc
@@ -280,7 +280,7 @@ class ID extends Module {
       wireNum1 := io.csrsR.rdata(1)
 
       io.jmpBch      := 1.B
-      io.jbAddr      := Cat(io.csrsR.rdata(0)(XLEN - 1, 2), 0.U(2.W))
+      io.jbAddr      := io.csrsR.rdata(0)(XLEN - 1, 2) ## 0.U(2.W)
     }
   }
 
@@ -297,13 +297,13 @@ class ID extends Module {
       wireCsr(3) := csrsAddr.Mstatus
 
       wireNum1 := io.input.pc
-      wireNum2 := Cat(1.B, 11.U((XLEN - 1).W))
+      wireNum2 := 1.B ## 11.U((XLEN - 1).W)
       wireNum3 := io.input.instr
       wireNum4 := io.csrsR.rdata(1)
 
       io.jmpBch := 1.B
-      when(io.csrsR.rdata(5)(0)) { io.jbAddr := Cat(io.csrsR.rdata(5)(XLEN - 1, 2), 0.U(2.W)) + (11 * 4).U }
-      .otherwise { io.jbAddr := Cat(io.csrsR.rdata(5)(XLEN - 1, 2), 0.U(2.W)) }
+      when(io.csrsR.rdata(5)(0)) { io.jbAddr := io.csrsR.rdata(5)(XLEN - 1, 2) ## 0.U(2.W) + (11 * 4).U }
+      .otherwise { io.jbAddr := io.csrsR.rdata(5)(XLEN - 1, 2) ## 0.U(2.W) }
     }
     when((~handelExtInt) && io.csrsR.rdata(1)(3) && io.csrsR.rdata(2)(7)) { // Machine timer interrupt
       io.csrsR.rcsr(3) := csrsAddr.Mtime
@@ -319,13 +319,13 @@ class ID extends Module {
         wireCsr(3) := csrsAddr.Mstatus
 
         wireNum1 := io.input.pc
-        wireNum2 := Cat(1.B, 7.U((XLEN - 1).W))
+        wireNum2 := 1.B ## 7.U((XLEN - 1).W)
         wireNum3 := io.input.instr
         wireNum4 := io.csrsR.rdata(1)
 
         io.jmpBch := 1.B
-        when(io.csrsR.rdata(5)(0)) { io.jbAddr := Cat(io.csrsR.rdata(5)(XLEN - 1, 2), 0.U(2.W)) + (7 * 4).U }
-        .otherwise { io.jbAddr := Cat(io.csrsR.rdata(5)(XLEN - 1, 2), 0.U(2.W)) }
+        when(io.csrsR.rdata(5)(0)) { io.jbAddr := io.csrsR.rdata(5)(XLEN - 1, 2) ## 0.U(2.W) + (7 * 4).U }
+        .otherwise { io.jbAddr := io.csrsR.rdata(5)(XLEN - 1, 2) ## 0.U(2.W) }
       }
     }
   }

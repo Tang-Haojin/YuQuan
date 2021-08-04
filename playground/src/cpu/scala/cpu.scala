@@ -21,41 +21,35 @@ class DEBUG extends Bundle {
 
 class CPU extends RawModule {
   val io = IO(new Bundle {
-    val basic = new BASIC
-    val axiWa = new AXIwa
-    val axiWd = new AXIwd
-    val axiWr = new AXIwr
-    val axiRa = new AXIra
-    val axiRd = new AXIrd
-    val eip   = Input(Bool())
-    val debug = 
-    if(Debug)   new DEBUG
-    else        null
+    val basic   = new BASIC
+    val memAXI  = new AxiMasterChannel
+    val mmioAXI = new AxiMasterChannel
+    val dmaAXI  = Flipped(new AxiMasterChannel)
+    val intr    = Input(Bool())
+    val debug   = 
+    if(Debug)     new DEBUG
+    else          null
   })
 
   withClockAndReset(io.basic.ACLK, ~io.basic.ARESETn) {
     val cpu = Module(new InternalCPU)
-    io.axiWa <> cpu.io.axiWa
-    io.axiWd <> cpu.io.axiWd
-    io.axiWr <> cpu.io.axiWr
-    io.axiRa <> cpu.io.axiRa
-    io.axiRd <> cpu.io.axiRd
-    io.eip   <> cpu.io.eip
+    io.intr    <> cpu.io.intr
+    io.memAXI  <> cpu.io.memAXI
+    io.mmioAXI <> cpu.io.mmioAXI
+    io.dmaAXI  <> cpu.io.dmaAXI
     if (Debug) io.debug <> cpu.io.debug
   }
 }
 
 class InternalCPU extends Module {
   val io = IO(new Bundle {
-    val axiWa = new AXIwa
-    val axiWd = new AXIwd
-    val axiWr = new AXIwr
-    val axiRa = new AXIra
-    val axiRd = new AXIrd
-    val eip   = Input(Bool())
-    val debug = 
-    if(Debug)   new DEBUG
-    else        null
+    val memAXI  = new AxiMasterChannel
+    val mmioAXI = new AxiMasterChannel
+    val dmaAXI  = Flipped(new AxiMasterChannel)
+    val intr    = Input(Bool())
+    val debug   = 
+    if(Debug)     new DEBUG
+    else          null
   })
 
   val moduleGPRs      = Module(new GPRs)
@@ -72,17 +66,23 @@ class InternalCPU extends Module {
   val moduleMEM = Module(new MEM)
   val moduleWB  = Module(new WB)
 
-  moduleICache.io.memIO.axiRa <> moduleAXIRMux.io.axiRaIn0
-  moduleMEM.io.axiRa          <> moduleAXIRMux.io.axiRaIn1
-  io.axiRa                    <> moduleAXIRMux.io.axiRaOut
+  val moduleAXISelect = Module(new AXISelect)
 
-  moduleICache.io.memIO.axiRd <> moduleAXIRMux.io.axiRdIn0
-  moduleMEM.io.axiRd          <> moduleAXIRMux.io.axiRdIn1
-  io.axiRd                    <> moduleAXIRMux.io.axiRdOut
+  moduleAXIRMux.io.axiRaIn0 <> moduleICache.io.memIO.axiRa
+  moduleAXIRMux.io.axiRaIn1 <> moduleMEM.io.axiRa
+  moduleAXIRMux.io.axiRaOut <> moduleAXISelect.io.input.axiRa
 
-  io.axiWa <> moduleMEM.io.axiWa
-  io.axiWd <> moduleMEM.io.axiWd
-  io.axiWr <> moduleMEM.io.axiWr
+  moduleAXIRMux.io.axiRdIn0 <> moduleICache.io.memIO.axiRd
+  moduleAXIRMux.io.axiRdIn1 <> moduleMEM.io.axiRd
+  moduleAXIRMux.io.axiRdOut <> moduleAXISelect.io.input.axiRd
+
+  moduleAXISelect.io.input.axiWa <> moduleMEM.io.axiWa
+  moduleAXISelect.io.input.axiWd <> moduleMEM.io.axiWd
+  moduleAXISelect.io.input.axiWr <> moduleMEM.io.axiWr
+
+  io.memAXI  <> moduleAXISelect.io.RamIO
+  io.mmioAXI <> moduleAXISelect.io.MMIO
+  io.dmaAXI := DontCare
 
   moduleID.io.gprsR <> moduleBypass.io.receive
   moduleID.io.csrsR <> moduleBypassCsr.io.receive
@@ -112,9 +112,9 @@ class InternalCPU extends Module {
 
   moduleBypassCsr.io.request <> moduleCSRs.io.csrsR
   for (i <- 0 until writeCsrsPort) {
-    moduleBypassCsr.io.idOut.wcsr(i)   := moduleID.io.output.wcsr(i)  | Fill(12, ~moduleID.io.nextVR.VALID.asUInt)
-    moduleBypassCsr.io.exOut.wcsr(i)   := moduleEX.io.output.wcsr(i)  | Fill(12, ~moduleEX.io.nextVR.VALID.asUInt)
-    moduleBypassCsr.io.memOut.wcsr(i)  := moduleMEM.io.output.wcsr(i) | Fill(12, ~moduleMEM.io.nextVR.VALID.asUInt)
+    moduleBypassCsr.io.idOut.wcsr(i)  := moduleID.io.output.wcsr(i)  | Fill(12, ~moduleID.io.nextVR.VALID.asUInt)
+    moduleBypassCsr.io.exOut.wcsr(i)  := moduleEX.io.output.wcsr(i)  | Fill(12, ~moduleEX.io.nextVR.VALID.asUInt)
+    moduleBypassCsr.io.memOut.wcsr(i) := moduleMEM.io.output.wcsr(i) | Fill(12, ~moduleMEM.io.nextVR.VALID.asUInt)
   }
   moduleBypassCsr.io.idOut.value  := DontCare
   moduleBypassCsr.io.exOut.value  := moduleEX.io.output.csrData
@@ -125,7 +125,7 @@ class InternalCPU extends Module {
   moduleIF.io.jmpBch := moduleID.io.jmpBch
   moduleIF.io.jbAddr := moduleID.io.jbAddr
 
-  moduleCSRs.io.eip <> io.eip
+  moduleCSRs.io.eip <> io.intr
 
   if (Debug) {
     io.debug.exit    := moduleWB.io.debug.exit
@@ -143,6 +143,6 @@ class InternalCPU extends Module {
   }
 
   if (showReg) {
-    moduleGPRs.io.debug.showReg := (moduleWB.io.debug.showReg)
+    moduleGPRs.io.debug.showReg := moduleWB.io.debug.showReg
   }
 }

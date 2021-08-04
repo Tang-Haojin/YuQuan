@@ -27,7 +27,7 @@ class ICache extends Module {
   val addrOffset = addr(Offset - 1, 0)
   val addrIndex  = WireDefault(UInt(Index.W), addr(Index + Offset - 1, Offset))
   val addrTag    = addr(XLEN - 1, Index + Offset)
-  val memAddr    = Cat(addr(XLEN - 1, Offset), 0.U(Offset.W))
+  val memAddr    = addr(XLEN - 1, Offset) ## 0.U(Offset.W)
 
   io.memIO.axiRa.ARID     := 0.U // 0 for IF
   io.memIO.axiRa.ARLEN    := (BurstLen - 1).U // (ARLEN + 1) AXI Burst per AXI Transfer (a.k.a. AXI Beat)
@@ -65,7 +65,7 @@ class ICache extends Module {
   }))
 
   val wen       = WireDefault(VecInit(Seq.fill(Associativity)(0.B)))
-  val wdata     = Cat(io.memIO.axiRd.RDATA, Cat(writeBuffer.reverse))
+  val wdata     = io.memIO.axiRd.RDATA ## writeBuffer.asUInt
   val vecWvalid = VecInit(Seq.fill(Associativity)(1.B))
   val vecWtag   = VecInit(Seq.fill(Associativity)(addrTag))
   val vecWdata  = VecInit(Seq.fill(Associativity)(wdata))

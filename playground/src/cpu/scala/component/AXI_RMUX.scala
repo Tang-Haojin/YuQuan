@@ -8,21 +8,21 @@ import tools._
 
 class AXIRMux extends Module {
   val io = IO(new Bundle {
-    val axiRaIn0    = Flipped(new AXIra)
-    val axiRaIn1    = Flipped(new AXIra)
-    val axiRaOut    = new AXIra
-    val axiRdIn0    = Flipped(new AXIrd)
-    val axiRdIn1    = Flipped(new AXIrd)
-    val axiRdOut    = new AXIrd
+    val axiRaIn0 = Flipped(new AXIra)
+    val axiRaIn1 = Flipped(new AXIra)
+    val axiRaOut = new AXIra
+    val axiRdIn0 = Flipped(new AXIrd)
+    val axiRdIn1 = Flipped(new AXIrd)
+    val axiRdOut = new AXIrd
   })
 
-  val pending = RegInit(0.U(4.W))
+  val pending = RegInit(0.U(2.W))
 
-  val RID_FIFO = Module(new Queue(UInt(IDLEN.W), 8))
-  val RDATA_FIFO = Module(new Queue(UInt(XLEN.W), 8))
-  val RRESP_FIFO = Module(new Queue(UInt(2.W), 8))
-  val RLAST_FIFO = Module(new Queue(Bool(), 8))
-  val RUSER_FIFO = Module(new Queue(UInt(1.W), 8))
+  val RID_FIFO   = Module(new Queue(UInt(IDLEN.W), 2))
+  val RDATA_FIFO = Module(new Queue(UInt(XLEN.W), 2))
+  val RRESP_FIFO = Module(new Queue(UInt(2.W), 2))
+  val RLAST_FIFO = Module(new Queue(Bool(), 2))
+  val RUSER_FIFO = Module(new Queue(UInt(1.W), 2))
 
   RID_FIFO.io.enq.valid   := 0.B; RID_FIFO.io.deq.ready   := 0.B
   RDATA_FIFO.io.enq.valid := 0.B; RDATA_FIFO.io.deq.ready := 0.B
@@ -95,7 +95,7 @@ class AXIRMux extends Module {
     }
   }
 
-  when(pending === 8.U) {
+  when(pending === 2.U) {
     io.axiRaIn0.ARREADY := 0.B
     when(io.axiRdIn0.RREADY && io.axiRdIn0.RVALID) {
       pending := pending - 1.U

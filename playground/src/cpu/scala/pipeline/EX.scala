@@ -77,7 +77,7 @@ class EX extends Module {
   io.output.mask    := mask
 
   when(io.input.special === word) {
-    wireData := Cat(Fill(32, alu1_2.io.res(31)), alu1_2.io.res(31, 0))
+    wireData := Fill(32, alu1_2.io.res(31)) ## alu1_2.io.res(31, 0)
   }
 
   when(io.input.special === csr) {

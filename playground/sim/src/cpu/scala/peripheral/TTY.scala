@@ -70,7 +70,7 @@ class TTY extends RawModule {
       }.otherwise {
         readWaitCounter := 0.U
         readBitIndex := readBitIndex + 1.U
-        readData := Cat(io.srx, readData(7, 1))
+        readData := io.srx ## readData(7, 1)
         when(readBitIndex === 7.U) { readState := ending }
       }
     }

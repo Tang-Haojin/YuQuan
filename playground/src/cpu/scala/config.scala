@@ -12,7 +12,7 @@ object GeneralConfig {
   val AxSIZE     = log2Ceil(XLEN / 8)
   val HasRVM     = true
   val MEMBase    = 0x80100000L
-  val MEMSize    = 90 * 1024 * 1024
+  val MEMSize    = 100 * 1024 * 1024
   val Extensions = List('I', 'M')
   val IsRealUart = (sys.env.getOrElse("UART", 0).toString.toInt != 0)
 
@@ -26,6 +26,7 @@ object GeneralConfig {
 
   object CLINT {
     val CLINT = 0x2000000L
+    val CLINT_SIZE = 0x10000
     val MTIMECMP = (hartid: Int) => CLINT + 0x4000 + 8 * hartid
     val MTIME = CLINT + 0xBFF8
   }

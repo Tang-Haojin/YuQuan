@@ -90,69 +90,69 @@ abstract class UartWrapper extends RawModule {
 }
 
 class UartSim extends UartWrapper {
-  io.axiWr.BRESP := 0.U
-  io.axiWr.BUSER := DontCare
+  io.channel.axiWr.BRESP := 0.U
+  io.channel.axiWr.BUSER := DontCare
 
-  io.axiRd.RLAST := 1.B
-  io.axiRd.RUSER := DontCare
-  io.axiRd.RRESP := 0.U
+  io.channel.axiRd.RLAST := 1.B
+  io.channel.axiRd.RUSER := DontCare
+  io.channel.axiRd.RRESP := 0.U
 
   withClockAndReset(io.basic.ACLK, ~io.basic.ARESETn) {
-    val AWREADY = RegInit(1.B); io.axiWa.AWREADY := AWREADY
-    val WREADY  = RegInit(0.B); io.axiWd.WREADY  := WREADY
-    val BVALID  = RegInit(0.B); io.axiWr.BVALID  := BVALID
-    val ARREADY = RegInit(1.B); io.axiRa.ARREADY := ARREADY
-    val RVALID  = RegInit(0.B); io.axiRd.RVALID  := RVALID
+    val AWREADY = RegInit(1.B); io.channel.axiWa.AWREADY := AWREADY
+    val WREADY  = RegInit(0.B); io.channel.axiWd.WREADY  := WREADY
+    val BVALID  = RegInit(0.B); io.channel.axiWr.BVALID  := BVALID
+    val ARREADY = RegInit(1.B); io.channel.axiRa.ARREADY := ARREADY
+    val RVALID  = RegInit(0.B); io.channel.axiRd.RVALID  := RVALID
 
-    val RID    = RegInit(0.U(IDLEN.W)); io.axiRd.RID := RID
-    val BID    = RegInit(0.U(IDLEN.W)); io.axiWr.BID := BID
+    val RID    = RegInit(0.U(IDLEN.W)); io.channel.axiRd.RID := RID
+    val BID    = RegInit(0.U(IDLEN.W)); io.channel.axiWr.BID := BID
     val ARADDR = RegInit(0.U(3.W))
     val AWADDR = RegInit(0.U(3.W))
 
     val wireARADDR = WireDefault(UInt(3.W), ARADDR)
 
     val uart_read = Module(new UartRead)
-    uart_read.io.clock := io.basic.ACLK
-    uart_read.io.getc  := 0.B
-    uart_read.io.addr  := wireARADDR
-    io.axiRd.RDATA     := VecInit((0 until 8).map { i => uart_read.io.ch << (8 * i) })(ARADDR)
+    uart_read.io.clock     := io.basic.ACLK
+    uart_read.io.getc      := 0.B
+    uart_read.io.addr      := wireARADDR
+    io.channel.axiRd.RDATA := VecInit((0 until 8).map { i => uart_read.io.ch << (8 * i) })(ARADDR)
 
     val uart_write = Module(new UartWrite)
     uart_write.io.clock := io.basic.ACLK
     uart_write.io.wen   := 0.B
     uart_write.io.waddr := AWADDR
-    uart_write.io.wdata := VecInit((0 until 8).map { i => io.axiWd.WDATA >> (8 * i) })(AWADDR)
+    uart_write.io.wdata := VecInit((0 until 8).map { i => io.channel.axiWd.WDATA >> (8 * i) })(AWADDR)
 
     val uart_int = Module(new UartInt)
     uart_int.io.clock := io.basic.ACLK
     io.interrupt      := uart_int.io.inter
 
-    when(io.axiRd.RVALID && io.axiRd.RREADY) {
+    when(io.channel.axiRd.RVALID && io.channel.axiRd.RREADY) {
       RVALID  := 0.B
       ARREADY := 1.B
-    }.elsewhen(io.axiRa.ARVALID && io.axiRa.ARREADY) {
+    }.elsewhen(io.channel.axiRa.ARVALID && io.channel.axiRa.ARREADY) {
       uart_read.io.getc := 1.B
-      wireARADDR := io.axiRa.ARADDR
+      wireARADDR := io.channel.axiRa.ARADDR
       ARADDR  := wireARADDR
-      RID     := io.axiRa.ARID
+      RID     := io.channel.axiRa.ARID
       ARREADY := 0.B
       RVALID  := 1.B
     }
 
-    when(io.axiWa.AWVALID && io.axiWa.AWREADY) {
-      AWADDR  := io.axiWa.AWADDR
-      BID     := io.axiWa.AWID
+    when(io.channel.axiWa.AWVALID && io.channel.axiWa.AWREADY) {
+      AWADDR  := io.channel.axiWa.AWADDR
+      BID     := io.channel.axiWa.AWID
       AWREADY := 0.B
       WREADY  := 1.B
     }
 
-    when(io.axiWd.WVALID && io.axiWd.WREADY) {
+    when(io.channel.axiWd.WVALID && io.channel.axiWd.WREADY) {
       uart_write.io.wen := 1.B
       WREADY := 0.B
       BVALID := 1.B
     }
 
-    when(io.axiWr.BVALID && io.axiWr.BREADY) {
+    when(io.channel.axiWr.BVALID && io.channel.axiWr.BREADY) {
       AWREADY := 1.B
       BVALID  := 0.B
     }
@@ -169,11 +169,11 @@ class UartReal extends UartWrapper {
   uart16550.io.srx := tty.io.stx
 
   io.basic <> uart16550.io.basic
-  io.axiRa <> uart16550.io.axiRa
-  io.axiRd <> uart16550.io.axiRd
-  io.axiWa <> uart16550.io.axiWa
-  io.axiWd <> uart16550.io.axiWd
-  io.axiWr <> uart16550.io.axiWr
+  io.channel.axiRa <> uart16550.io.channel.axiRa
+  io.channel.axiRd <> uart16550.io.channel.axiRd
+  io.channel.axiWa <> uart16550.io.channel.axiWa
+  io.channel.axiWd <> uart16550.io.channel.axiWd
+  io.channel.axiWr <> uart16550.io.channel.axiWr
 
   io.interrupt <> uart16550.io.interrupt
 }
