@@ -1,4 +1,4 @@
-package cpu
+package peripheral
 
 import chisel3._
 import chisel3.util._
@@ -9,7 +9,7 @@ import cpu.register._
 import cpu.config.GeneralConfig._
 import cpu.config.RegisterConfig._
 import cpu.config.Debug._
-import ExecSpecials._
+import cpu.ExecSpecials._
 
 class PlicIO extends AxiSlaveIO {
   val inter = Input (Vec(1024, Bool()))

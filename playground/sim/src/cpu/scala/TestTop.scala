@@ -6,9 +6,10 @@ import chisel3.util._
 import utest._
 import chisel3.tester._
 
+import peripheral._
 import cpu._
 import cpu.config.GeneralConfig._
-import cpu.peripheral._
+import _root_.peripheral._
 
 class TestTop extends Module {
   val io = IO(new DEBUG)

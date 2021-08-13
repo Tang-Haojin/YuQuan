@@ -1,8 +1,0 @@
-{
-	"files.watcherExclude": {
-		"**/target": true
-	},
-	"files.associations": {
-		"*.class": "cpp"
-	}
-}

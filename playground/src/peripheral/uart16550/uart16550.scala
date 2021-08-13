@@ -1,4 +1,4 @@
-package cpu.peripheral
+package peripheral
 
 import chisel3._
 import chisel3.util._
@@ -38,7 +38,7 @@ class UartAxiSlaveIO extends AxiSlaveIO {
 
 class uart_regs extends BlackBox with HasBlackBoxPath {
   val io = IO(new UregIO)
-  addPath(new File("playground/src/cpu/vsrc/peripheral/uart16550/uart_regs.v").getCanonicalPath)
+  addPath(new File("playground/src/peripheral/uart16550/uart16550/uart_regs.v").getCanonicalPath)
 }
 
 class Uart16550 extends RawModule {

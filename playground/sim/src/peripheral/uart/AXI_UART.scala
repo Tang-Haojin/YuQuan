@@ -1,11 +1,11 @@
-package sim
+package sim.peripheral
 
 import chisel3._
 import chisel3.util._
 
 import tools._
 import cpu.config.GeneralConfig._
-import cpu.peripheral._
+import peripheral._
 
 class UartRead extends BlackBox with HasBlackBoxInline {
   val io = IO(new Bundle {

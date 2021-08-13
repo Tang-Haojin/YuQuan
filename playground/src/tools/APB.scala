@@ -9,9 +9,10 @@ class ApbSlaveIO extends Bundle {
   val PSEL    = Input (Bool())
   val PENABLE = Input (Bool())
   val PREADY  = Output(Bool())
-  val PERR    = Output(Bool())
+  val PSLVERR = Output(Bool())
   val PADDR   = Input (UInt(32.W))
   val PWRITE  = Input (Bool())
   val PRDATA  = Output(UInt(32.W))
   val PWDATA  = Input (UInt(32.W))
+  val PWSTRB  = Input (UInt((32 / 8).W))
 }

@@ -24,21 +24,21 @@ export XLEN = $(xlens)
 UART ?= 0
 ifeq ($(UART),1)
 export UART = 1
-CSRCS  += $(SSRC_DIR)/cpu/csrc/scanKbd.cpp
+CSRCS  += $(SSRC_DIR)/peripheral/uart/scanKbd.cpp
 CFLAGS += -DUART
 else
 export UART = 0
-CSRCS  += $(SSRC_DIR)/cpu/csrc/uart.cpp
+CSRCS  += $(SSRC_DIR)/peripheral/uart/uart.cpp
 endif
 
 ifneq ($(shell cat .config | grep 'UART'),UART=$(UART))
 $(shell rm -rf $(BUILD_DIR) out)
 endif
 
-CSRCS   += $(SSRC_DIR)/sim_main.cpp $(SSRC_DIR)/cpu/csrc/ram.cpp
+CSRCS   += $(SSRC_DIR)/sim_main.cpp $(SSRC_DIR)/peripheral/ram/ram.cpp
 CFLAGS  += -D$(ISA) -pthread -I$(pwd)/$(ROOT_DIR)/sim/include
 LDFLAGS += -pthread
-VFLAGS  += -cc TestTop.v --top TestTop --exe --timescale "1ns/1ns" -Wno-WIDTH -I$(pwd)/$(ROOT_DIR)/src/cpu/vsrc/peripheral
+VFLAGS  += -cc TestTop.v --top TestTop --exe --timescale "1ns/1ns" -Wno-WIDTH -I$(pwd)/$(ROOT_DIR)/src/peripheral/uart16550
 
 TRACE ?= 0
 ifeq ($(TRACE),1)
