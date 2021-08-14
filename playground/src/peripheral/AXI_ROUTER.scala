@@ -32,12 +32,12 @@ class ROUTER extends RawModule {
   io.PLICIO.axiWd.WVALID  := 0.B
   io.PLICIO.axiWr.BREADY  := 0.B
 
-  withClockAndReset(io.basic.ACLK, ~io.basic.ARESETn) {
-    val AWREADY = RegInit(1.B);
-    val WREADY  = RegInit(1.B);
-    val BVALID  = RegInit(0.B);
-    val ARREADY = RegInit(1.B);
-    val RVALID  = RegInit(0.B);
+  withClockAndReset(io.basic.ACLK, !io.basic.ARESETn) {
+    val AWREADY = RegInit(1.B)
+    val WREADY  = RegInit(1.B)
+    val BVALID  = RegInit(0.B)
+    val ARREADY = RegInit(1.B)
+    val RVALID  = RegInit(0.B)
 
     val rdevice = RegInit(0.U(2.W))
     val wdevice = RegInit(0.U(2.W))

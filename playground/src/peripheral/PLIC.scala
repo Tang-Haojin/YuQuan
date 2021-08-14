@@ -1,15 +1,10 @@
 package peripheral
 
 import chisel3._
-import chisel3.util._
 
 import tools._
 
-import cpu.register._
 import cpu.config.GeneralConfig._
-import cpu.config.RegisterConfig._
-import cpu.config.Debug._
-import cpu.ExecSpecials._
 
 class PlicIO extends AxiSlaveIO {
   val inter = Input (Vec(1024, Bool()))
@@ -26,7 +21,7 @@ class Plic extends RawModule {
   io.channel.axiRd.RUSER := DontCare
   io.channel.axiRd.RRESP := 0.U
 
-  withClockAndReset(io.basic.ACLK, ~io.basic.ARESETn) {
+  withClockAndReset(io.basic.ACLK, !io.basic.ARESETn) {
     val AWREADY = RegInit(1.B); io.channel.axiWa.AWREADY := AWREADY
     val WREADY  = RegInit(1.B); io.channel.axiWd.WREADY  := WREADY
     val BVALID  = RegInit(0.B); io.channel.axiWr.BVALID  := BVALID
@@ -76,7 +71,7 @@ class Plic extends RawModule {
       WREADY := 0.B
     }
 
-    when(~io.channel.axiWa.AWREADY && ~io.channel.axiWd.WREADY && ~io.channel.axiWr.BVALID) {
+    when(!io.channel.axiWa.AWREADY && !io.channel.axiWd.WREADY && !io.channel.axiWr.BVALID) {
       AWREADY := 1.B
       WREADY  := 1.B
       BVALID  := 1.B

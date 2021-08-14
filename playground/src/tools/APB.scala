@@ -1,7 +1,6 @@
 package tools
 
 import chisel3._
-import chisel3.util._
 
 class ApbSlaveIO extends Bundle {
   val PRESETn = Input (Bool())

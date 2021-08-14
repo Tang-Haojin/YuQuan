@@ -18,7 +18,7 @@ object playground extends ScalaModule with ScalafmtModule { m =>
     "-P:chiselplugin:useBundlePlugin"
   )
   override def ivyDeps = Agg(
-    ivy"edu.berkeley.cs::chisel3:3.4.3",
+    ivy"edu.berkeley.cs::chisel3:3.4.3"
   )
   override def scalacPluginIvyDeps = Agg(
     ivy"edu.berkeley.cs:::chisel3-plugin:3.4.3",
@@ -27,13 +27,13 @@ object playground extends ScalaModule with ScalafmtModule { m =>
   object test extends Tests with Utest {
     override def ivyDeps = m.ivyDeps() ++ Agg(
       ivy"com.lihaoyi::utest:0.7.10",
-      ivy"edu.berkeley.cs::chiseltest:0.3.3",
+      ivy"edu.berkeley.cs::chiseltest:0.3.3"
     )
   }
   object sim extends Tests with Utest {
     override def ivyDeps = m.ivyDeps() ++ Agg(
       ivy"com.lihaoyi::utest:0.7.10",
-      ivy"edu.berkeley.cs::chiseltest:0.3.3",
+      ivy"edu.berkeley.cs::chiseltest:0.3.3"
     )
   }
 }

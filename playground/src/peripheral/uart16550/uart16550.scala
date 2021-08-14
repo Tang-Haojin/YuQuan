@@ -56,7 +56,7 @@ class Uart16550 extends RawModule {
   io.channel.axiRd.RUSER := DontCare
   io.channel.axiRd.RRESP := 0.U
 
-  withClockAndReset(io.basic.ACLK, ~io.basic.ARESETn) {
+  withClockAndReset(io.basic.ACLK, !io.basic.ARESETn) {
     val AWREADY = RegInit(1.B); io.channel.axiWa.AWREADY := AWREADY
     val WREADY  = RegInit(0.B); io.channel.axiWd.WREADY  := WREADY
     val BVALID  = RegInit(0.B); io.channel.axiWr.BVALID  := BVALID

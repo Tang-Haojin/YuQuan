@@ -1,10 +1,11 @@
-package tools
+package tools.axi2apb
 
 import chisel3._
 import chisel3.util._
-import java.io.File
 
+import java.io.File
 import cpu.config.GeneralConfig._
+import tools._
 
 class Axi2ApbIO extends Bundle {
   val basic = new BASIC
@@ -69,7 +70,7 @@ class inner_axi2apb extends BlackBox with HasBlackBoxPath {
 class Axi2Apb extends RawModule {
   val io = IO(new Axi2ApbIO)
 
-  withClockAndReset(io.basic.ACLK, ~io.basic.ARESETn) {
+  withClockAndReset(io.basic.ACLK, !io.basic.ARESETn) {
     val idle::reading::writing::Nil = Enum(3)
     val state = RegInit(UInt(2.W), idle)
     val wFirst = RegInit(0.B) // to avoid starvation

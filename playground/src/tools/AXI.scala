@@ -1,9 +1,7 @@
 package tools
 
 import chisel3._
-import chisel3.util._
 import cpu.config.GeneralConfig._
-import cpu.config._
 
 // Write address channel signals
 class AXIwa extends Bundle {
@@ -105,4 +103,10 @@ class AxiSlaveChannel extends Bundle {
 class AxiSlaveIO extends Bundle {
   val basic   = new BASIC
   val channel = Flipped(new AxiMasterChannel)
+}
+
+class AxiSelectIO extends Bundle {
+  val input   = Flipped(new AxiMasterChannel)
+  val RamIO   = new AxiMasterChannel
+  val MMIO    = new AxiMasterChannel
 }
