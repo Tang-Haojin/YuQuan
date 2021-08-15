@@ -32,6 +32,7 @@ class IF extends Module {
 
   io.icache.cpuReq.data  := DontCare
   io.icache.cpuReq.rw    := DontCare
+  io.icache.cpuReq.wmask := DontCare
   io.icache.cpuReq.valid := io.nextVR.READY
   io.icache.cpuReq.addr  := wireNewPC
 

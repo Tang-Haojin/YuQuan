@@ -60,6 +60,7 @@ class InternalCPU extends Module {
   val moduleAXIRMux   = Module(new AXIRMux)
 
   val moduleICache = Module(new ICache)
+  val moduleDCache = Module(new DCache)
 
   val moduleIF  = Module(new IF)
   val moduleID  = Module(new ID)
@@ -70,16 +71,16 @@ class InternalCPU extends Module {
   val moduleAXISelect = Module(new AXISelect)
 
   moduleAXIRMux.io.axiRaIn0 <> moduleICache.io.memIO.axiRa
-  moduleAXIRMux.io.axiRaIn1 <> moduleMEM.io.axiRa
+  moduleAXIRMux.io.axiRaIn1 <> moduleDCache.io.memIO.axiRa
   moduleAXIRMux.io.axiRaOut <> moduleAXISelect.io.input.axiRa
 
   moduleAXIRMux.io.axiRdIn0 <> moduleICache.io.memIO.axiRd
-  moduleAXIRMux.io.axiRdIn1 <> moduleMEM.io.axiRd
+  moduleAXIRMux.io.axiRdIn1 <> moduleDCache.io.memIO.axiRd
   moduleAXIRMux.io.axiRdOut <> moduleAXISelect.io.input.axiRd
 
-  moduleAXISelect.io.input.axiWa <> moduleMEM.io.axiWa
-  moduleAXISelect.io.input.axiWd <> moduleMEM.io.axiWd
-  moduleAXISelect.io.input.axiWr <> moduleMEM.io.axiWr
+  moduleAXISelect.io.input.axiWa <> moduleDCache.io.memIO.axiWa
+  moduleAXISelect.io.input.axiWd <> moduleDCache.io.memIO.axiWd
+  moduleAXISelect.io.input.axiWr <> moduleDCache.io.memIO.axiWr
 
   io.memAXI  <> moduleAXISelect.io.RamIO
   io.mmioAXI <> moduleAXISelect.io.MMIO
@@ -100,7 +101,8 @@ class InternalCPU extends Module {
   moduleEX.io.nextVR  <> moduleMEM.io.lastVR
   moduleMEM.io.nextVR <> moduleWB.io.lastVR
 
-  moduleIF.io.icache <> moduleICache.io.cpuIO
+  moduleIF.io.icache  <> moduleICache.io.cpuIO
+  moduleMEM.io.dcache <> moduleDCache.io.cpuIO
 
   moduleBypass.io.request <> moduleGPRs.io.gprsR
   moduleBypass.io.idOut.index  := moduleID.io.output.rd & Fill(5, moduleID.io.nextVR.VALID)
