@@ -9,6 +9,7 @@ SSRC_DIR  = $(pwd)/$(ROOT_DIR)/sim/src
 SRCS      = $(shell find $(ROOT_DIR) | grep -xPo '.*\.(v|c|h|cpp|hpp|scala)')
 ALL_C     = $(shell echo $(SRCS) | grep -xPo '.*\.(c|h|cpp|hpp)')
 ALL_SCALA = $(shell echo $(SRCS) | grep -xPo '.*\.(v|scala)')
+CPU_NUM   = $(shell echo $$((`lscpu -p=CORE | tail -n 1` + 1)))
 $(shell mkdir $(ROOT_DIR)/sim/bin $(NO_ERR))
 $(shell cat .config >>/dev/null 2>&1 || echo >.config)
 
@@ -38,11 +39,11 @@ endif
 CSRCS   += $(SSRC_DIR)/sim_main.cpp $(SSRC_DIR)/sim/peripheral/ram/ram.cpp
 CFLAGS  += -D$(ISA) -pthread -I$(pwd)/$(ROOT_DIR)/sim/include
 LDFLAGS += -pthread
-VFLAGS  += -cc TestTop.v --top TestTop --exe --timescale "1ns/1ns" -Wno-WIDTH -I$(pwd)/$(ROOT_DIR)/src/peripheral/uart16550
+VFLAGS  += -cc TestTop.v --top TestTop --exe --timescale "1ns/1ns" -Wno-WIDTH -I$(pwd)/$(ROOT_DIR)/src/peripheral/uart16550 -j $(CPU_NUM) -O3 # --threads $(CPU_NUM)
 
 TRACE ?= 0
 ifeq ($(TRACE),1)
-VFLAGS += --trace-fst
+VFLAGS += --trace-fst --trace-threads 2
 CFLAGS += -DTRACE
 endif
 
