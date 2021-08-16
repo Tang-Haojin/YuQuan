@@ -12,23 +12,18 @@ class IF extends Module {
     val icache = Flipped(new CpuIO)
     val nextVR = Flipped(new LastVR)
     val output = new IFOutput
-    val jmpBch = Input (Bool())
-    val jbAddr = Input (UInt(XLEN.W))
+    val jmpBch = Input(Bool())
+    val jbAddr = Input(UInt(XLEN.W))
   })
 
   val instr  = RegInit(0x00000013.U(32.W))
   val pc     = RegInit(MEMBase.U(XLEN.W))
   val NVALID = RegInit(0.B)
 
-  val wireInstr  = WireDefault(UInt(32.W), instr)
-  val wirePC     = WireDefault(UInt(XLEN.W), pc - 4.U)
-  val wireNVALID = WireDefault(Bool(), NVALID)
+  val wireInstr  = WireDefault(UInt(32.W), instr);      io.output.instr := wireInstr
+  val wirePC     = WireDefault(UInt(XLEN.W), pc - 4.U); io.output.pc    := wirePC
+  val wireNVALID = WireDefault(Bool(), NVALID);         io.nextVR.VALID := wireNVALID
   val wireNewPC  = WireDefault(UInt(XLEN.W), pc)
-
-  io.nextVR.VALID := wireNVALID
-
-  io.output.instr := wireInstr
-  io.output.pc    := wirePC
 
   io.icache.cpuReq.data  := DontCare
   io.icache.cpuReq.rw    := DontCare
@@ -43,19 +38,15 @@ class IF extends Module {
     wirePC     := pc
     wireNewPC  := pc + 4.U
     wireNVALID := 1.B
-    when(!io.nextVR.READY) {
-      NVALID := 1.B
-    }
-    when(io.jmpBch && io.nextVR.READY && io.nextVR.VALID) {
-      wireNewPC := io.jbAddr
-      pc        := io.jbAddr
-    }
-  }.elsewhen(io.jmpBch && io.nextVR.READY && io.nextVR.VALID) {
+    when(!io.icache.cpuReq.valid) { NVALID := 1.B }
+  }
+
+  when(io.jmpBch && io.nextVR.READY && io.nextVR.VALID) {
     wireNewPC := io.jbAddr
     pc        := io.jbAddr
   }
 
-  when(io.nextVR.READY && io.nextVR.VALID) {
+  when(io.nextVR.READY && io.nextVR.VALID && !io.icache.cpuResult.ready) {
     NVALID := 0.B
   }
 

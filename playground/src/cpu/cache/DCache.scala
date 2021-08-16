@@ -53,14 +53,13 @@ class DCache extends Module {
   val ramTag   = SyncReadMem(IndexSize, Vec(Associativity, UInt(Tag.W)))
   val ramData  = SyncReadMem(IndexSize, Vec(Associativity, UInt((BlockSize * 8).W)))
 
-  val ren = WireDefault(0.B)
   val hit = WireDefault(0.B)
   val grp = WireDefault(0.U(log2Ceil(Associativity).W))
 
-  val valid = ramValid.read(addrIndex, ren)
-  val dirty = ramDirty.read(addrIndex, ren)
-  val tag   = ramTag  .read(addrIndex, ren)
-  val data  = ramData .read(addrIndex, ren)
+  val valid = ramValid.read(addrIndex, 1.B)
+  val dirty = ramDirty.read(addrIndex, 1.B)
+  val tag   = ramTag  .read(addrIndex, 1.B)
+  val data  = ramData .read(addrIndex, 1.B)
 
   val way = RegInit(0.U(log2Ceil(Associativity).W))
   val wireWay = WireDefault(UInt(log2Ceil(Associativity).W), way)
@@ -105,7 +104,6 @@ class DCache extends Module {
       reqRw     := io.cpuIO.cpuReq.rw
       reqWMask  := io.cpuIO.cpuReq.wmask
       addrIndex := io.cpuIO.cpuReq.addr(Index + Offset - 1, Offset)
-      ren       := 1.B
       way       := rand
       when(isPeripheral) { state := passing }
     }

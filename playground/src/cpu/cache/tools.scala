@@ -2,9 +2,9 @@ package cpu.cache
 
 import chisel3._
 import chisel3.util._
-import cpu.config.CacheConfig.DCache._
 import cpu.config.GeneralConfig._
 import tools.AxiMasterChannel
+import tools.AxiMasterReadChannel
 
 // CPU -> Cache Controller
 class CpuReq extends Bundle {
@@ -51,6 +51,7 @@ object IsPeripheral {
 }
 
 class WbBuffer(memIO: AxiMasterChannel, sendData: UInt, sendAddr: UInt) {
+  import cpu.config.CacheConfig.DCache._
   val used   = RegInit(0.B)
   val buffer = RegInit(0.U((BlockSize * 8).W))
   val ready  = RegInit(1.B)
@@ -200,4 +201,32 @@ object PassThrough {
    * @param rw Read or Write request
    */
   def apply(memIO: AxiMasterChannel, wbFree: Bool, addr: UInt, wdata: UInt, wstrb: UInt, rw: Bool): PassThrough = new PassThrough(memIO, wbFree, addr, wdata, wstrb, rw)
+}
+
+class ICacheMemIODefault(memIO: AxiMasterReadChannel, arValid: Bool, arAddr: UInt, rReady: Bool) {
+  import cpu.config.CacheConfig.ICache._
+  memIO.axiRa.ARID     := 0.U // 0 for IF
+  memIO.axiRa.ARLEN    := (BurstLen - 1).U // (ARLEN + 1) AXI Burst per AXI Transfer (a.k.a. AXI Beat)
+  memIO.axiRa.ARSIZE   := AxSIZE.U // 2^(ARSIZE) bytes per AXI Transfer
+  memIO.axiRa.ARBURST  := 1.U // 1 for INCR type
+  memIO.axiRa.ARLOCK   := 0.U // since we do not use it yet
+  memIO.axiRa.ARCACHE  := 0.U // since we do not use it yet
+  memIO.axiRa.ARPROT   := 0.U // since we do not use it yet
+  memIO.axiRa.ARQOS    := DontCare
+  memIO.axiRa.ARUSER   := DontCare
+  memIO.axiRa.ARREGION := DontCare
+  memIO.axiRa.ARVALID  := arValid
+  memIO.axiRa.ARADDR   := arAddr
+
+  memIO.axiRd.RREADY := rReady
+}
+
+object ICacheMemIODefault {
+  /** Construct an [[ICacheMemIODefault]]
+   * @param memIO An [[AxiMasterReadChannel]] IO interface
+   * @param arValid Default `ARVALID` for AXI
+   * @param arAddr Default `ARADDR` for AXI
+   * @param rReady Default `RREADY` for AXI
+   */
+  def apply(memIO: AxiMasterReadChannel, arValid: Bool, arAddr: UInt, rReady: Bool): ICacheMemIODefault = new ICacheMemIODefault(memIO, arValid, arAddr, rReady)
 }
