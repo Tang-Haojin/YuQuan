@@ -65,7 +65,7 @@ class DCache extends Module {
   val wireWay = WireDefault(UInt(log2Ceil(Associativity).W), way)
 
   val wbBuffer    = WbBuffer(io.memIO, data(wireWay), tag(way) ## addrIndex ## 0.U(Offset.W))
-  val passThrough = PassThrough(io.memIO, wbBuffer.ready, addr, reqData, reqWMask, reqRw)
+  val passThrough = PassThrough(false)(io.memIO, wbBuffer.ready, addr, reqData, reqWMask, reqRw)
 
   val inBuffer = RegInit(VecInit(Seq.fill(BurstLen - 1)(0.U(XLEN.W))))
 
@@ -161,4 +161,8 @@ class DCache extends Module {
     wen(wireWay) := 1.B
     vecWdata(wireWay) := wbBuffer.buffer
   }
+}
+
+object DCache {
+  def apply(): DCache = Module(new DCache)
 }

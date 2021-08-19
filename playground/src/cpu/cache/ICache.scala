@@ -11,11 +11,11 @@ import chisel3.util.random._
 class ICache extends Module {
   val io = IO(new Bundle {
     val cpuIO = new CpuIO
-    val memIO = new AxiMasterReadChannel
+    val memIO = new AxiMasterChannel
   })
 
   val rand = GaloisLFSR.maxPeriod(2)
-  val idle::compare::allocate::Nil = Enum(3)
+  val idle::compare::allocate::passing::Nil = Enum(4)
   val state = RegInit(UInt(2.W), idle)
   val received = RegInit(0.U(LogBurstLen.W))
 
@@ -63,7 +63,13 @@ class ICache extends Module {
     addrIndex := io.cpuIO.cpuReq.addr(Index + Offset - 1, Offset)
   }
 
-  when(state === idle && io.cpuIO.cpuReq.valid) { state := compare }
+  val isPeripheral = IsPeripheral(io.cpuIO.cpuReq.addr)
+  val passThrough = PassThrough(true)(io.memIO, 0.B, addr, 0.U, 0.U, 0.B)
+
+  when(state === idle && io.cpuIO.cpuReq.valid) {
+    state := compare
+    when(isPeripheral) { state := passing }
+  }
   when(state === compare) {
     ARVALID := 1.B
     state   := allocate
@@ -71,7 +77,10 @@ class ICache extends Module {
     when(hit) {
       state := idle
       ARVALID := 0.B
-      when(io.cpuIO.cpuReq.valid) { state := compare }
+      when(io.cpuIO.cpuReq.valid) {
+        state := compare
+        when(isPeripheral) { state := passing }
+      }
     }
     for (i <- 0 until Associativity)
       when(valid(i.U)) { when(tag(i.U) === addrTag) { hit := 1.B; grp := i.U } }
@@ -92,5 +101,30 @@ class ICache extends Module {
       ARVALID := 0.B
       RREADY  := 1.B
     }
+  }
+  when(state === passing) {
+    hit := passThrough.finish
+    passThrough.valid := 1.B
+    io.cpuIO.cpuResult.data := passThrough.rdata
+    when(addr(2)) {
+      io.cpuIO.cpuResult.data := passThrough.rdata(63, 32)
+    }
+    when(hit) {
+      state := idle
+      when(io.cpuIO.cpuReq.valid) {
+        state := compare
+        when(isPeripheral) { state := passing }
+      }
+    }
+  }
+}
+
+object ICache {
+  def apply(): ICache = {
+    val t = Module(new ICache)
+    t.io.memIO.axiWa := DontCare
+    t.io.memIO.axiWd := DontCare
+    t.io.memIO.axiWr := DontCare
+    t
   }
 }

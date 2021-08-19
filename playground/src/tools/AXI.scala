@@ -84,12 +84,10 @@ class AxiMasterReadChannel extends Bundle {
   val axiRd = new AXIrd
 }
 
-class AxiMasterChannel extends Bundle {
+class AxiMasterChannel extends AxiMasterReadChannel {
   val axiWa = new AXIwa
   val axiWd = new AXIwd
   val axiWr = new AXIwr
-  val axiRa = new AXIra
-  val axiRd = new AXIrd
 }
 
 class AxiSlaveChannel extends Bundle {

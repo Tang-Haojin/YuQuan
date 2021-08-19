@@ -120,14 +120,10 @@ object WbBuffer {
   def apply(memIO: AxiMasterChannel, sendData: UInt, sendAddr: UInt): WbBuffer = new WbBuffer(memIO, sendData, sendAddr)
 }
 
-class PassThrough(memIO: AxiMasterChannel, wbFree: Bool, addr: UInt, wdata: UInt, wstrb: UInt, rw: Bool) {
+class PassThrough(readonly: Boolean)(var memIO: AxiMasterChannel, wbFree: Bool, addr: UInt, wdata: UInt, wstrb: UInt, var rw: Bool) {
   val ready  = RegInit(1.B)
   val valid  = WireDefault(0.B)
   val finish = WireDefault(0.B)
-
-  private val AWVALID = RegInit(1.B)
-  private val WVALID  = RegInit(1.B)
-  private val BREADY  = RegInit(0.B)
 
   private val ARVALID = RegInit(1.B)
   private val RREADY  = RegInit(0.B)
@@ -135,39 +131,47 @@ class PassThrough(memIO: AxiMasterChannel, wbFree: Bool, addr: UInt, wdata: UInt
   private val regRdata = RegInit(0.U(XLEN.W))
   val rdata = WireDefault(UInt(XLEN.W), regRdata)
 
+  if (readonly) rw = 0.B
+
   when((ready && valid) || !ready) {
     ready := 0.B
-    when(rw) {
-      when(wbFree) {
-        memIO.axiWa.AWVALID := AWVALID
-        memIO.axiWa.AWLEN   := 0.U
-        memIO.axiWa.AWSIZE  := AxSIZE.U
-        memIO.axiWa.AWADDR  := addr
+    if (!readonly) {
+      val AWVALID = RegInit(1.B)
+      val WVALID  = RegInit(1.B)
+      val BREADY  = RegInit(0.B)
+      when(rw) {
+        when(wbFree) {
+          memIO.axiWa.AWVALID := AWVALID
+          memIO.axiWa.AWLEN   := 0.U
+          memIO.axiWa.AWSIZE  := AxSIZE.U
+          memIO.axiWa.AWADDR  := addr
 
-        memIO.axiWd.WVALID  := WVALID
-        memIO.axiWd.WLAST   := 1.B
-        memIO.axiWd.WDATA   := wdata
-        memIO.axiWd.WSTRB   := wstrb
+          memIO.axiWd.WVALID  := WVALID
+          memIO.axiWd.WLAST   := 1.B
+          memIO.axiWd.WDATA   := wdata
+          memIO.axiWd.WSTRB   := wstrb
 
-        memIO.axiWr.BREADY  := BREADY
+          memIO.axiWr.BREADY  := BREADY
 
-        when(memIO.axiWa.AWREADY && memIO.axiWa.AWVALID) {
-          AWVALID := 0.B
-          when(!WVALID) { BREADY := 1.B }
-        }
-        when(memIO.axiWd.WREADY && memIO.axiWd.WVALID) {
-          WVALID := 0.B
-          when(!AWVALID || (memIO.axiWa.AWREADY && memIO.axiWa.AWVALID)) { BREADY := 1.B }
-        }
-        when(memIO.axiWr.BREADY && memIO.axiWr.BVALID) {
-          ready   := 1.B
-          finish  := 1.B
-          AWVALID := 1.B
-          WVALID  := 1.B
-          BREADY  := 0.B
+          when(memIO.axiWa.AWREADY && memIO.axiWa.AWVALID) {
+            AWVALID := 0.B
+            when(!WVALID) { BREADY := 1.B }
+          }
+          when(memIO.axiWd.WREADY && memIO.axiWd.WVALID) {
+            WVALID := 0.B
+            when(!AWVALID || (memIO.axiWa.AWREADY && memIO.axiWa.AWVALID)) { BREADY := 1.B }
+          }
+          when(memIO.axiWr.BREADY && memIO.axiWr.BVALID) {
+            ready   := 1.B
+            finish  := 1.B
+            AWVALID := 1.B
+            WVALID  := 1.B
+            BREADY  := 0.B
+          }
         }
       }
-    }.otherwise {
+    }
+    when(!rw) {
       memIO.axiRa.ARVALID := ARVALID
       memIO.axiRa.ARLEN   := 0.U
       memIO.axiRa.ARSIZE  := AxSIZE.U
@@ -193,6 +197,7 @@ class PassThrough(memIO: AxiMasterChannel, wbFree: Bool, addr: UInt, wdata: UInt
 
 object PassThrough {
   /** Construct a [[PassThrough]]
+   * @param readonly Whether the [[PassThrough]] readonly
    * @param memIO An [[AxiMasterChannel]] IO interface
    * @param wbFree `ready` bit of [[WbBuffer]]
    * @param addr Address to read or write
@@ -200,10 +205,10 @@ object PassThrough {
    * @param wstrb Write data byte mask
    * @param rw Read or Write request
    */
-  def apply(memIO: AxiMasterChannel, wbFree: Bool, addr: UInt, wdata: UInt, wstrb: UInt, rw: Bool): PassThrough = new PassThrough(memIO, wbFree, addr, wdata, wstrb, rw)
+  def apply(readonly: Boolean)(memIO: AxiMasterChannel, wbFree: Bool, addr: UInt, wdata: UInt, wstrb: UInt, rw: Bool): PassThrough = new PassThrough(readonly)(memIO, wbFree, addr, wdata, wstrb, rw)
 }
 
-class ICacheMemIODefault(memIO: AxiMasterReadChannel, arValid: Bool, arAddr: UInt, rReady: Bool) {
+class ICacheMemIODefault(memIO: AxiMasterChannel, arValid: Bool, arAddr: UInt, rReady: Bool) {
   import cpu.config.CacheConfig.ICache._
   memIO.axiRa.ARID     := 0.U // 0 for IF
   memIO.axiRa.ARLEN    := (BurstLen - 1).U // (ARLEN + 1) AXI Burst per AXI Transfer (a.k.a. AXI Beat)
@@ -219,14 +224,18 @@ class ICacheMemIODefault(memIO: AxiMasterReadChannel, arValid: Bool, arAddr: UIn
   memIO.axiRa.ARADDR   := arAddr
 
   memIO.axiRd.RREADY := rReady
+
+  memIO.axiWa := DontCare
+  memIO.axiWd := DontCare
+  memIO.axiWr := DontCare
 }
 
 object ICacheMemIODefault {
   /** Construct an [[ICacheMemIODefault]]
-   * @param memIO An [[AxiMasterReadChannel]] IO interface
+   * @param memIO An [[AxiMasterChannel]] IO interface
    * @param arValid Default `ARVALID` for AXI
    * @param arAddr Default `ARADDR` for AXI
    * @param rReady Default `RREADY` for AXI
    */
-  def apply(memIO: AxiMasterReadChannel, arValid: Bool, arAddr: UInt, rReady: Bool): ICacheMemIODefault = new ICacheMemIODefault(memIO, arValid, arAddr, rReady)
+  def apply(memIO: AxiMasterChannel, arValid: Bool, arAddr: UInt, rReady: Bool): ICacheMemIODefault = new ICacheMemIODefault(memIO, arValid, arAddr, rReady)
 }

@@ -59,7 +59,7 @@ class InternalCPU extends Module {
   val moduleBypassCsr = Module(new BypassCsr)
   val moduleAXIRMux   = Module(new AXIRMux)
 
-  val moduleICache = Module(new ICache)
+  val moduleICache = ICache()
   val moduleDCache = Module(new DCache)
 
   val moduleIF  = Module(new IF)
