@@ -36,10 +36,24 @@ ifneq ($(shell cat .config | grep 'UART'),UART=$(UART))
 $(shell rm -rf $(BUILD_DIR) out)
 endif
 
-CSRCS   += $(SSRC_DIR)/sim_main.cpp $(SSRC_DIR)/sim/peripheral/ram/ram.cpp
+FLASH ?= 0
+ifeq ($(FLASH),1)
+export FLASH = 1
+CFLAGS += -DFLASH
+else
+export FLASH = 0
+endif
+
+ifneq ($(shell cat .config | grep 'FLASH'),FLASH=$(FLASH))
+$(shell rm -rf $(BUILD_DIR))
+endif
+
+CSRCS   += $(SSRC_DIR)/sim_main.cpp $(SSRC_DIR)/sim/peripheral/ram/ram.cpp $(SSRC_DIR)/sim/peripheral/spiFlash/spiFlash.cpp
 CFLAGS  += -D$(ISA) -pthread -I$(pwd)/$(ROOT_DIR)/sim/include
 LDFLAGS += -pthread
-VFLAGS  += -cc TestTop.v --top TestTop --exe --timescale "1ns/1ns" -Wno-WIDTH -I$(pwd)/$(ROOT_DIR)/src/peripheral/uart16550 -j $(CPU_NUM) -O3 # --threads $(CPU_NUM)
+VFLAGS  += -cc TestTop.v --top TestTop --exe --timescale "1ns/1ns" -Wno-WIDTH 
+VFLAGS  += -I$(pwd)/$(ROOT_DIR)/src/peripheral/uart16550 -I$(pwd)/$(ROOT_DIR)/src/tools/axi2apb/inner -I$(pwd)/$(ROOT_DIR)/src/peripheral/spi/rtl -j $(CPU_NUM) -O3
+VFLAGS  += -I$(SSRC_DIR)/sim/peripheral/spiFlash
 
 TRACE ?= 0
 ifeq ($(TRACE),1)
@@ -71,6 +85,7 @@ endif
 
 ifneq ($(BIN),)
 BINFILE = $(pwd)/$(ROOT_DIR)/sim/bin/$(BIN)-$(ISA)-nemu.bin
+FLASHBINFILE = $(pwd)/$(ROOT_DIR)/sim/bin/$(BIN)~flash-$(ISA)-nemu.bin
 ifeq ($(wildcard $(BINFILE)),)
 $(shell wget $(site)/$(BIN)-$(ISA)-nemu.bin -O $(BINFILE) || rm $(BINFILE))
 endif
@@ -112,13 +127,14 @@ $(BUILD_DIR)/sim/*.v: $(ALL_SCALA)
 	@echo DIFF=$(DIFF) >.config
 	@echo UART=$(UART) >>.config
 	@echo TRACE=$(TRACE) >>.config
+	@echo FLASH=$(FLASH) >>.config
 
 $(BUILD_DIR)/sim/obj_dir/VTestTop: $(BUILD_DIR)/sim/*.v $(ALL_C)
 	@cd $(BUILD_DIR)/sim && \
 	verilator $(VFLAGS) --build $(CSRCS) -CFLAGS "$(CFLAGS)" -LDFLAGS "$(LDFLAGS)" >/dev/null
 
 sim: $(BUILD_DIR)/sim/obj_dir/VTestTop
-	@$(BUILD_DIR)/sim/obj_dir/VTestTop $(BINFILE)
+	@$(BUILD_DIR)/sim/obj_dir/VTestTop $(BINFILE) $(FLASHBINFILE)
 
 simall: $(BUILD_DIR)/sim/obj_dir/VTestTop
 	@for x in $(SIMBIN); do \

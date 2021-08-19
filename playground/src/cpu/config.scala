@@ -2,6 +2,7 @@ package cpu.config
 
 import chisel3.util._
 import GeneralConfig._
+import tools._
 
 object GeneralConfig {
   val AluTypeWidth = 5
@@ -10,7 +11,10 @@ object GeneralConfig {
   val IDLEN      = 4
   val AxSIZE     = log2Ceil(XLEN / 8)
   val HasRVM     = true
-  val MEMBase    = 0x80100000L
+  val UseFlash   = sys.env.getOrElse("FLASH", 0).toString.toInt != 0
+  val RamBase    = 0x80100000L
+  val RamSize    = 100 * 1024 * 1024
+  val MEMBase    = if (UseFlash) SPI.BASE + 0x100000L else RamBase
   val MEMSize    = 100 * 1024 * 1024
   val Extensions = List('I', 'M')
   val IsRealUart = sys.env.getOrElse("UART", 0).toString.toInt != 0
@@ -18,26 +22,36 @@ object GeneralConfig {
   val IALIGN = 32 // compressed instructions are not implemented yet
   val ILEN = 32 // base instruction set supported only
 
-  object UART0_MMIO {
-    val BASE = 0x10000000L
-    val SIZE = 100
+  object UART extends MMAP {
+    override val BASE = 0x10000000L
+    override val SIZE = 100L
   }
 
-  object CLINT {
-    val CLINT = 0x2000000L
-    val CLINT_SIZE = 0x10000
-    val MTIMECMP = (hartid: Int) => CLINT + 0x4000 + 8 * hartid
-    val MTIME = CLINT + 0xBFF8
+  object CLINT extends MMAP {
+    override val BASE = 0x2000000L
+    override val SIZE = 0x10000L
+    val MTIMECMP = (hartid: Int) => BASE + 0x4000 + 8 * hartid
+    val MTIME = BASE + 0xBFF8
   }
 
-  object PLIC {
-    val PLIC = 0xc000000L
-    val PLIC_SIZE = 0x4000000L
-    val Isp = (source: Int) => PLIC + 4 * source // Interrupt source n priority
-    val Ipb = (source: Int) => PLIC + 0x1000 + 4 * (source / 32) // Interrupt Pending bit
-    val Ieb = (source: Int, context: Int) => PLIC + 0x2000 + 0x80 * context + 4 * (source / 32) // Interrupt Enable Bits
-    val Ipt = (context: Int) => PLIC + 0x200000 + 0x1000 * context
+  object PLIC extends MMAP {
+    override val BASE = 0xc000000L
+    override val SIZE = 0x4000000L
+    val Isp = (source: Int) => BASE + 4 * source // Interrupt source n priority
+    val Ipb = (source: Int) => BASE + 0x1000 + 4 * (source / 32) // Interrupt Pending bit
+    val Ieb = (source: Int, context: Int) => BASE + 0x2000 + 0x80 * context + 4 * (source / 32) // Interrupt Enable Bits
+    val Ipt = (context: Int) => BASE + 0x200000 + 0x1000 * context
     val Ic  = (context: Int) => Ipt(context) + 4
+  }
+
+  object SPI extends MMAP {
+    override val BASE = 0x20000000L
+    override val SIZE = 0x8000000L
+  }
+
+  object NEMU_UART extends MMAP {
+    override val BASE = 0xA10003F8L
+    override val SIZE = 0x1L
   }
 }
 

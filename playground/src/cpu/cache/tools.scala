@@ -29,13 +29,19 @@ class CpuIO extends Bundle {
 
 class IsPeripheral(addr: UInt) {
   val isPeripheral = WireDefault(0.B)
-  when((addr >= UART0_MMIO.BASE.U) && (addr < (UART0_MMIO.BASE + UART0_MMIO.SIZE).U)) {
+  when((addr >= UART.BASE.U) && (addr < (UART.BASE + UART.SIZE).U)) {
     isPeripheral := 1.B
   }
-  when((addr >= CLINT.CLINT.U) && (addr < (CLINT.CLINT + CLINT.CLINT_SIZE).U)) {
+  when((addr >= CLINT.BASE.U) && (addr < (CLINT.BASE + CLINT.SIZE).U)) {
     isPeripheral := 1.B
   }
-  when((addr >= PLIC.PLIC.U) && (addr < (PLIC.PLIC + PLIC.PLIC_SIZE).U)) {
+  when((addr >= PLIC.BASE.U) && (addr < (PLIC.BASE + PLIC.SIZE).U)) {
+    isPeripheral := 1.B
+  }
+  when((addr >= SPI.BASE.U) && (addr < (SPI.BASE + SPI.SIZE).U)) {
+    isPeripheral := 1.B
+  }
+  when((addr >= NEMU_UART.BASE.U) && (addr < (NEMU_UART.BASE + NEMU_UART.SIZE).U)) {
     isPeripheral := 1.B
   }
 }

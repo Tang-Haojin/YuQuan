@@ -25,6 +25,12 @@ class AXISelect extends Module {
   io.MMIO.axiWd.WVALID  := 0.B
   io.MMIO.axiWr.BREADY  := 0.B
 
+  io.input.axiRa.ARREADY := 0.B
+  io.input.axiRd.RVALID  := 0.B
+  io.input.axiWa.AWREADY := 0.B
+  io.input.axiWd.WREADY  := 0.B
+  io.input.axiWr.BVALID  := 0.B
+
   val AWREADY = RegInit(1.B)
   val WREADY  = RegInit(1.B)
   val BVALID  = RegInit(0.B)
@@ -33,16 +39,26 @@ class AXISelect extends Module {
 
   val rdevice = RegInit(0.U(1.W))
   val wdevice = RegInit(0.U(1.W))
-  val wireRdevice = WireDefault(0.U(1.W))
-  val wireWdevice = WireDefault(0.U(1.W))
+  val wireRdevice = WireDefault(UInt(1.W), rdevice)
+  val wireWdevice = WireDefault(UInt(1.W), wdevice)
 
-  when(wireRdevice === mem) {
+  when(
+    (io.input.axiRa.ARADDR >= RamBase.U) &&
+    (io.input.axiRa.ARADDR < (RamBase + RamSize).U)
+  ) { wireRdevice := mem }.otherwise { wireRdevice := mmio }
+
+  when(
+    (io.input.axiWa.AWADDR >= RamBase.U) &&
+    (io.input.axiWa.AWADDR < (RamBase + RamSize).U)
+  ) { wireWdevice := mem }.otherwise { wireWdevice := mmio }
+
+  when((wireRdevice === mem) && ARREADY) {
     io.input.axiRa <> io.RamIO.axiRa
-    io.input.axiRa.ARREADY := ARREADY && io.RamIO.axiRa.ARREADY
+    io.input.axiRa.ARREADY := io.RamIO.axiRa.ARREADY
   }
-  when(wireRdevice === mmio) {
+  when((wireRdevice === mmio) && ARREADY) {
     io.input.axiRa <> io.MMIO.axiRa
-    io.input.axiRa.ARREADY := ARREADY && io.MMIO.axiRa.ARREADY
+    io.input.axiRa.ARREADY := io.MMIO.axiRa.ARREADY
   }
 
   when(rdevice === mem) {
@@ -54,17 +70,21 @@ class AXISelect extends Module {
     io.input.axiRd.RVALID := RVALID && io.MMIO.axiRd.RVALID
   }
 
-  when(wireWdevice === mem) {
+  when((wireWdevice === mem) && AWREADY) {
     io.input.axiWa <> io.RamIO.axiWa
-    io.input.axiWd <> io.RamIO.axiWd
-    io.input.axiWa.AWREADY := AWREADY && io.input.axiWa.AWVALID && io.RamIO.axiWa.AWREADY
-    io.input.axiWd.WREADY  := WREADY  && io.input.axiWd.WVALID  && io.RamIO.axiWd.WREADY
+    io.input.axiWa.AWREADY := io.input.axiWa.AWVALID && io.RamIO.axiWa.AWREADY
   }
-  when(wireWdevice === mmio) {
+  when((wireWdevice === mmio) && AWREADY) {
     io.input.axiWa <> io.MMIO.axiWa
+    io.input.axiWa.AWREADY := io.input.axiWa.AWVALID && io.MMIO.axiWa.AWREADY
+  }
+  when((wireWdevice === mem) && WREADY) {
+    io.input.axiWd <> io.RamIO.axiWd
+    io.input.axiWd.WREADY := io.input.axiWd.WVALID  && io.RamIO.axiWd.WREADY
+  }
+  when((wireWdevice === mmio) && WREADY) {
     io.input.axiWd <> io.MMIO.axiWd
-    io.input.axiWa.AWREADY := AWREADY && io.input.axiWa.AWVALID && io.MMIO.axiWa.AWREADY
-    io.input.axiWd.WREADY  := WREADY  && io.input.axiWd.WVALID  && io.MMIO.axiWd.WREADY
+    io.input.axiWd.WREADY := io.input.axiWd.WVALID  && io.MMIO.axiWd.WREADY
   }
 
   when(wdevice === mem) {
@@ -93,6 +113,7 @@ class AXISelect extends Module {
   }
 
   when(io.input.axiWd.WVALID && io.input.axiWd.WREADY && io.input.axiWd.WLAST) {
+    // TODO: What if write data transfer before write address? We need a buffer.
     WREADY := 0.B
     BVALID := 1.B
   }
@@ -102,14 +123,4 @@ class AXISelect extends Module {
     WREADY  := 1.B
     BVALID  := 0.B
   }
-
-  when(
-    (io.input.axiRa.ARADDR >= MEMBase.U) &&
-    (io.input.axiRa.ARADDR < (MEMBase + MEMSize).U)
-  ) { wireRdevice := mem }.otherwise { wireRdevice := mmio }
-
-  when(
-    (io.input.axiWa.AWADDR >= MEMBase.U) &&
-    (io.input.axiWa.AWADDR < (MEMBase + MEMSize).U)
-  ) { wireWdevice := mem }.otherwise { wireWdevice := mmio }
 }

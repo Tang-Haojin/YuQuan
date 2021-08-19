@@ -131,6 +131,7 @@ vaddr_t isa_exec_once();
 void scan_uart(_init)(void);
 void ram_init(char *img);
 extern bool scan_uart(_isRunning);
+void flash_init(char *img);
 
 }
 

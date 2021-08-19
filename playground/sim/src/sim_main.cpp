@@ -40,6 +40,11 @@ int main(int argc, char **argv, char **env) {
   int ret = 0;
   scan_uart(_init)();
   ram_init(argv[1]);
+
+#ifdef FLASH
+  flash_init(argv[2]);
+#endif
+
   VTestTop *top = new VTestTop;
 #ifdef TRACE
   contextp->traceEverOn(true);

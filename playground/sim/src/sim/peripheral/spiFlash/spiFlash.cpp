@@ -30,7 +30,7 @@ static uint8_t pmem[PMEM_SIZE] PG_ALIGN = {};
 extern "C" void flash_read(uint64_t addr, uint64_t *data) {
   if (!data) return;
   Assert(in_pmem(addr), "Flash address 0x%lx out of bound", addr);
-  *data = in_pmem(addr) ? *(uint64_t *)(pmem + addr) : 0xBB;
+  *data = in_pmem(addr) ? *(uint64_t *)(pmem + addr - 0x100000) : 0xBB;
 }
 
 extern "C" void flash_init(char *img) {

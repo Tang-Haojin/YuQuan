@@ -117,7 +117,7 @@ class RAM extends RawModule {
       }
     }.elsewhen(io.channel.axiRa.ARVALID && io.channel.axiRa.ARREADY) {
       RID        := io.channel.axiRa.ARID
-      wireARADDR := io.channel.axiRa.ARADDR(ALEN - 1, AxSIZE) ## 0.U(AxSIZE.W) - MEMBase.U
+      wireARADDR := io.channel.axiRa.ARADDR(ALEN - 1, AxSIZE) ## 0.U(AxSIZE.W) - RamBase.U
       ARADDR     := wireARADDR
       ARREADY    := 0.B
       RVALID     := 1.B
@@ -126,7 +126,7 @@ class RAM extends RawModule {
     }
 
     when(io.channel.axiWa.AWVALID && io.channel.axiWa.AWREADY) {
-      AWADDR  := io.channel.axiWa.AWADDR(ALEN - 1, AxSIZE) ## 0.U(AxSIZE.W) - MEMBase.U
+      AWADDR  := io.channel.axiWa.AWADDR(ALEN - 1, AxSIZE) ## 0.U(AxSIZE.W) - RamBase.U
       BID     := io.channel.axiWa.AWID
       AWREADY := 0.B
       WREADY  := 1.B

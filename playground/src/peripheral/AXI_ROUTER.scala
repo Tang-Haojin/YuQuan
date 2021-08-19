@@ -7,30 +7,34 @@ import tools._
 import cpu.config.GeneralConfig._
 
 class AxiRouterIO extends Bundle {
-  val basic   = new BASIC
-  val input   = Flipped(new AxiMasterChannel)
-  val Uart0IO = new AxiMasterChannel
-  val PLICIO  = new AxiMasterChannel
+  val basic       = new BASIC
+  val input       = Flipped(new AxiMasterChannel)
+  val UartIO      = new AxiMasterChannel
+  val PLICIO      = new AxiMasterChannel
+  val SpiIO       = new AxiMasterChannel
+  val Nemu_UartIO = new AxiMasterChannel
 }
 
 class ROUTER extends RawModule {
   val io = IO(new AxiRouterIO)
 
-  val uart0::plic::Nil = Enum(2)
+  val uart::plic::spi::nemu_uart::Nil = Enum(4)
 
-  io.input <> io.Uart0IO
-  io.Uart0IO.axiRa.ARVALID := 0.B
-  io.Uart0IO.axiRd.RREADY  := 0.B
-  io.Uart0IO.axiWa.AWVALID := 0.B
-  io.Uart0IO.axiWd.WVALID  := 0.B
-  io.Uart0IO.axiWr.BREADY  := 0.B
+  for (i <- 2 until io.getElements.length) {
+    val devIO = io.getElements.reverse(i).asInstanceOf[AxiMasterChannel]
+    io.input <> devIO
+    devIO.axiRa.ARVALID := 0.B
+    devIO.axiRd.RREADY  := 0.B
+    devIO.axiWa.AWVALID := 0.B
+    devIO.axiWd.WVALID  := 0.B
+    devIO.axiWr.BREADY  := 0.B
+  }
 
-  io.input <> io.PLICIO
-  io.PLICIO.axiRa.ARVALID := 0.B
-  io.PLICIO.axiRd.RREADY  := 0.B
-  io.PLICIO.axiWa.AWVALID := 0.B
-  io.PLICIO.axiWd.WVALID  := 0.B
-  io.PLICIO.axiWr.BREADY  := 0.B
+  io.input.axiRa.ARREADY := 0.B
+  io.input.axiRd.RVALID  := 0.B
+  io.input.axiWa.AWREADY := 0.B
+  io.input.axiWd.WREADY  := 0.B
+  io.input.axiWr.BVALID  := 0.B
 
   withClockAndReset(io.basic.ACLK, !io.basic.ARESETn) {
     val AWREADY = RegInit(1.B)
@@ -44,45 +48,47 @@ class ROUTER extends RawModule {
     val wireRdevice = WireDefault(0.U(2.W))
     val wireWdevice = WireDefault(0.U(2.W))
 
-    when(wireRdevice === uart0) {
-      io.input.axiRa <> io.Uart0IO.axiRa
-      io.input.axiRa.ARREADY := ARREADY && io.Uart0IO.axiRa.ARREADY
-    }
-    when(wireRdevice === plic) {
-      io.input.axiRa <> io.PLICIO.axiRa
-      io.input.axiRa.ARREADY := ARREADY && io.PLICIO.axiRa.ARREADY
+    def AddDevice(dev: UInt, devConf: MMAP, devIO: AxiMasterChannel): Unit = {
+      when((wireRdevice === dev) && ARREADY) {
+        io.input.axiRa <> devIO.axiRa
+        io.input.axiRa.ARREADY := devIO.axiRa.ARREADY
+      }
+
+      when(rdevice === dev) {
+        io.input.axiRd <> devIO.axiRd
+        io.input.axiRd.RVALID := RVALID && devIO.axiRd.RVALID
+      }
+
+      when((wireWdevice === dev) && AWREADY) {
+        io.input.axiWa <> devIO.axiWa
+        io.input.axiWa.AWREADY := io.input.axiWa.AWVALID && devIO.axiWa.AWREADY
+      }
+
+      when((wireWdevice === dev) && WREADY) {
+        io.input.axiWd <> devIO.axiWd
+        io.input.axiWd.WREADY  := io.input.axiWd.WVALID  && devIO.axiWd.WREADY
+      }
+
+      when(wdevice === dev) {
+        io.input.axiWr <> devIO.axiWr
+        io.input.axiWr.BVALID := BVALID && devIO.axiWr.BVALID
+      }
+      
+      when(
+        (io.input.axiRa.ARADDR >= devConf.BASE.U) &&
+        (io.input.axiRa.ARADDR < (devConf.BASE + devConf.SIZE).U)
+      ) { wireRdevice := dev }
+      
+      when(
+        (io.input.axiWa.AWADDR >= devConf.BASE.U) &&
+        (io.input.axiWa.AWADDR < (devConf.BASE + devConf.SIZE).U)
+      ) { wireWdevice := dev }
     }
 
-    when(rdevice === uart0) {
-      io.input.axiRd <> io.Uart0IO.axiRd
-      io.input.axiRd.RVALID := RVALID && io.Uart0IO.axiRd.RVALID
-    }
-    when(rdevice === plic) {
-      io.input.axiRd <> io.PLICIO.axiRd
-      io.input.axiRd.RVALID := RVALID && io.PLICIO.axiRd.RVALID
-    }
-
-    when(wireWdevice === uart0) {
-      io.input.axiWa <> io.Uart0IO.axiWa
-      io.input.axiWd <> io.Uart0IO.axiWd
-      io.input.axiWa.AWREADY := AWREADY && io.input.axiWa.AWVALID && io.Uart0IO.axiWa.AWREADY
-      io.input.axiWd.WREADY  := WREADY  && io.input.axiWd.WVALID  && io.Uart0IO.axiWd.WREADY
-    }
-    when(wireWdevice === plic) {
-      io.input.axiWa <> io.PLICIO.axiWa
-      io.input.axiWd <> io.PLICIO.axiWd
-      io.input.axiWa.AWREADY := AWREADY && io.input.axiWa.AWVALID && io.PLICIO.axiWa.AWREADY
-      io.input.axiWd.WREADY  := WREADY  && io.input.axiWd.WVALID  && io.PLICIO.axiWd.WREADY
-    }
-
-    when(wdevice === uart0) {
-      io.input.axiWr <> io.Uart0IO.axiWr
-      io.input.axiWr.BVALID := BVALID && io.Uart0IO.axiWr.BVALID
-    }
-    when(wdevice === plic) {
-      io.input.axiWr <> io.PLICIO.axiWr
-      io.input.axiWr.BVALID := BVALID && io.PLICIO.axiWr.BVALID
-    }
+    AddDevice(uart, UART, io.UartIO)
+    AddDevice(plic, PLIC, io.PLICIO)
+    AddDevice(spi , SPI , io.SpiIO )
+    AddDevice(nemu_uart, NEMU_UART, io.Nemu_UartIO)
 
     when(io.input.axiRd.RVALID && io.input.axiRd.RREADY) {
       when(io.input.axiRd.RLAST) {
@@ -110,23 +116,5 @@ class ROUTER extends RawModule {
       WREADY  := 1.B
       BVALID  := 0.B
     }
-
-    when(
-      (io.input.axiRa.ARADDR >= UART0_MMIO.BASE.U) &&
-      (io.input.axiRa.ARADDR < (UART0_MMIO.BASE + UART0_MMIO.SIZE).U)
-    ) { wireRdevice := uart0 }
-    when(
-      (io.input.axiRa.ARADDR >= PLIC.PLIC.U) &&
-      (io.input.axiRa.ARADDR < (PLIC.PLIC + PLIC.PLIC_SIZE).U)
-    ) { wireRdevice := plic }
-
-    when(
-      (io.input.axiWa.AWADDR >= UART0_MMIO.BASE.U) &&
-      (io.input.axiWa.AWADDR < (UART0_MMIO.BASE + UART0_MMIO.SIZE).U)
-    ) { wireWdevice := uart0 }
-    when(
-      (io.input.axiWa.AWADDR >= PLIC.PLIC.U) &&
-      (io.input.axiWa.AWADDR < (PLIC.PLIC + PLIC.PLIC_SIZE).U)
-    ) { wireWdevice := plic }
   }
 }
