@@ -21,6 +21,7 @@ else
 xlens = 64
 endif
 export XLEN = $(xlens)
+endif
 
 UART ?= 0
 ifeq ($(UART),1)
