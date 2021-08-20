@@ -4,13 +4,15 @@ site = https://tanghaojin.site/static
 BUILD_DIR = ./build
 ROOT_DIR  = $(shell cat build.sc | grep -oP "(?<=object ).*(?= extends ScalaModule)")
 SUB_DIR   = $(shell cd $(ROOT_DIR); ls -d */ | tr -d / | grep -v src; cd ..)
-LIB_DIR   = $(pwd)/$(ROOT_DIR)/sim/lib
-SSRC_DIR  = $(pwd)/$(ROOT_DIR)/sim/src
+SIM_DIR   = $(pwd)/$(ROOT_DIR)/sim
+LIB_DIR   = $(SIM_DIR)/lib
+SSRC_DIR  = $(SIM_DIR)/src
+SRC_DIR   = $(pwd)/$(ROOT_DIR)/src
 SRCS      = $(shell find $(ROOT_DIR) | grep -xPo '.*\.(v|c|h|cpp|hpp|scala)')
 ALL_C     = $(shell echo $(SRCS) | grep -xPo '.*\.(c|h|cpp|hpp)')
 ALL_SCALA = $(shell echo $(SRCS) | grep -xPo '.*\.(v|scala)')
 CPU_NUM   = $(shell echo $$((`lscpu -p=CORE | tail -n 1` + 1)))
-$(shell mkdir $(ROOT_DIR)/sim/bin $(NO_ERR))
+$(shell mkdir $(SIM_DIR)/bin $(NO_ERR))
 $(shell cat .config >>/dev/null 2>&1 || echo >.config)
 
 ifeq ($(ISA),)
@@ -49,11 +51,14 @@ $(shell rm -rf $(BUILD_DIR))
 endif
 
 CSRCS   += $(SSRC_DIR)/sim_main.cpp $(SSRC_DIR)/sim/peripheral/ram/ram.cpp $(SSRC_DIR)/sim/peripheral/spiFlash/spiFlash.cpp
-CFLAGS  += -D$(ISA) -pthread -I$(pwd)/$(ROOT_DIR)/sim/include
+CFLAGS  += -D$(ISA) -pthread -I$(SIM_DIR)/include
 LDFLAGS += -pthread
-VFLAGS  += -cc TestTop.v --top TestTop --exe --timescale "1ns/1ns" -Wno-WIDTH 
-VFLAGS  += -I$(pwd)/$(ROOT_DIR)/src/peripheral/uart16550 -I$(pwd)/$(ROOT_DIR)/src/tools/axi2apb/inner -I$(pwd)/$(ROOT_DIR)/src/peripheral/spi/rtl -j $(CPU_NUM) -O3
+VFLAGS  += --top TestTop --exe --timescale "1ns/1ns" -Wno-WIDTH 
+VFLAGS  += -I$(SRC_DIR)/peripheral/uart16550
+VFLAGS  += -I$(SRC_DIR)/tools/axi2apb/inner
+VFLAGS  += -I$(SRC_DIR)/peripheral/spi/rtl -j $(CPU_NUM) -O3
 VFLAGS  += -I$(SSRC_DIR)/sim/peripheral/spiFlash
+VFLAGS  += -cc TestTop.v $(SRC_DIR)/peripheral/chiplink/chiplink.v $(SRC_DIR)/peripheral/chiplink/top.v
 
 TRACE ?= 0
 ifeq ($(TRACE),1)
@@ -84,14 +89,14 @@ $(shell rm -rf $(BUILD_DIR))
 endif
 
 ifneq ($(BIN),)
-BINFILE = $(pwd)/$(ROOT_DIR)/sim/bin/$(BIN)-$(ISA)-nemu.bin
-FLASHBINFILE = $(pwd)/$(ROOT_DIR)/sim/bin/$(BIN)~flash-$(ISA)-nemu.bin
+BINFILE = $(SIM_DIR)/bin/$(BIN)-$(ISA)-nemu.bin
+FLASHBINFILE = $(SIM_DIR)/bin/$(BIN)~flash-$(ISA)-nemu.bin
 ifeq ($(wildcard $(BINFILE)),)
 $(shell wget $(site)/$(BIN)-$(ISA)-nemu.bin -O $(BINFILE) || rm $(BINFILE))
 endif
 endif
 
-SIMBIN = $(filter-out rtthread,$(shell cd $(ROOT_DIR)/sim/bin && ls *-$(ISA)-nemu.bin | grep -oP ".*(?=-$(ISA)-nemu.bin)"))
+SIMBIN = $(filter-out rtthread,$(shell cd $(SIM_DIR)/bin && ls *-$(ISA)-nemu.bin | grep -oP ".*(?=-$(ISA)-nemu.bin)"))
 
 test:
 	mill -i __.test
@@ -138,7 +143,7 @@ sim: $(BUILD_DIR)/sim/obj_dir/VTestTop
 
 simall: $(BUILD_DIR)/sim/obj_dir/VTestTop
 	@for x in $(SIMBIN); do \
-		$(BUILD_DIR)/sim/obj_dir/VTestTop $(ROOT_DIR)/sim/bin/$$x-$(ISA)-nemu.bin >/dev/null 2>&1; \
+		$(BUILD_DIR)/sim/obj_dir/VTestTop $(SIM_DIR)/bin/$$x-$(ISA)-nemu.bin >/dev/null 2>&1; \
 		if [ $$? -eq 0 ]; then printf "[$$x] \33[1;32mpass\33[0m\n"; \
 		else                   printf "[$$x] \33[1;31mfail\33[0m\n"; fi; \
 	done

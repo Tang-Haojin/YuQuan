@@ -30,11 +30,13 @@ class UregIO extends Bundle {
   val int_o        = Output(Bool())
 }
 
-class UartAxiSlaveIO extends AxiSlaveIO {
+trait UartASICIOTrait {
   val interrupt = Output(Bool())    // interrupt request (active-high)
   val srx       = Input (UInt(1.W))
   val stx       = Output(UInt(1.W))
 }
+
+class UartAxiSlaveIO extends AxiSlaveIO with UartASICIOTrait
 
 class uart_regs extends BlackBox with HasBlackBoxPath {
   val io = IO(new UregIO)

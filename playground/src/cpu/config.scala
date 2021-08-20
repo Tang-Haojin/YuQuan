@@ -7,12 +7,12 @@ import tools._
 object GeneralConfig {
   val AluTypeWidth = 5
   val ALEN       = 32
-  val XLEN       = sys.env.getOrElse("XLEN", 64).toString.toInt
+  val XLEN       = 64 // sys.env.getOrElse("XLEN", 64).toString.toInt
   val IDLEN      = 4
   val AxSIZE     = log2Ceil(XLEN / 8)
   val HasRVM     = true
   val UseFlash   = sys.env.getOrElse("FLASH", 0).toString.toInt != 0
-  val RamBase    = 0x80100000L
+  val RamBase    = DRAM.BASE
   val RamSize    = 100 * 1024 * 1024
   val MEMBase    = if (UseFlash) SPI.BASE + 0x100000L else RamBase
   val MEMSize    = 100 * 1024 * 1024
@@ -23,8 +23,8 @@ object GeneralConfig {
   val ILEN = 32 // base instruction set supported only
 
   object UART extends MMAP {
-    override val BASE = 0x10000000L
-    override val SIZE = 100L
+    override val BASE = 0x20001000L
+    override val SIZE = 1000L
   }
 
   object CLINT extends MMAP {
@@ -32,6 +32,11 @@ object GeneralConfig {
     override val SIZE = 0x10000L
     val MTIMECMP = (hartid: Int) => BASE + 0x4000 + 8 * hartid
     val MTIME = BASE + 0xBFF8
+  }
+
+  object DRAM extends MMAP {
+    override val BASE = 0x80000000L
+    override val SIZE = 0x40000000L
   }
 
   object PLIC extends MMAP {
@@ -45,13 +50,19 @@ object GeneralConfig {
   }
 
   object SPI extends MMAP {
-    override val BASE = 0x20000000L
-    override val SIZE = 0x8000000L
+    override val BASE = 0x10000000L
+    override val SIZE = 0x10001000L // flash + spi controller
+    val FLASH_END = 0x1FFFFFFFL
   }
 
   object NEMU_UART extends MMAP {
     override val BASE = 0xA10003F8L
     override val SIZE = 0x1L
+  }
+
+  object CHIPLINK extends MMAP {
+    override val BASE = 0x40000000L
+    override val SIZE = 0x40000000L
   }
 }
 
