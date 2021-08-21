@@ -103,8 +103,86 @@ class AxiSlaveIO extends Bundle {
   val channel = Flipped(new AxiMasterChannel)
 }
 
+class AxiMasterIO extends Bundle {
+  val basic   = new BASIC
+  val channel = new AxiMasterChannel
+}
+
 class AxiSelectIO extends Bundle {
   val input   = Flipped(new AxiMasterChannel)
   val RamIO   = new AxiMasterChannel
   val MMIO    = new AxiMasterChannel
 }
+
+/*
+abstract class HandleAxiSlave(channel: AxiMasterChannel, baseAddr: Long = 0L) {
+  val AWREADY = RegInit(1.B); channel.axiWa.AWREADY := AWREADY
+  val WREADY  = RegInit(0.B); channel.axiWd.WREADY  := WREADY
+  val BVALID  = RegInit(0.B); channel.axiWr.BVALID  := BVALID
+  val ARREADY = RegInit(1.B); channel.axiRa.ARREADY := ARREADY
+  val RVALID  = RegInit(0.B); channel.axiRd.RVALID  := RVALID
+  val ARSIZE  = RegInit(0.U(3.W))
+  val ARLEN   = RegInit(0.U(8.W))
+  val AWSIZE  = RegInit(0.U(3.W))
+  val AWLEN   = RegInit(0.U(8.W))
+
+  val RID    = RegInit(0.U(IDLEN.W)); channel.axiRd.RID := RID
+  val BID    = RegInit(0.U(IDLEN.W)); channel.axiWr.BID := BID
+  val ARADDR = RegInit(0.U(ALEN.W))
+  val AWADDR = RegInit(0.U(ALEN.W))
+
+  val wireARADDR = WireDefault(UInt(ALEN.W), ARADDR)
+  val wireRStep  = WireDefault(0.U(128.W))
+  val wireWStep  = WireDefault(0.U(128.W))
+
+  for (i <- 0 until 8) {
+    when(ARSIZE === i.U) { wireRStep := (1 << i).U }
+    when(AWSIZE === i.U) { wireWStep := (1 << i).U }
+  }
+
+  when(channel.axiRd.RVALID && channel.axiRd.RREADY) {
+    when(ARLEN === 0.U) {
+      RVALID         := 0.B
+      ARREADY        := 1.B
+      channel.axiRd.RLAST := 1.B
+    }.otherwise {
+      wireARADDR := ARADDR + wireRStep
+      ARADDR     := wireARADDR
+      ARLEN      := ARLEN - 1.U
+    }
+  }.elsewhen(channel.axiRa.ARVALID && channel.axiRa.ARREADY) {
+    RID        := channel.axiRa.ARID
+    wireARADDR := channel.axiRa.ARADDR(ALEN - 1, AxSIZE) ## 0.U(AxSIZE.W) - baseAddr.U
+    ARADDR     := wireARADDR
+    ARREADY    := 0.B
+    RVALID     := 1.B
+    ARSIZE     := channel.axiRa.ARSIZE
+    ARLEN      := channel.axiRa.ARLEN
+  }
+
+  when(channel.axiWa.AWVALID && channel.axiWa.AWREADY) {
+    AWADDR  := channel.axiWa.AWADDR(ALEN - 1, AxSIZE) ## 0.U(AxSIZE.W) - baseAddr.U
+    BID     := channel.axiWa.AWID
+    AWREADY := 0.B
+    WREADY  := 1.B
+    AWSIZE  := channel.axiWa.AWSIZE
+    AWLEN   := channel.axiWa.AWLEN
+  }
+
+  when(channel.axiWd.WVALID && channel.axiWd.WREADY) {
+    ram_write.io.wen := 1.B
+    when(AWLEN === 0.U) {
+      WREADY  := 0.B
+      BVALID  := 1.B
+    }.otherwise {
+      AWADDR := AWADDR + wireWStep
+      AWLEN  := AWLEN - 1.U
+    }
+  }
+
+  when(channel.axiWr.BVALID && channel.axiWr.BREADY) {
+    AWREADY := 1.B
+    BVALID := 0.B
+  }
+}
+*/
