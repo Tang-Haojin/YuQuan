@@ -21,13 +21,13 @@ class TestTop extends Module {
 
   io <> cpu.io.debug
 
-  cpu.io.memAXI  <> mem.io.channel
-  cpu.io.mmioAXI <> router.io.input
+  cpu.io.memAXI  <> router.io.input
   cpu.io.dmaAXI  := DontCare
 
+  router.io.DramIO      <> mem.io.channel
   router.io.UartIO      <> uart.io.channel
   router.io.PLICIO      <> plic.io.channel
-  router.io.SpiIO       <> spi.io .channel
+  router.io.SpiIO       <> spi.io.channel
   router.io.Nemu_UartIO <> nemu_uart.io.channel
 
   plic.io.inter     := VecInit(Seq.fill(plic.io.inter.length)(0.B))

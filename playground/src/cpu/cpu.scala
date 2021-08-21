@@ -24,7 +24,6 @@ class CPU extends RawModule {
   val io = IO(new Bundle {
     val basic   = new BASIC
     val memAXI  = new AxiMasterChannel
-    val mmioAXI = new AxiMasterChannel
     val dmaAXI  = Flipped(new AxiMasterChannel)
     val intr    = Input(Bool())
     val debug   = 
@@ -38,7 +37,6 @@ class CPU extends RawModule {
     val cpu = Module(new InternalCPU)
     io.intr    <> cpu.io.intr
     io.memAXI  <> cpu.io.memAXI
-    io.mmioAXI <> cpu.io.mmioAXI
     io.dmaAXI  <> cpu.io.dmaAXI
     if (Debug) io.debug <> cpu.io.debug
   }
@@ -47,7 +45,6 @@ class CPU extends RawModule {
 class InternalCPU extends Module {
   val io = IO(new Bundle {
     val memAXI  = new AxiMasterChannel
-    val mmioAXI = new AxiMasterChannel
     val dmaAXI  = Flipped(new AxiMasterChannel)
     val intr    = Input(Bool())
     val debug   = 
@@ -70,22 +67,18 @@ class InternalCPU extends Module {
   val moduleMEM = Module(new MEM)
   val moduleWB  = Module(new WB)
 
-  val moduleAXISelect = Module(new AXISelect)
-
   moduleAXIRMux.io.axiRaIn0 <> moduleICache.io.memIO.axiRa
   moduleAXIRMux.io.axiRaIn1 <> moduleDCache.io.memIO.axiRa
-  moduleAXIRMux.io.axiRaOut <> moduleAXISelect.io.input.axiRa
+  moduleAXIRMux.io.axiRaOut <> io.memAXI.axiRa
 
   moduleAXIRMux.io.axiRdIn0 <> moduleICache.io.memIO.axiRd
   moduleAXIRMux.io.axiRdIn1 <> moduleDCache.io.memIO.axiRd
-  moduleAXIRMux.io.axiRdOut <> moduleAXISelect.io.input.axiRd
+  moduleAXIRMux.io.axiRdOut <> io.memAXI.axiRd
 
-  moduleAXISelect.io.input.axiWa <> moduleDCache.io.memIO.axiWa
-  moduleAXISelect.io.input.axiWd <> moduleDCache.io.memIO.axiWd
-  moduleAXISelect.io.input.axiWr <> moduleDCache.io.memIO.axiWr
+  io.memAXI.axiWa <> moduleDCache.io.memIO.axiWa
+  io.memAXI.axiWd <> moduleDCache.io.memIO.axiWd
+  io.memAXI.axiWr <> moduleDCache.io.memIO.axiWr
 
-  io.memAXI  <> moduleAXISelect.io.RamIO
-  io.mmioAXI <> moduleAXISelect.io.MMIO
   io.dmaAXI := DontCare
 
   moduleID.io.gprsR <> moduleBypass.io.receive

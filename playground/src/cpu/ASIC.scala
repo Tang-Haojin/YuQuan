@@ -9,6 +9,7 @@ import peripheral.chiplink._
 import peripheral._
 import config.Debug._
 import config.GeneralConfig._
+import cpu.component.AXISelect
 
 class ASIC extends RawModule {
   val io = IO(new Bundle {
@@ -29,6 +30,18 @@ class ASIC extends RawModule {
   val plic      = Module(new Plic)
   val chiplink  = Module(new ChiplinkBridge)
 
+  withClockAndReset(io.basic.ACLK, !io.basic.ARESETn) {
+    val select = Module(new AXISelect)
+    select.io.input  <> cpu.io.memAXI
+    router.io.input  <> select.io.MMIO
+    router.io.UartIO <> uartCtrl.io.channel
+    router.io.PLICIO <> plic.io.channel
+    router.io.SpiIO  <> spiCtrl.io.axi_s.channel
+    LinkMEM (chiplink.io, select.io.RamIO)
+    LinkMMIO(chiplink.io, router.io.ChiplinkIO)
+    LinkDMA (chiplink.io, cpu.io.dmaAXI)
+  }
+
   io.UartIO.stx   := uartCtrl.io.stx
   uartCtrl.io.srx := io.UartIO.srx
   io.SpiIO <> spiCtrl.io.spi_m
@@ -40,16 +53,6 @@ class ASIC extends RawModule {
   chiplink.io.fpga_io_b2c_rst  := io.ChiplinkIO.b2c.rst
   chiplink.io.fpga_io_b2c_send := io.ChiplinkIO.b2c.send
   chiplink.io.fpga_io_b2c_data := io.ChiplinkIO.b2c.data
-  
-  cpu.io.mmioAXI <> router.io.input
-
-  router.io.UartIO <> uartCtrl.io.channel
-  router.io.PLICIO <> plic.io.channel
-  router.io.SpiIO  <> spiCtrl.io.axi_s.channel
-
-  LinkMEM (chiplink.io, cpu.io.memAXI)
-  LinkMMIO(chiplink.io, router.io.ChiplinkIO)
-  LinkDMA (chiplink.io, cpu.io.dmaAXI)
 
   plic.io.inter     := VecInit(Seq.fill(plic.io.inter.length)(0.B))
   plic.io.inter(10) := uartCtrl.io.interrupt

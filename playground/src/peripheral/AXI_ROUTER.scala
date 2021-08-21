@@ -9,6 +9,7 @@ import cpu.config.GeneralConfig._
 class AxiRouterIO extends Bundle {
   val basic       = new BASIC
   val input       = Flipped(new AxiMasterChannel)
+  val DramIO      = new AxiMasterChannel
   val UartIO      = new AxiMasterChannel
   val PLICIO      = new AxiMasterChannel
   val SpiIO       = new AxiMasterChannel
@@ -18,7 +19,7 @@ class AxiRouterIO extends Bundle {
 class ROUTER extends RawModule {
   val io = IO(new AxiRouterIO)
 
-  val uart::plic::spi::nemu_uart::Nil = Enum(4)
+  val dram::uart::plic::spi::nemu_uart::Nil = Enum(5)
 
   for (i <- 2 until io.getElements.length) {
     val devIO = io.getElements.reverse(i).asInstanceOf[AxiMasterChannel]
@@ -43,10 +44,10 @@ class ROUTER extends RawModule {
     val ARREADY = RegInit(1.B)
     val RVALID  = RegInit(0.B)
 
-    val rdevice = RegInit(0.U(2.W))
-    val wdevice = RegInit(0.U(2.W))
-    val wireRdevice = WireDefault(0.U(2.W))
-    val wireWdevice = WireDefault(0.U(2.W))
+    val rdevice = RegInit(0.U(3.W))
+    val wdevice = RegInit(0.U(3.W))
+    val wireRdevice = WireDefault(0.U(3.W))
+    val wireWdevice = WireDefault(0.U(3.W))
 
     def AddDevice(dev: UInt, devConf: MMAP, devIO: AxiMasterChannel): Unit = {
       when((wireRdevice === dev) && ARREADY) {
@@ -85,6 +86,7 @@ class ROUTER extends RawModule {
       ) { wireWdevice := dev }
     }
 
+    AddDevice(dram, DRAM, io.DramIO)
     AddDevice(uart, UART, io.UartIO)
     AddDevice(plic, PLIC, io.PLICIO)
     AddDevice(spi , SPI , io.SpiIO )
