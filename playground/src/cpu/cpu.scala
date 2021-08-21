@@ -32,6 +32,8 @@ class CPU extends RawModule {
     else          null
   })
 
+  dontTouch(io)
+
   withClockAndReset(io.basic.ACLK, !io.basic.ARESETn) {
     val cpu = Module(new InternalCPU)
     io.intr    <> cpu.io.intr
