@@ -55,18 +55,25 @@ class ASIC extends RawModule {
   plic.io.inter(10) := uartCtrl.io.interrupt
   cpu.io.intr       := plic.io.eip
 
-  cpu.io.basic.ACLK              := io.basic.ACLK
-  cpu.io.basic.ARESETn           := io.basic.ARESETn
-  router.io.basic.ACLK           := io.basic.ACLK
-  router.io.basic.ARESETn        := io.basic.ARESETn
-  uartCtrl.io.basic.ACLK         := io.basic.ACLK
-  uartCtrl.io.basic.ARESETn      := io.basic.ARESETn
-  spiCtrl.io.axi_s.basic.ACLK    := io.basic.ACLK
-  spiCtrl.io.axi_s.basic.ARESETn := io.basic.ARESETn
-  plic.io.basic.ACLK             := io.basic.ACLK
-  plic.io.basic.ARESETn          := io.basic.ARESETn
-  chiplink.io.clock              := io.basic.ACLK.asBool
-  chiplink.io.reset              := !io.basic.ARESETn
+  withClockAndReset(io.basic.ACLK, !io.basic.ARESETn) {
+    val delayCounter  = RegInit(15.U(4.W))
+    val delayedResetn = (delayCounter === 0.U)
+
+    when(delayCounter =/= 0.U) { delayCounter := delayCounter - 1.U }
+
+    cpu.io.basic.ACLK              := io.basic.ACLK
+    cpu.io.basic.ARESETn           := delayedResetn
+    router.io.basic.ACLK           := io.basic.ACLK
+    router.io.basic.ARESETn        := io.basic.ARESETn
+    uartCtrl.io.basic.ACLK         := io.basic.ACLK
+    uartCtrl.io.basic.ARESETn      := io.basic.ARESETn
+    spiCtrl.io.axi_s.basic.ACLK    := io.basic.ACLK
+    spiCtrl.io.axi_s.basic.ARESETn := io.basic.ARESETn
+    plic.io.basic.ACLK             := io.basic.ACLK
+    plic.io.basic.ARESETn          := io.basic.ARESETn
+    chiplink.io.clock              := io.basic.ACLK.asBool
+    chiplink.io.reset              := !io.basic.ARESETn
+  }
 
   if (Debug) io.debug <> cpu.io.debug
 }
@@ -107,8 +114,8 @@ private class LinkMEM(chiplinkIO: ChiplinkBridgeIO, cpuIO: AxiMasterChannel) {
   cpuIO.axiRd.RRESP   := chiplinkIO.slave_axi4_mem_0_rresp
   cpuIO.axiRd.RLAST   := chiplinkIO.slave_axi4_mem_0_rlast
 
-  cpuIO.axiWr.BUSER := DontCare
-  cpuIO.axiRd.RUSER := DontCare
+  cpuIO.axiWr.BUSER := 0.U
+  cpuIO.axiRd.RUSER := 0.U
 }
 
 private object LinkMEM {
@@ -151,8 +158,8 @@ private class LinkMMIO(chiplinkIO: ChiplinkBridgeIO, cpuIO: AxiMasterChannel) {
   cpuIO.axiRd.RRESP   := chiplinkIO.slave_axi4_mmio_0_rresp
   cpuIO.axiRd.RLAST   := chiplinkIO.slave_axi4_mmio_0_rlast
 
-  cpuIO.axiWr.BUSER := DontCare
-  cpuIO.axiRd.RUSER := DontCare
+  cpuIO.axiWr.BUSER := 0.U
+  cpuIO.axiRd.RUSER := 0.U
 }
 
 private object LinkMMIO {
@@ -162,17 +169,17 @@ private object LinkMMIO {
 private class LinkDMA(chiplinkIO: ChiplinkBridgeIO, cpuIO: AxiMasterChannel) {
   cpuIO := DontCare
 
-  chiplinkIO.mem_axi4_0_awready := DontCare
-  chiplinkIO.mem_axi4_0_wready  := DontCare
-  chiplinkIO.mem_axi4_0_bvalid  := DontCare
-  chiplinkIO.mem_axi4_0_bid     := DontCare
-  chiplinkIO.mem_axi4_0_bresp   := DontCare
-  chiplinkIO.mem_axi4_0_arready := DontCare
-  chiplinkIO.mem_axi4_0_rvalid  := DontCare
-  chiplinkIO.mem_axi4_0_rid     := DontCare
-  chiplinkIO.mem_axi4_0_rdata   := DontCare
-  chiplinkIO.mem_axi4_0_rresp   := DontCare
-  chiplinkIO.mem_axi4_0_rlast   := DontCare
+  chiplinkIO.mem_axi4_0_awready := 0.B
+  chiplinkIO.mem_axi4_0_wready  := 0.B
+  chiplinkIO.mem_axi4_0_bvalid  := 0.B
+  chiplinkIO.mem_axi4_0_bid     := 0.B
+  chiplinkIO.mem_axi4_0_bresp   := 0.U
+  chiplinkIO.mem_axi4_0_arready := 0.B
+  chiplinkIO.mem_axi4_0_rvalid  := 0.B
+  chiplinkIO.mem_axi4_0_rid     := 0.U
+  chiplinkIO.mem_axi4_0_rdata   := 0.U
+  chiplinkIO.mem_axi4_0_rresp   := 0.U
+  chiplinkIO.mem_axi4_0_rlast   := 0.B
 }
 
 private object LinkDMA {

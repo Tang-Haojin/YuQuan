@@ -63,7 +63,7 @@ int main(int argc, char **argv, char **env) {
   top->clock = 0;
   top->eval();
 
-  for (int i = 0; i < 2; i++) {
+  for (int i = 0; i < 50; i++) {
     contextp->timeInc(1);
     top->clock = !top->clock;
     top->eval();

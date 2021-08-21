@@ -8,19 +8,17 @@ SIM_DIR   = $(pwd)/$(ROOT_DIR)/sim
 LIB_DIR   = $(SIM_DIR)/lib
 SSRC_DIR  = $(SIM_DIR)/src
 SRC_DIR   = $(pwd)/$(ROOT_DIR)/src
-SRCS      = $(shell find $(ROOT_DIR) | grep -xPo '.*\.(v|c|h|cpp|hpp|scala)')
+SRCS      = $(shell find $(ROOT_DIR) | grep -xPo '.*\.(sv|v|c|h|cpp|hpp|scala)')
 ALL_C     = $(shell echo $(SRCS) | grep -xPo '.*\.(c|h|cpp|hpp)')
-ALL_SCALA = $(shell echo $(SRCS) | grep -xPo '.*\.(v|scala)')
+ALL_SCALA = $(shell echo $(SRCS) | grep -xPo '.*\.(sv|v|scala)')
 CPU_NUM   = $(shell echo $$((`lscpu -p=CORE | tail -n 1` + 1)))
 $(shell mkdir $(SIM_DIR)/bin $(NO_ERR))
 $(shell cat .config >>/dev/null 2>&1 || echo >.config)
 
-ifeq ($(ISA),)
-ISA = riscv64
-xlens = 64
-endif
 ifeq ($(ISA),riscv32)
 xlens = 32
+else
+xlens = 64
 endif
 export XLEN = $(xlens)
 

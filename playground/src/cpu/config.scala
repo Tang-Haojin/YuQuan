@@ -7,7 +7,7 @@ import tools._
 object GeneralConfig {
   val AluTypeWidth = 5
   val ALEN       = 32
-  val XLEN       = 64 // sys.env.getOrElse("XLEN", 64).toString.toInt
+  val XLEN       = sys.env.getOrElse("XLEN", 64).toString.toInt
   val IDLEN      = 4
   val AxSIZE     = log2Ceil(XLEN / 8)
   val HasRVM     = true

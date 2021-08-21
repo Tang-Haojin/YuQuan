@@ -94,11 +94,11 @@ private class LinkMEM(chiplinkIO: ChiplinkTopIO, memIO: AxiMasterChannel) {
   chiplinkIO.mem_axi4_0_rresp   := memIO.axiRd.RRESP
   chiplinkIO.mem_axi4_0_rlast   := memIO.axiRd.RLAST
 
-  memIO.axiWd.WUSER    := DontCare
-  memIO.axiRa.ARREGION := DontCare
-  memIO.axiRa.ARUSER   := DontCare
-  memIO.axiWa.AWREGION := DontCare
-  memIO.axiWa.AWUSER   := DontCare
+  memIO.axiWd.WUSER    := 0.U
+  memIO.axiRa.ARREGION := 0.U
+  memIO.axiRa.ARUSER   := 0.U
+  memIO.axiWa.AWREGION := 0.U
+  memIO.axiWa.AWUSER   := 0.U
 }
 
 private object LinkMEM {
