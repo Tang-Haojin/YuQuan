@@ -21,7 +21,6 @@ else
 xlens = 64
 endif
 export XLEN = $(xlens)
-endif
 
 UART ?= 0
 ifeq ($(UART),1)
@@ -56,7 +55,7 @@ VFLAGS  += --top TestTop --exe --timescale "1ns/1ns" -Wno-WIDTH
 VFLAGS  += -I$(SRC_DIR)/peripheral/uart16550
 VFLAGS  += -I$(SRC_DIR)/tools/axi2apb/inner
 VFLAGS  += -I$(SRC_DIR)/peripheral/spi/rtl -j $(CPU_NUM) -O3
-VFLAGS  += -I$(SSRC_DIR)/sim/peripheral/spiFlash
+VFLAGS  += -I$(SSRC_DIR)/sim/peripheral/spiFlash --threads $(CPU_NUM)
 VFLAGS  += -cc TestTop.v $(SRC_DIR)/peripheral/chiplink/chiplink.v $(SRC_DIR)/peripheral/chiplink/top.v
 
 TRACE ?= 0
