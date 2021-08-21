@@ -24,7 +24,7 @@ object GeneralConfig {
 
   object UART extends MMAP {
     override val BASE = 0x20001000L
-    override val SIZE = 1000L
+    override val SIZE = 0x1000L
   }
 
   object CLINT extends MMAP {
@@ -63,6 +63,20 @@ object GeneralConfig {
   object CHIPLINK extends MMAP {
     override val BASE = 0x40000000L
     override val SIZE = 0x40000000L
+  }
+
+  object STROAGE extends MMAP {
+    override val BASE = 0x40000000L
+    override val SIZE = 0x08000000L
+  }
+
+  object DMAC extends MMAP {
+    override val BASE = 0x50000000L
+    override val SIZE = 0x1000L
+    val DEVICE_ADDR_REG = BASE
+    val MEMORY_ADDR_REG = BASE + 4
+    val TRANS_LENTH_REG = BASE + 8
+    val DMAC_STATUS_REG = BASE + 12
   }
 }
 
