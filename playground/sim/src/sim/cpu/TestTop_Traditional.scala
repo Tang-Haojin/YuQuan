@@ -8,9 +8,7 @@ import sim.peripheral.ram._
 import sim.peripheral.uart._
 import sim.peripheral.spiFlash._
 
-class TestTop extends Module {
-  val io = IO(new DEBUG)
-
+class TestTop_Traditional(io: DEBUG, clock: Clock, reset: Reset) {
   val cpu       = Module(new CPU)
   val mem       = Module(new RAM)
   val uart      = Module(if (IsRealUart) new UartReal else new UartSim)

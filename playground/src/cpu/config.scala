@@ -6,18 +6,19 @@ import tools._
 
 object GeneralConfig {
   val AluTypeWidth = 5
-  val ALEN       = 32
-  val XLEN       = sys.env.getOrElse("XLEN", 64).toString.toInt
-  val IDLEN      = 4
-  val AxSIZE     = log2Ceil(XLEN / 8)
-  val HasRVM     = true
-  val UseFlash   = sys.env.getOrElse("FLASH", 0).toString.toInt != 0
-  val RamBase    = DRAM.BASE
-  val RamSize    = 100 * 1024 * 1024
-  val MEMBase    = if (UseFlash) SPI.BASE + 0x100000L else RamBase
-  val MEMSize    = 100 * 1024 * 1024
-  val Extensions = List('I', 'M')
-  val IsRealUart = sys.env.getOrElse("UART", 0).toString.toInt != 0
+  val ALEN        = 32
+  val XLEN        = sys.env.getOrElse("XLEN", 64).toString.toInt
+  val IDLEN       = 4
+  val AxSIZE      = log2Ceil(XLEN / 8)
+  val HasRVM      = true
+  val UseFlash    = sys.env.getOrElse("FLASH", 0).toString.toInt != 0
+  val RamBase     = DRAM.BASE
+  val RamSize     = 100 * 1024 * 1024
+  val MEMBase     = if (UseFlash) SPI.BASE + 0x100000L else RamBase
+  val MEMSize     = 100 * 1024 * 1024
+  val Extensions  = List('I', 'M')
+  val IsRealUart  = sys.env.getOrElse("UART", 0).toString.toInt != 0
+  val UseChipLink = sys.env.getOrElse("CHIPLINK", 0).toString.toInt != 0
 
   val IALIGN = 32 // compressed instructions are not implemented yet
   val ILEN = 32 // base instruction set supported only

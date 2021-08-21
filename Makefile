@@ -22,6 +22,29 @@ xlens = 64
 endif
 export XLEN = $(xlens)
 
+FLASH ?= 0
+ifeq ($(FLASH),1)
+export FLASH = 1
+CFLAGS += -DFLASH
+else
+export FLASH = 0
+endif
+
+ifneq ($(shell cat .config | grep 'FLASH'),FLASH=$(FLASH))
+$(shell rm -rf $(BUILD_DIR))
+endif
+
+CHIPLINK ?= 0
+ifeq ($(CHIPLINK),1)
+export CHIPLINK = 1
+override UART = 1
+VFLAGS += --threads $(CPU_NUM)
+endif
+
+ifneq ($(shell cat .config | grep 'CHIPLINK'),CHIPLINK=$(CHIPLINK))
+$(shell rm -rf $(BUILD_DIR) out)
+endif
+
 UART ?= 0
 ifeq ($(UART),1)
 export UART = 1
@@ -36,18 +59,6 @@ ifneq ($(shell cat .config | grep 'UART'),UART=$(UART))
 $(shell rm -rf $(BUILD_DIR) out)
 endif
 
-FLASH ?= 0
-ifeq ($(FLASH),1)
-export FLASH = 1
-CFLAGS += -DFLASH
-else
-export FLASH = 0
-endif
-
-ifneq ($(shell cat .config | grep 'FLASH'),FLASH=$(FLASH))
-$(shell rm -rf $(BUILD_DIR))
-endif
-
 CSRCS   += $(SSRC_DIR)/sim_main.cpp $(SSRC_DIR)/sim/peripheral/ram/ram.cpp $(SSRC_DIR)/sim/peripheral/spiFlash/spiFlash.cpp
 CFLAGS  += -D$(ISA) -pthread -I$(SIM_DIR)/include
 LDFLAGS += -pthread
@@ -55,7 +66,7 @@ VFLAGS  += --top TestTop --exe --timescale "1ns/1ns" -Wno-WIDTH
 VFLAGS  += -I$(SRC_DIR)/peripheral/uart16550
 VFLAGS  += -I$(SRC_DIR)/tools/axi2apb/inner
 VFLAGS  += -I$(SRC_DIR)/peripheral/spi/rtl -j $(CPU_NUM) -O3
-VFLAGS  += -I$(SSRC_DIR)/sim/peripheral/spiFlash --threads $(CPU_NUM)
+VFLAGS  += -I$(SSRC_DIR)/sim/peripheral/spiFlash
 VFLAGS  += -cc TestTop.v $(SRC_DIR)/peripheral/chiplink/chiplink.v $(SRC_DIR)/peripheral/chiplink/top.v
 
 TRACE ?= 0
@@ -131,6 +142,7 @@ $(BUILD_DIR)/sim/*.v: $(ALL_SCALA)
 	@echo UART=$(UART) >>.config
 	@echo TRACE=$(TRACE) >>.config
 	@echo FLASH=$(FLASH) >>.config
+	@echo CHIPLINK=$(CHIPLINK) >>.config
 
 $(BUILD_DIR)/sim/obj_dir/VTestTop: $(BUILD_DIR)/sim/*.v $(ALL_C)
 	@cd $(BUILD_DIR)/sim && \
