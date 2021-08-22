@@ -9,8 +9,17 @@ VerilatedFstC *tfp = new VerilatedFstC;
 #endif
 struct termios new_settings, stored_settings;
 uint64_t cycles = 0;
+static bool int_sig = false;
 
-void int_handeler(int sig) {
+void int_handler(int sig) {
+  if (sig != SIGINT) {
+    if (write(STDERR_FILENO, "Wrong signal type\n", 19)) exit(EPERM);
+    else _exit(EIO);
+  }
+  int_sig = true;
+}
+
+void real_int_handler(void) {
   tcsetattr(0, TCSAFLUSH, &stored_settings);
   setlinebuf(stdout);
   setlinebuf(stderr);
@@ -18,10 +27,6 @@ void int_handeler(int sig) {
 #ifdef TRACE
   tfp->close();
 #endif
-  if (sig != SIGINT) {
-    fprintf(stderr, "Wrong signal type\n");
-    exit(EPERM);
-  }
   printf("\ndebug: Exit after %ld clock cycles.\n", cycles / 2);
   exit(0);
 }
@@ -29,7 +34,7 @@ void int_handeler(int sig) {
 int main(int argc, char **argv, char **env) {
   setbuf(stdout, NULL);
   setbuf(stderr, NULL);
-  signal(SIGINT, int_handeler);
+  signal(SIGINT, int_handler);
 
   tcgetattr(0, &stored_settings);
   new_settings = stored_settings;
@@ -126,6 +131,7 @@ int main(int argc, char **argv, char **env) {
       ret = 1;
       break;
     }
+    if (int_sig) real_int_handler();
   }
 
   scan_uart(_isRunning) = false;

@@ -1,6 +1,7 @@
 #ifndef _SIM_MAIN_HPP
 #define _SIM_MAIN_HPP
 
+#include <unistd.h>
 #include <stdint.h>
 #include <signal.h>
 #include <errno.h>
