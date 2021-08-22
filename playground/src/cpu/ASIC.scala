@@ -22,7 +22,7 @@ class ASIC extends RawModule {
     val ChiplinkIO = new ChiplinkIO
     val debug = if (Debug) new DEBUG else null
   })
-  
+
   val cpu       = Module(new CPU)
   val router    = Module(new AsicXbar)
   val uartCtrl  = Module(new Uart16550)

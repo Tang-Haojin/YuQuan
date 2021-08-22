@@ -74,12 +74,12 @@ class ROUTER extends RawModule {
         io.input.axiWr <> devIO.axiWr
         io.input.axiWr.BVALID := BVALID && devIO.axiWr.BVALID
       }
-      
+
       when(
         (io.input.axiRa.ARADDR >= devConf.BASE.U) &&
         (io.input.axiRa.ARADDR < (devConf.BASE + devConf.SIZE).U)
       ) { wireRdevice := dev }
-      
+
       when(
         (io.input.axiWa.AWADDR >= devConf.BASE.U) &&
         (io.input.axiWa.AWADDR < (devConf.BASE + devConf.SIZE).U)

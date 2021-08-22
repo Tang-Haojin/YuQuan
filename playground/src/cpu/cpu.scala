@@ -57,6 +57,7 @@ class InternalCPU extends Module {
   val moduleBypass    = Module(new Bypass)
   val moduleBypassCsr = Module(new BypassCsr)
   val moduleAXIRMux   = Module(new AXIRMux)
+  val moduleAXIWMux   = Module(new AXIWMux)
 
   val moduleICache = ICache()
   val moduleDCache = Module(new DCache)
@@ -75,11 +76,19 @@ class InternalCPU extends Module {
   moduleAXIRMux.io.axiRdIn1 <> moduleDCache.io.memIO.axiRd
   moduleAXIRMux.io.axiRdOut <> io.memAXI.axiRd
 
-  io.memAXI.axiWa <> moduleDCache.io.memIO.axiWa
-  io.memAXI.axiWd <> moduleDCache.io.memIO.axiWd
-  io.memAXI.axiWr <> moduleDCache.io.memIO.axiWr
+  moduleAXIWMux.io.axiWaIn0 <> moduleDCache.io.memIO.axiWa
+  moduleAXIWMux.io.axiWdIn0 <> moduleDCache.io.memIO.axiWd
+  moduleAXIWMux.io.axiWrIn0 <> moduleDCache.io.memIO.axiWr
 
-  io.dmaAXI := DontCare
+  io.memAXI.axiWa <> moduleAXIWMux.io.axiWaOut
+  io.memAXI.axiWd <> moduleAXIWMux.io.axiWdOut
+  io.memAXI.axiWr <> moduleAXIWMux.io.axiWrOut
+
+  io.dmaAXI.axiRa <> DontCare
+  io.dmaAXI.axiRd <> DontCare
+  io.dmaAXI.axiWa <> moduleAXIWMux.io.axiWaIn1
+  io.dmaAXI.axiWd <> moduleAXIWMux.io.axiWdIn1
+  io.dmaAXI.axiWr <> moduleAXIWMux.io.axiWrIn1
 
   moduleID.io.gprsR <> moduleBypass.io.receive
   moduleID.io.csrsR <> moduleBypassCsr.io.receive
