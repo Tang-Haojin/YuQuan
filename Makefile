@@ -34,6 +34,18 @@ ifneq ($(shell cat .config | grep 'FLASH'),FLASH=$(FLASH))
 $(shell rm -rf $(BUILD_DIR))
 endif
 
+STORAGE ?= 0
+ifeq ($(STORAGE),1)
+export STORAGE = 1
+CFLAGS += -DSTORAGE
+else
+export STORAGE = 0
+endif
+
+ifneq ($(shell cat .config | grep 'STORAGE'),STORAGE=$(STORAGE))
+$(shell rm -rf $(BUILD_DIR))
+endif
+
 CHIPLINK ?= 0
 ifeq ($(CHIPLINK),1)
 export CHIPLINK = 1
@@ -59,7 +71,9 @@ ifneq ($(shell cat .config | grep 'UART'),UART=$(UART))
 $(shell rm -rf $(BUILD_DIR) out)
 endif
 
-CSRCS   += $(SSRC_DIR)/sim_main.cpp $(SSRC_DIR)/sim/peripheral/ram/ram.cpp $(SSRC_DIR)/sim/peripheral/spiFlash/spiFlash.cpp
+CSRCS   += $(SSRC_DIR)/sim_main.cpp $(SSRC_DIR)/sim/peripheral/ram/ram.cpp
+CSRCS   += $(SSRC_DIR)/sim/peripheral/spiFlash/spiFlash.cpp
+CSRCS   += $(SSRC_DIR)/sim/peripheral/storage/storage.cpp
 CFLAGS  += -D$(ISA) -pthread -I$(SIM_DIR)/include
 LDFLAGS += -pthread
 VFLAGS  += --top TestTop --exe --timescale "1ns/1ns" -Wno-WIDTH 
@@ -100,6 +114,7 @@ endif
 ifneq ($(BIN),)
 BINFILE = $(SIM_DIR)/bin/$(BIN)-$(ISA)-nemu.bin
 FLASHBINFILE = $(SIM_DIR)/bin/$(BIN)~flash-$(ISA)-nemu.bin
+STORAGEBINFILE = $(SIM_DIR)/bin/$(BIN)~storage-$(ISA)-nemu.bin
 ifeq ($(wildcard $(BINFILE)),)
 $(shell wget $(site)/$(BIN)-$(ISA)-nemu.bin -O $(BINFILE) || rm $(BINFILE))
 endif
@@ -143,13 +158,14 @@ $(BUILD_DIR)/sim/*.v: $(ALL_SCALA)
 	@echo TRACE=$(TRACE) >>.config
 	@echo FLASH=$(FLASH) >>.config
 	@echo CHIPLINK=$(CHIPLINK) >>.config
+	@echo STORAGE=$(STORAGE) >>.config
 
 $(BUILD_DIR)/sim/obj_dir/VTestTop: $(BUILD_DIR)/sim/*.v $(ALL_C)
 	@cd $(BUILD_DIR)/sim && \
 	verilator $(VFLAGS) --build $(CSRCS) -CFLAGS "$(CFLAGS)" -LDFLAGS "$(LDFLAGS)" >/dev/null
 
 sim: $(BUILD_DIR)/sim/obj_dir/VTestTop
-	@$(BUILD_DIR)/sim/obj_dir/VTestTop $(BINFILE) $(FLASHBINFILE)
+	@$(BUILD_DIR)/sim/obj_dir/VTestTop $(BINFILE) $(FLASHBINFILE) $(STORAGEBINFILE)
 
 simall: $(BUILD_DIR)/sim/obj_dir/VTestTop
 	@for x in $(SIMBIN); do \

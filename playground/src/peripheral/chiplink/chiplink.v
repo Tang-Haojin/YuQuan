@@ -43506,7 +43506,7 @@ end
     end
   end
 endmodule
-module Queue_5( 
+module chiplink_Queue_5( 
   input         clock, 
   input         reset, 
   output        io_enq_ready, 
@@ -43922,7 +43922,7 @@ module SinkA(
     .io_o_bits_address(inject_io_o_bits_address),
     .io_o_bits_data(inject_io_o_bits_data)
   );
-  Queue_5 Queue ( 
+  chiplink_Queue_5 Queue ( 
     .clock(Queue_clock),
     .reset(Queue_reset),
     .io_enq_ready(Queue_io_enq_ready),

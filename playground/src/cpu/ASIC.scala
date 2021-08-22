@@ -170,19 +170,49 @@ private object LinkMMIO {
 }
 
 private class LinkDMA(chiplinkIO: ChiplinkBridgeIO, cpuIO: AxiMasterChannel) {
-  cpuIO := DontCare
+  cpuIO.axiWa.AWADDR   := chiplinkIO.mem_axi4_0_awaddr
+  cpuIO.axiWa.AWBURST  := chiplinkIO.mem_axi4_0_awburst
+  cpuIO.axiWa.AWCACHE  := 0.U
+  cpuIO.axiWa.AWID     := chiplinkIO.mem_axi4_0_awid
+  cpuIO.axiWa.AWLEN    := chiplinkIO.mem_axi4_0_awlen
+  cpuIO.axiWa.AWLOCK   := 0.U
+  cpuIO.axiWa.AWPROT   := 0.U
+  cpuIO.axiWa.AWQOS    := 0.U
+  cpuIO.axiWa.AWREGION := 0.U
+  cpuIO.axiWa.AWSIZE   := chiplinkIO.mem_axi4_0_awsize
+  cpuIO.axiWa.AWUSER   := 0.U
+  cpuIO.axiWa.AWVALID  := chiplinkIO.mem_axi4_0_awvalid
+  cpuIO.axiWd.WDATA    := chiplinkIO.mem_axi4_0_wdata
+  cpuIO.axiWd.WLAST    := chiplinkIO.mem_axi4_0_wlast
+  cpuIO.axiWd.WSTRB    := chiplinkIO.mem_axi4_0_wstrb
+  cpuIO.axiWd.WUSER    := 0.U
+  cpuIO.axiWd.WVALID   := chiplinkIO.mem_axi4_0_wvalid
+  cpuIO.axiWr.BREADY   := chiplinkIO.mem_axi4_0_bready
+  cpuIO.axiRa.ARADDR   := chiplinkIO.mem_axi4_0_araddr
+  cpuIO.axiRa.ARBURST  := chiplinkIO.mem_axi4_0_arburst
+  cpuIO.axiRa.ARCACHE  := 0.U
+  cpuIO.axiRa.ARID     := chiplinkIO.mem_axi4_0_arid
+  cpuIO.axiRa.ARLEN    := chiplinkIO.mem_axi4_0_arlen
+  cpuIO.axiRa.ARLOCK   := 0.U
+  cpuIO.axiRa.ARPROT   := 0.U
+  cpuIO.axiRa.ARQOS    := 0.U
+  cpuIO.axiRa.ARREGION := 0.U
+  cpuIO.axiRa.ARSIZE   := chiplinkIO.mem_axi4_0_arsize
+  cpuIO.axiRa.ARUSER   := 0.U
+  cpuIO.axiRa.ARVALID  := chiplinkIO.mem_axi4_0_arvalid
+  cpuIO.axiRd.RREADY   := chiplinkIO.mem_axi4_0_rready
 
-  chiplinkIO.mem_axi4_0_awready := 0.B
-  chiplinkIO.mem_axi4_0_wready  := 0.B
-  chiplinkIO.mem_axi4_0_bvalid  := 0.B
-  chiplinkIO.mem_axi4_0_bid     := 0.B
-  chiplinkIO.mem_axi4_0_bresp   := 0.U
-  chiplinkIO.mem_axi4_0_arready := 0.B
-  chiplinkIO.mem_axi4_0_rvalid  := 0.B
-  chiplinkIO.mem_axi4_0_rid     := 0.U
-  chiplinkIO.mem_axi4_0_rdata   := 0.U
-  chiplinkIO.mem_axi4_0_rresp   := 0.U
-  chiplinkIO.mem_axi4_0_rlast   := 0.B
+  chiplinkIO.mem_axi4_0_awready := cpuIO.axiWa.AWREADY
+  chiplinkIO.mem_axi4_0_wready  := cpuIO.axiWd.WREADY
+  chiplinkIO.mem_axi4_0_bvalid  := cpuIO.axiWr.BVALID
+  chiplinkIO.mem_axi4_0_bid     := cpuIO.axiWr.BID
+  chiplinkIO.mem_axi4_0_bresp   := cpuIO.axiWr.BRESP
+  chiplinkIO.mem_axi4_0_arready := cpuIO.axiRa.ARREADY
+  chiplinkIO.mem_axi4_0_rvalid  := cpuIO.axiRd.RVALID
+  chiplinkIO.mem_axi4_0_rid     := cpuIO.axiRd.RID
+  chiplinkIO.mem_axi4_0_rdata   := cpuIO.axiRd.RDATA
+  chiplinkIO.mem_axi4_0_rresp   := cpuIO.axiRd.RRESP
+  chiplinkIO.mem_axi4_0_rlast   := cpuIO.axiRd.RLAST
 }
 
 private object LinkDMA {

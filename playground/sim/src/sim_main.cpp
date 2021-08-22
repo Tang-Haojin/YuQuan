@@ -50,6 +50,10 @@ int main(int argc, char **argv, char **env) {
   flash_init(argv[2]);
 #endif
 
+#ifdef STORAGE
+  storage_init(argv[3]);
+#endif
+
   VTestTop *top = new VTestTop;
 #ifdef TRACE
   contextp->traceEverOn(true);
