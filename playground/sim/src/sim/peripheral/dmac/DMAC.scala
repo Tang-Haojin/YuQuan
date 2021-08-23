@@ -133,17 +133,17 @@ private class ToCPU(toCPU: AxiMasterChannel, toDevice: ToDevice, fifo: QueueIO[U
   toCPU.axiWd.WSTRB := Fill(XLEN / 8, 1.B)
   toCPU.axiWd.WUSER := 0.U
 
-  toCPU.axiWa.AWADDR := cpuAddr
-  toCPU.axiWa.AWBURST := 1.U
-  toCPU.axiWa.AWCACHE := 0.U
-  toCPU.axiWa.AWID := 2.U
-  toCPU.axiWa.AWLEN := toDevice.len
-  toCPU.axiWa.AWLOCK := 0.U
-  toCPU.axiWa.AWPROT := 0.U
-  toCPU.axiWa.AWQOS := 0.U
+  toCPU.axiWa.AWADDR   := cpuAddr
+  toCPU.axiWa.AWBURST  := 1.U
+  toCPU.axiWa.AWCACHE  := 0.U
+  toCPU.axiWa.AWID     := 2.U
+  toCPU.axiWa.AWLEN    := toDevice.len
+  toCPU.axiWa.AWLOCK   := 0.U
+  toCPU.axiWa.AWPROT   := 0.U
+  toCPU.axiWa.AWQOS    := 0.U
   toCPU.axiWa.AWREGION := 0.U
-  toCPU.axiWa.AWSIZE := AxSIZE.U
-  toCPU.axiWa.AWUSER := 0.U
+  toCPU.axiWa.AWSIZE   := AxSIZE.U
+  toCPU.axiWa.AWUSER   := 0.U
 
   toCPU.axiRd.RREADY := 0.B
 
@@ -197,16 +197,16 @@ private class ToDevice(toDevice: AxiMasterChannel, fifo: QueueIO[UInt], devAddr:
   toDevice.axiWd.WUSER  := 0.U
   toDevice.axiWd.WVALID := 0.B
 
-  toDevice.axiWa.AWADDR := 0.U
-  toDevice.axiWa.AWBURST := 1.U
-  toDevice.axiWa.AWCACHE := 0.U
-  toDevice.axiWa.AWID := 0.U
-  toDevice.axiWa.AWLEN := 0.U
-  toDevice.axiWa.AWLOCK := 0.U
-  toDevice.axiWa.AWPROT := 0.U
-  toDevice.axiWa.AWQOS := 0.U
+  toDevice.axiWa.AWADDR   := 0.U
+  toDevice.axiWa.AWBURST  := 1.U
+  toDevice.axiWa.AWCACHE  := 0.U
+  toDevice.axiWa.AWID     := 0.U
+  toDevice.axiWa.AWLEN    := 0.U
+  toDevice.axiWa.AWLOCK   := 0.U
+  toDevice.axiWa.AWPROT   := 0.U
+  toDevice.axiWa.AWQOS    := 0.U
   toDevice.axiWa.AWREGION := 0.U
-  toDevice.axiWa.AWSIZE := 0.U
-  toDevice.axiWa.AWUSER := 0.U
-  toDevice.axiWa.AWVALID := 0.B
+  toDevice.axiWa.AWSIZE   := 0.U
+  toDevice.axiWa.AWUSER   := 0.U
+  toDevice.axiWa.AWVALID  := 0.B
 }
