@@ -14,7 +14,7 @@ class RamRead extends BlackBox with HasBlackBoxInline {
   })
 
   setInline("RamRead.v",s"""
-    |import "DPI-C" function void ram_read(input longint addr, output longint data);
+    |import "DPI-C" function longint ram_read(input longint addr);
     |
     |module RamRead (
     |  input  clock,
@@ -23,7 +23,7 @@ class RamRead extends BlackBox with HasBlackBoxInline {
     |);
     |
     |  always@(posedge clock) begin
-    |    ram_read(addr, data);
+    |    data <= ram_read(addr);
     |  end
     |
     |endmodule

@@ -14,7 +14,7 @@ class StorageRead extends BlackBox with HasBlackBoxInline {
   })
 
   setInline("StorageRead.v",s"""
-    |import "DPI-C" function void storage_read(input longint addr, output longint data);
+    |import "DPI-C" function longint storage_read(input longint addr);
     |
     |module StorageRead (
     |  input  clock,
@@ -23,7 +23,7 @@ class StorageRead extends BlackBox with HasBlackBoxInline {
     |);
     |
     |  always@(posedge clock) begin
-    |    storage_read(addr, data);
+    |    data <= storage_read(addr);
     |  end
     |
     |endmodule
@@ -94,9 +94,9 @@ class Storage extends RawModule {
     }
 
     val storage_read = Module(new StorageRead)
-    storage_read.io.clock := io.basic.ACLK
-    storage_read.io.addr  := wireARADDR
-    io.channel.axiRd.RDATA    := storage_read.io.data
+    storage_read.io.clock  := io.basic.ACLK
+    storage_read.io.addr   := wireARADDR
+    io.channel.axiRd.RDATA := storage_read.io.data
 
     val storage_write = Module(new StorageWrite)
     storage_write.io.clock := io.basic.ACLK

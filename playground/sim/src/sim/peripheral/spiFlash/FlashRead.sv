@@ -1,6 +1,6 @@
 `timescale 1ns / 10ps
 
-import "DPI-C" function void flash_read(input longint addr, output longint data);
+import "DPI-C" function longint flash_read(input longint addr);
 
 module FlashRead (
   input             clock,
@@ -9,6 +9,6 @@ module FlashRead (
   output reg [63:0] data
 );
   always@(posedge clock) begin
-    if (ren) flash_read(addr, data);
+    if (ren) data <= flash_read(addr);
   end
 endmodule

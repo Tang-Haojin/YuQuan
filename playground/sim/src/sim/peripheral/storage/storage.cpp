@@ -15,9 +15,8 @@ static inline bool in_pmem(uint64_t addr) {
 
 static uint8_t pmem[PMEM_SIZE] PG_ALIGN = {};
 
-extern "C" void storage_read(uint64_t addr, uint64_t *data) {
-  if (!data) return;
-  *data = in_pmem(addr) ? *(uint64_t *)(pmem + addr) : 0xBB;
+extern "C" uint64_t storage_read(uint64_t addr) {
+  return in_pmem(addr) ? *(uint64_t *)(pmem + addr) : 0xBB;
 }
 
 extern "C" void storage_write(uint64_t addr, uint64_t data, uint8_t mask) {
