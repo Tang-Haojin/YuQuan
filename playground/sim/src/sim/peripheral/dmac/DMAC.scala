@@ -168,10 +168,7 @@ private class ToDevice(toDevice: AxiMasterChannel, fifo: QueueIO[UInt], devAddr:
   val len = RegInit(0.U(32.W))
 
   when(toDevice.axiRd.RREADY && toDevice.axiRd.RVALID) {
-    when(toDevice.axiRd.RLAST) {
-      RREADY  := 0.B
-      ARVALID := 1.B
-    }
+    when(toDevice.axiRd.RLAST) { RREADY := 0.B }
   }.elsewhen(toDevice.axiRa.ARREADY && toDevice.axiRa.ARVALID) {
     ARVALID := 0.B
     RREADY  := 1.B
