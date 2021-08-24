@@ -71,12 +71,30 @@ class Uart16550 extends RawModule {
     val AWADDR = RegInit(0.U(3.W))
 
     val wireARADDR = WireDefault(UInt(3.W), ARADDR)
+    val wdata = RegInit(0.U(8.W)); val wireWdata = WireDefault(UInt(8.W), wdata)
 
+    //--------------------------------------------------------
+    // Registers
+    // As shown below reg_dat_i should be stable
+    // one-cycle after reg_we negates.
+    //              ___     ___     ___     ___     ___     ___
+    //  clk      __|   |___|   |___|   |___|   |___|   |___|   |__
+    //             ________________        ________________
+    //  reg_adr  XX________________XXXXXXXX________________XXXX
+    //             ________________
+    //  reg_dat_i X________________XXXXXXX
+    //                                     ________________
+    //  reg_dat_o XXXXXXXXXXXXXXXXXXXXXXXXX________________XXXX
+    //                                              _______
+    //  reg_re   __________________________________|       |_____
+    //              _______
+    //  reg_we   __|       |_____________________________________
+    //
     val uregs = Module(new uart_regs)
     uregs.io.clk := io.basic.ACLK
     uregs.io.wb_rst_i := ~io.basic.ARESETn
     uregs.io.wb_addr_i := wireARADDR
-    uregs.io.wb_dat_i := VecInit((0 until 8).map { i => io.channel.axiWd.WDATA >> (8 * i) })(AWADDR)
+    uregs.io.wb_dat_i := wireWdata
     uregs.io.wb_we_i := 0.B
     uregs.io.wb_re_i := 0.B
     uregs.io.modem_inputs := Cat(~ctsn, dsr_pad_i, ri_pad_i, dcd_pad_i)
@@ -107,8 +125,10 @@ class Uart16550 extends RawModule {
 
     when(io.channel.axiWd.WVALID && io.channel.axiWd.WREADY) {
       uregs.io.wb_we_i := 1.B
-      WREADY := 0.B
-      BVALID := 1.B
+      wireWdata := VecInit((0 until 8).map { i => io.channel.axiWd.WDATA >> (8 * i) })(AWADDR)
+      wdata     := wireWdata
+      WREADY    := 0.B
+      BVALID    := 1.B
     }
 
     when(io.channel.axiWr.BVALID && io.channel.axiWr.BREADY) {
