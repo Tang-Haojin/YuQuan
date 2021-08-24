@@ -221,7 +221,7 @@ class M_CSRs extends Module with CSRsAddr {
     when(io.csrsR.rcsr(i) === Mhartid) { io.csrsR.rdata(i) := mhartid }
     when(io.csrsR.rcsr(i) === Mstatus) { io.csrsR.rdata(i) := mstatus }
     when(io.csrsR.rcsr(i) === Mtvec) { io.csrsR.rdata(i) := mtvec }
-    when(io.csrsR.rcsr(i) === Mip) { io.csrsR.rdata(i) := Cat(mip(XLEN - 1, 12), io.eip, mip(10, 0)) }
+    when(io.csrsR.rcsr(i) === Mip) { io.csrsR.rdata(i) := Cat(mip(XLEN - 1, 12), io.eip, mip(10, 8), (mtime > mtimecmp), mip(6, 0)) }
     when(io.csrsR.rcsr(i) === Mie) { io.csrsR.rdata(i) := mie }
     when(io.csrsR.rcsr(i) === Mtime) { io.csrsR.rdata(i) := mtime }
     when(io.csrsR.rcsr(i) === Mtimecmp) { io.csrsR.rdata(i) := mtimecmp }

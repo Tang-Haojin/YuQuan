@@ -21,8 +21,8 @@ class EX extends Module {
   })
 
   val alu1_2 = Module(new ALU)
-  alu1_2.io.a  := io.input.num1.asSInt
-  alu1_2.io.b  := io.input.num2.asSInt
+  alu1_2.io.a  := io.input.num(0).asSInt
+  alu1_2.io.b  := io.input.num(1).asSInt
   alu1_2.io.op := io.input.op1_2
 
   val NVALID = RegInit(0.B); io.nextVR.VALID := NVALID
@@ -43,7 +43,7 @@ class EX extends Module {
   val wireCsrData = WireDefault(VecInit(Seq.fill(writeCsrsPort)(0.U(XLEN.W))))
   val wireIsMem   = WireDefault(Bool(), io.input.special === ld || io.input.special === st)
   val wireIsLd    = WireDefault(Bool(), io.input.special === ld)
-  val wireAddr    = WireDefault(UInt(XLEN.W), io.input.num3 + io.input.num4)
+  val wireAddr    = WireDefault(UInt(XLEN.W), io.input.num(2) + io.input.num(3))
   val wireMask    = WireDefault(UInt(3.W), io.input.op1_3)
   val wireExit    = if (Debug) WireDefault(UInt(3.W), ExitReasons.non) else null
 
@@ -62,47 +62,47 @@ class EX extends Module {
 
   when(io.input.special === csr) {
     switch(io.input.op1_3) {
-      is(0.U) { wireCsrData(0) := io.input.num2 }
-      is(1.U) { wireCsrData(0) := io.input.num1 | io.input.num2 }
-      is(2.U) { wireCsrData(0) := io.input.num1 & (~io.input.num2) }
+      is(0.U) { wireCsrData(0) := io.input.num(1) }
+      is(1.U) { wireCsrData(0) := io.input.num(0) | io.input.num(1) }
+      is(2.U) { wireCsrData(0) := io.input.num(0) & (~io.input.num(1)) }
     }
   }
   when(io.input.special === inv) {
-    wireCsrData(0) := io.input.num1
+    wireCsrData(0) := io.input.num(0)
     wireCsrData(1) := 2.U
-    wireCsrData(2) := io.input.num3
+    wireCsrData(2) := io.input.num(2)
     wireCsrData(3) := Cat(
-      io.input.num4(XLEN - 1, 13),
+      io.input.num(3)(XLEN - 1, 13),
       "b11".U,
-      io.input.num4(10, 8),
-      io.input.num4(3), // MIE
-      io.input.num4(6, 4),
+      io.input.num(3)(10, 8),
+      io.input.num(3)(3), // MIE
+      io.input.num(3)(6, 4),
       0.B,
-      io.input.num4(2, 0)
+      io.input.num(3)(2, 0)
     )
     if (Debug) printf("Invalid Instruction!\n")
   }
   when(io.input.special === mret) {
     wireCsrData(0) := Cat(
-      io.input.num1(XLEN - 1, 8),
+      io.input.num(0)(XLEN - 1, 8),
       1.B,
-      io.input.num1(6, 4),
-      io.input.num1(7), // MPIE
-      io.input.num1(2, 0)
+      io.input.num(0)(6, 4),
+      io.input.num(0)(7), // MPIE
+      io.input.num(0)(2, 0)
     )
   }
   when(io.input.special === int) {
-    wireCsrData(0) := io.input.num1
-    wireCsrData(1) := io.input.num2
-    wireCsrData(2) := io.input.num3
+    wireCsrData(0) := io.input.num(0)
+    wireCsrData(1) := io.input.num(1)
+    wireCsrData(2) := io.input.num(2)
     wireCsrData(3) := Cat(
-      io.input.num4(XLEN - 1, 13),
+      io.input.num(3)(XLEN - 1, 13),
       "b11".U,
-      io.input.num4(10, 8),
-      io.input.num4(3), // MIE
-      io.input.num4(6, 4),
+      io.input.num(3)(10, 8),
+      io.input.num(3)(3), // MIE
+      io.input.num(3)(6, 4),
       0.B,
-      io.input.num4(2, 0)
+      io.input.num(3)(2, 0)
     )
     wireRd := 0.U
   }
