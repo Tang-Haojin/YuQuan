@@ -132,18 +132,6 @@ class EX extends Module {
     NVALID := 0.B
   }
 
-  if (debugIO) {
-    printf("ex_last_ready    = %d\n", io.lastVR.READY)
-    printf("ex_last_valid    = %d\n", io.lastVR.VALID)
-    printf("ex_next_ready    = %d\n", io.nextVR.READY)
-    printf("ex_next_valid    = %d\n", io.nextVR.VALID)
-    printf("io.output.rd     = %d\n", io.output.rd   )
-    printf("io.output.data   = %d\n", io.output.data )
-    printf("io.output.isMem  = %d\n", io.output.isMem)
-    printf("io.output.isLd   = %d\n", io.output.isLd )
-    printf("io.output.addr   = %d\n", io.output.addr )
-  }
-
   if (Debug) {
     io.output.debug.exit := exit
     io.output.debug.pc   := pc

@@ -89,7 +89,6 @@ object RegisterConfig {
 
 object Debug {
   val Debug      = true
-  val debugIO    = Debug && false
   val showReg    = Debug && false
   val partialReg = Debug && true
   val DiffTest   = Debug && (sys.env.getOrElse("DIFF", 1).toString.toInt >= 1)

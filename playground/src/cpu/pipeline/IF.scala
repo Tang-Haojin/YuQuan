@@ -49,12 +49,4 @@ class IF extends Module {
   when(io.nextVR.READY && io.nextVR.VALID && !io.icache.cpuResult.ready) {
     NVALID := 0.B
   }
-
-  if (debugIO) {
-    printf("if_next_ready   = %d\n", io.nextVR.READY)
-    printf("if_next_valid   = %d\n", io.nextVR.VALID)
-    printf("io.output.instr = %x\n", io.output.instr)
-    printf("io.output.pc    = %x\n", io.output.pc   )
-    printf("io.jmpBch       = %x\n", io.jmpBch      )
-  }
 }

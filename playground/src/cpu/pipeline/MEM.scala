@@ -103,15 +103,6 @@ class MEM extends Module {
     NVALID := 0.B
   }
 
-  if (debugIO) {
-    printf("mem_last_ready = %d\n", io.lastVR.READY)
-    printf("mem_last_valid = %d\n", io.lastVR.VALID)
-    printf("mem_next_ready = %d\n", io.nextVR.READY)
-    printf("mem_next_valid = %d\n", io.nextVR.VALID)
-    printf("io.output.rd   = %d\n", io.output.rd   )
-    printf("io.output.data = %d\n", io.output.data )
-  }
-
   if (Debug) {
     io.output.debug.exit := exit
     io.output.debug.pc   := pc

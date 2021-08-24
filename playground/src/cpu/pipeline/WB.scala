@@ -57,12 +57,6 @@ class WB extends Module {
     }
   }
 
-  if (debugIO) {
-    printf("wb_last_ready = %d\n", io.lastVR.READY)
-    printf("wb_last_valid = %d\n", io.lastVR.VALID)
-    printf("io.gprsW.wen  = %d\n", io.gprsW.wen   )
-  }
-
   if (Debug) {
     io.debug.exit    := exit
     io.debug.pc      := pc

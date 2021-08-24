@@ -206,23 +206,6 @@ class ID extends Module {
     NVALID := 0.B
   }
 
-  if (debugIO) {
-    printf("id_last_ready     = %d\n", io.lastVR.READY  )
-    printf("id_last_valid     = %d\n", io.lastVR.VALID  )
-    printf("id_next_ready     = %d\n", io.nextVR.READY  )
-    printf("id_next_valid     = %d\n", io.nextVR.VALID  )
-    printf("io.input.instr    = %x\n", io.input.instr   )
-    printf("io.input.pc       = %x\n", io.input.pc      )
-    printf("io.output.rd      = %d\n", io.output.rd     )
-    printf("io.output.num(0)  = %x\n", io.output.num(0) )
-    printf("io.output.num(1)  = %x\n", io.output.num(1) )
-    printf("io.output.num(2)  = %x\n", io.output.num(2) )
-    printf("io.output.num(3)  = %x\n", io.output.num(3) )
-    printf("io.output.op1_2   = %d\n", io.output.op1_2  )
-    printf("io.output.op1_3   = %d\n", io.output.op1_3  )
-    printf("io.output.special = %d\n", io.output.special)
-  }
-
   if (Debug) io.output.debug.pc := pc
 }
 
