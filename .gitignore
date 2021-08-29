@@ -11,7 +11,7 @@ test_run_dir/
 lib/
 
 build/
-/playground/sim/bin/*
+bin/
 *.fst
 *.hier
 .config

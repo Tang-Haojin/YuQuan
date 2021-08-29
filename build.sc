@@ -6,7 +6,7 @@ import mill.scalalib.TestModule.Utest
 // support BSP
 import mill.bsp._
 
-object playground extends ScalaModule with ScalafmtModule { m =>
+trait BaseScalaModule extends ScalaModule with ScalafmtModule {
   override def scalaVersion = "2.12.13"
   override def scalacOptions = Seq(
     "-Xsource:2.11",
@@ -18,22 +18,25 @@ object playground extends ScalaModule with ScalafmtModule { m =>
     "-P:chiselplugin:useBundlePlugin"
   )
   override def ivyDeps = Agg(
-    ivy"edu.berkeley.cs::chisel3:3.4.3"
+    ivy"edu.berkeley.cs::chisel3:3.4.3",
+    ivy"edu.berkeley.cs::rocketchip:1.2.6"
   )
   override def scalacPluginIvyDeps = Agg(
     ivy"edu.berkeley.cs:::chisel3-plugin:3.4.3",
     ivy"org.scalamacros:::paradise:2.1.1"
   )
-  object test extends Tests with Utest {
-    override def ivyDeps = m.ivyDeps() ++ Agg(
-      ivy"com.lihaoyi::utest:0.7.10",
-      ivy"edu.berkeley.cs::chiseltest:0.3.3"
-    )
-  }
-  object sim extends Tests with Utest {
-    override def ivyDeps = m.ivyDeps() ++ Agg(
-      ivy"com.lihaoyi::utest:0.7.10",
-      ivy"edu.berkeley.cs::chiseltest:0.3.3"
-    )
-  }
 }
+
+object sim extends BaseScalaModule {
+  override def moduleDeps = super.moduleDeps ++ Seq(cpu, peripheral)
+}
+
+object cpu extends BaseScalaModule {
+  override def moduleDeps = super.moduleDeps ++ Seq(peripheral, utils)
+}
+
+object peripheral extends BaseScalaModule {
+  override def moduleDeps = super.moduleDeps ++ Seq(utils)
+}
+
+object utils extends BaseScalaModule
