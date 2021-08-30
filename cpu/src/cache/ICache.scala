@@ -65,7 +65,9 @@ class ICache(implicit p: Parameters) extends YQModule {
   }
 
   val isPeripheral = IsPeripheral(io.cpuIO.cpuReq.addr)
-  val passThrough = PassThrough(true)(io.memIO, 0.B, addr, 0.U, 0.U, 0.B)
+  val passThrough  = PassThrough(true)(io.memIO, 0.B, addr, 0.U, 0.U, 0.B)(p.alterPartial({
+    case AxSIZE => log2Ceil(32 / 8)
+  }))
 
   when(state === idle && io.cpuIO.cpuReq.valid) {
     state := compare

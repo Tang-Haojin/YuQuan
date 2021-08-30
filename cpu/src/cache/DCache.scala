@@ -66,7 +66,9 @@ class DCache(implicit p: Parameters) extends YQModule {
   val wireWay = WireDefault(UInt(log2Ceil(Associativity).W), way)
 
   val wbBuffer    = WbBuffer(io.memIO, data(wireWay), tag(way) ## addrIndex ## 0.U(Offset.W))
-  val passThrough = PassThrough(false)(io.memIO, wbBuffer.ready, addr, reqData, reqWMask, reqRw)
+  val passThrough = PassThrough(false)(io.memIO, wbBuffer.ready, addr, reqData, reqWMask, reqRw)(p.alterPartial({
+    case AxSIZE => log2Ceil(32 / 8)
+  }))
 
   val inBuffer = RegInit(VecInit(Seq.fill(BurstLen - 1)(0.U(xlen.W))))
 
