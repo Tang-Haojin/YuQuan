@@ -16,13 +16,13 @@ object YQConfig {
     case EXTENSIONS    => List('I', 'M')
     case ALEN          => 32
     case IDLEN         => 4
-    case MODULE_PREFIX => s""
+    case MODULE_PREFIX => s"ysyx_"
     case CLINT_MMAP    => new CLINT
     case DRAM_MMAP     => new DRAM
     case ALUTYPEWIDTH  => 5
     case USEFLASH      => true
     case RAMSIZE       => 100L * 1024 * 1024
-    case SPI_MMAP      => new PeripheralConfig.SPI
+    case SPIFLASH_MMAP => new PeripheralConfig.SPIFLASH
     case ENABLE_DEBUG  => false
   }
 
@@ -35,7 +35,7 @@ object YQConfig {
 
   class DRAM extends MMAP {
     override val BASE = 0x80000000L
-    override val SIZE = 0x40000000L
+    override val SIZE = 0x80000000L
   }
 
   def apply(): YQConfig = new YQConfig

@@ -14,6 +14,6 @@ abstract trait CPUParams extends UtilsParams {
   val AluTypeWidth = p(ALUTYPEWIDTH)
   val UseFlash     = p(USEFLASH)
   val RamSize      = p(RAMSIZE)
-  val SPI          = p(SPI_MMAP)
+  val SPIFLASH     = p(SPIFLASH_MMAP)
   val Debug        = p(ENABLE_DEBUG)
 }

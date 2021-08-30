@@ -19,7 +19,7 @@ class AxiRouterIO(implicit val p: Parameters) extends Bundle with SimParams {
 class ROUTER(implicit val p: Parameters) extends RawModule with SimParams {
   val io = IO(new AxiRouterIO)
 
-  val dram::uart::plic::spi::nemu_uart::Nil = Enum(5)
+  val dram::uart::plic::spiflash::nemu_uart::Nil = Enum(5)
 
   for (i <- 2 until io.getElements.length) {
     val devIO = io.getElements.reverse(i).asInstanceOf[AxiMasterChannel]
@@ -89,7 +89,7 @@ class ROUTER(implicit val p: Parameters) extends RawModule with SimParams {
     AddDevice(dram, DRAM, io.DramIO)
     AddDevice(uart, UART, io.UartIO)
     AddDevice(plic, PLIC, io.PLICIO)
-    AddDevice(spi , SPI , io.SpiIO )
+    AddDevice(spiflash, SPIFLASH, io.SpiIO )
     AddDevice(nemu_uart, NEMU_UART, io.Nemu_UartIO)
 
     when(io.input.axiRd.RVALID && io.input.axiRd.RREADY) {

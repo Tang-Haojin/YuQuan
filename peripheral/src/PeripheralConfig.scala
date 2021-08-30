@@ -21,7 +21,7 @@ object PeripheralConfig {
   }
 
   class UART extends MMAP {
-    override val BASE = 0x20001000L
+    override val BASE = 0x10000000L
     override val SIZE = 0x1000L
   }
   
@@ -42,8 +42,12 @@ object PeripheralConfig {
   
   class SPI extends MMAP {
     override val BASE = 0x10000000L
-    override val SIZE = 0x10001000L // flash + spi controller
-    val FLASH_END = 0x1FFFFFFFL
+    override val SIZE = 0x1000L // flash + spi controller
+  }
+  
+  class SPIFLASH extends MMAP {
+    override val BASE = 0x30000000L
+    override val SIZE = 0x10000000L // flash + spi controller
   }
 
   def apply(): PeripheralConfig = new PeripheralConfig
@@ -53,3 +57,4 @@ case object UART_MMAP     extends Field[PeripheralConfig.UART]
 case object PLIC_MMAP     extends Field[PeripheralConfig.PLIC]
 case object CHIPLINK_MMAP extends Field[PeripheralConfig.CHIPLINK]
 case object SPI_MMAP      extends Field[PeripheralConfig.SPI]
+case object SPIFLASH_MMAP extends Field[PeripheralConfig.SPIFLASH]

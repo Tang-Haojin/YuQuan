@@ -8,9 +8,11 @@ import _root_.cpu.CPUParams
 import _root_.peripheral._
 
 abstract trait SimParams extends CPUParams with PeripheralParams {
-  val DMAC         = p(DMAC_MMAP)
-  val NEMU_UART    = p(NEMU_UART_MMAP)
-  val IsRealUart   = p(ISREALUART)
-  val UseChipLink  = p(USECHIPLINK)
-  override val SPI = p(SPI_MMAP)
+  val DMAC        = p(DMAC_MMAP)
+  val NEMU_UART   = p(NEMU_UART_MMAP)
+  val IsRealUart  = p(ISREALUART)
+  val UseChipLink = p(USECHIPLINK)
+
+  override val SPI      = p(SPI_MMAP)
+  override val SPIFLASH = p(SPIFLASH_MMAP)
 }

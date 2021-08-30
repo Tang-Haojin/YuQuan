@@ -25,6 +25,7 @@ object SimConfig {
     case CLINT_MMAP     => new YQConfig.CLINT
     case DRAM_MMAP      => new YQConfig.DRAM
     case SPI_MMAP       => new PeripheralConfig.SPI
+    case SPIFLASH_MMAP  => new PeripheralConfig.SPIFLASH
     case ALUTYPEWIDTH   => 5
     case RAMSIZE        => 100L * 1024 * 1024
     case MODULE_PREFIX  => s""

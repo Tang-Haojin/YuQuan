@@ -17,8 +17,8 @@ class spi_axi_flash(implicit val p: Parameters) extends RawModule with Periphera
   val io = IO(new SpiAxiFlashIO)
 
   val spiFlash = Module(new spi_flash(Map(
-    "flash_addr_start" -> SPI.BASE,
-    "flash_addr_end"   -> SPI.FLASH_END,
+    "flash_addr_start" -> SPIFLASH.BASE,
+    "flash_addr_end"   -> (SPIFLASH.BASE + SPIFLASH.SIZE - 1),
     "spi_cs_num"       -> 1
   )))
   val axi2apb  = Module(new Axi2Apb)

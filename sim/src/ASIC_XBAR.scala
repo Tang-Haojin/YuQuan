@@ -18,7 +18,7 @@ class AsicXbarIO(implicit val p: Parameters) extends Bundle with SimParams {
 class AsicXbar(implicit val p: Parameters) extends RawModule with SimParams {
   val io = IO(new AsicXbarIO)
 
-  val uart::plic::spi::chiplink::Nil = Enum(4)
+  val uart::plic::spiflash::chiplink::Nil = Enum(4)
 
   for (i <- 2 until io.getElements.length) {
     val devIO = io.getElements.reverse(i).asInstanceOf[AxiMasterChannel]
@@ -87,7 +87,7 @@ class AsicXbar(implicit val p: Parameters) extends RawModule with SimParams {
 
     AddDevice(uart, UART, io.UartIO)
     AddDevice(plic, PLIC, io.PLICIO)
-    AddDevice(spi , SPI , io.SpiIO )
+    AddDevice(spiflash, SPIFLASH, io.SpiIO )
     AddDevice(chiplink, CHIPLINK, io.ChiplinkIO)
 
     when(io.input.axiRd.RVALID && io.input.axiRd.RREADY) {

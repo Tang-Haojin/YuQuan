@@ -16,7 +16,7 @@ class IF(implicit p: Parameters) extends YQModule {
     val jbAddr = Input(UInt(xlen.W))
   })
 
-  private val MEMBase = if (UseFlash) SPI.BASE + 0x100000L else DRAM.BASE
+  private val MEMBase = if (UseFlash) SPIFLASH.BASE else DRAM.BASE
   private val instr  = RegInit(0x00000013.U(32.W))
   private val pc     = RegInit(MEMBase.U(xlen.W))
   private val NVALID = RegInit(0.B)
