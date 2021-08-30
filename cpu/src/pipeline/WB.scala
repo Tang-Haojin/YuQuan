@@ -8,7 +8,6 @@ import utils._
 import cpu.component._
 import cpu.config.GeneralConfig._
 import cpu.config.RegisterConfig._
-import cpu.config.Debug._
 import cpu.privileged.CSRsW
 import cpu.tools._
 
@@ -19,7 +18,6 @@ class WB(implicit p: Parameters) extends YQModule {
     val lastVR = new LastVR
     val input  = Flipped(new MEMOutput)
     val debug = if (Debug) new YQBundle {
-      val showReg = if (cpu.config.Debug.showReg) Output(Bool()) else null
       val pc      = Output(UInt(xlen.W))
       val exit    = Output(UInt(3.W))
       val wbvalid = Output(Bool())
@@ -41,17 +39,10 @@ class WB(implicit p: Parameters) extends YQModule {
   io.csrsW.wdata := io.input.csrData
 
   io.lastVR.READY := 1.B
-
-  val regShowReg = if (showReg) RegInit(0.B) else null
-  if (showReg) {
-    io.debug.showReg := regShowReg
-    regShowReg := 0.B
-  }
   
   when(io.lastVR.VALID) { // ready to start fetching instr
     io.gprsW.wen := (io.input.rd =/= 0.U)
     for (i <- 0 until writeCsrsPort) io.csrsW.wen(i) := (io.input.wcsr(i) =/= 0xFFF.U)
-    if (showReg) regShowReg := 1.B
     if (Debug) {
       exit  := io.input.debug.exit
       pc    := io.input.debug.pc

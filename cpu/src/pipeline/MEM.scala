@@ -9,7 +9,6 @@ import utils._
 
 import cpu.config.GeneralConfig._
 import cpu.config.RegisterConfig._
-import cpu.config.Debug._
 import cpu.cache._
 import cpu.tools._
 

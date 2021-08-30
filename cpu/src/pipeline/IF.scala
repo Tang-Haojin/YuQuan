@@ -4,7 +4,6 @@ import chisel3._
 import chipsalliance.rocketchip.config._
 
 import utils._
-import cpu.config.Debug._
 import cpu.cache._
 import cpu.tools._
 

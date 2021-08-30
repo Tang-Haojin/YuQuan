@@ -28,6 +28,7 @@ object SimConfig {
     case ALUTYPEWIDTH   => 5
     case RAMSIZE        => 100L * 1024 * 1024
     case MODULE_PREFIX  => s""
+    case ENABLE_DEBUG   => true
   }
 
   val basicConfig: (View, View, View) => PartialFunction[Any, Any] = (site, here, up) => basePartFunc.orElse({

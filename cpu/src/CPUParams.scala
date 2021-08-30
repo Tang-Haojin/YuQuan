@@ -15,4 +15,5 @@ abstract trait CPUParams extends UtilsParams {
   val UseFlash     = p(USEFLASH)
   val RamSize      = p(RAMSIZE)
   val SPI          = p(SPI_MMAP)
+  val Debug        = p(ENABLE_DEBUG)
 }

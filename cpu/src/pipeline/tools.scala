@@ -6,7 +6,6 @@ import chipsalliance.rocketchip.config._
 
 import utils._
 
-import cpu.config.Debug._
 import cpu.config.GeneralConfig._
 import cpu.config.RegisterConfig._
 import cpu.instruction._

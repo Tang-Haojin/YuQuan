@@ -22,17 +22,6 @@ object RegisterConfig {
   val writeCsrsPort = 4
 }
 
-object Debug {
-  val Debug      = true
-  val showReg    = Debug && false
-  val partialReg = Debug && true
-  val showRegList
-    = List(false, true, true, false, false, false, false, false,
-           true, false, true, false, false, false, false, false,
-           false, false, false, false, false, false, false, false,
-           false, false, false, false, false, false, false, false)
-}
-
 object CacheConfig {
   val XLEN = 64
   object ICache {

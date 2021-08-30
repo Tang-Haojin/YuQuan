@@ -6,7 +6,6 @@ import chipsalliance.rocketchip.config._
 
 import cpu.component._
 import cpu.config.RegisterConfig._
-import cpu.config.Debug._
 import ExecSpecials._
 import InstrTypes._
 import ExceptionCode._

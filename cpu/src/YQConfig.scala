@@ -23,6 +23,7 @@ object YQConfig {
     case USEFLASH      => true
     case RAMSIZE       => 100L * 1024 * 1024
     case SPI_MMAP      => new PeripheralConfig.SPI
+    case ENABLE_DEBUG  => false
   }
 
   class CLINT extends MMAP {
@@ -46,3 +47,4 @@ case object DRAM_MMAP    extends Field[YQConfig.DRAM]
 case object ALUTYPEWIDTH extends Field[Int]
 case object USEFLASH     extends Field[Boolean]
 case object RAMSIZE      extends Field[Long]
+case object ENABLE_DEBUG extends Field[Boolean]

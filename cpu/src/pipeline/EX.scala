@@ -9,7 +9,6 @@ import utils.Convert._
 
 import cpu.config.GeneralConfig._
 import cpu.config.RegisterConfig._
-import cpu.config.Debug._
 import ExecSpecials._
 import cpu.component._
 import cpu.tools._

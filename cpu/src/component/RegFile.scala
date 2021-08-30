@@ -4,7 +4,6 @@ import chisel3._
 import chipsalliance.rocketchip.config._
 
 import cpu.config.RegisterConfig._
-import cpu.config.Debug._
 import cpu.tools._
 
 class GPRsW(implicit p: Parameters) extends YQBundle {
@@ -23,7 +22,6 @@ class GPRs(implicit p: Parameters) extends YQModule {
     val gprsW = new GPRsW
     val gprsR = new GPRsR
     val debug = if (Debug) new YQBundle {
-      val showReg = if (cpu.config.Debug.showReg) Input(Bool()) else null
       val gprs    = Output(Vec(32, UInt(xlen.W)))
     } else null
   })
@@ -36,19 +34,6 @@ class GPRs(implicit p: Parameters) extends YQModule {
 
   for (i <- 0 until readPortsNum)
     io.gprsR.rdata(i) := regs(io.gprsR.raddr(i))
-
-  if (showReg)
-    when(io.debug.showReg) {
-      for (i <- 0 until 32)
-        if (!partialReg || (partialReg && showRegList(i)))
-          printf(
-            "\t%c%c%c\t%x\n",
-            regNames.regNames(i)(0).U,
-            regNames.regNames(i)(1).U,
-            regNames.regNames(i)(2).U,
-            regs(i.U)
-          )
-    }
 
   if (Debug) {
     io.debug.gprs := regs

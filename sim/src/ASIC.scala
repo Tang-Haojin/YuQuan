@@ -11,7 +11,6 @@ import _root_.peripheral.chiplink._
 import _root_.peripheral.uart16550._
 import _root_.peripheral._
 import peripheral._
-import config.Debug._
 import _root_.cpu.component.AXISelect
 import utils._
 

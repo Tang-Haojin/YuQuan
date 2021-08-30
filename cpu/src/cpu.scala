@@ -7,7 +7,6 @@ import chipsalliance.rocketchip.config._
 import cpu.pipeline._
 import component._
 import tools._
-import config.Debug._
 import config.RegisterConfig._
 import cache._
 import utils._
@@ -139,9 +138,5 @@ class InternalCPU(implicit p: Parameters) extends YQModule {
     moduleMEM.io.input.debug.exit := moduleEX.io.output.debug.exit
     moduleWB.io.input.debug.pc    := moduleMEM.io.output.debug.pc
     moduleWB.io.input.debug.exit  := moduleMEM.io.output.debug.exit
-  }
-
-  if (showReg) {
-    moduleGPRs.io.debug.showReg := moduleWB.io.debug.showReg
   }
 }
