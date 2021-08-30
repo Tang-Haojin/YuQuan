@@ -41,7 +41,7 @@ object PeripheralConfig {
   }
   
   class SPI extends MMAP {
-    override val BASE = 0x10000000L
+    override val BASE = 0x10001000L
     override val SIZE = 0x1000L // flash + spi controller
   }
   
