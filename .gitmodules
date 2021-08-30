@@ -1,0 +1,3 @@
+[submodule "ysyxSoC"]
+	path = ysyxSoC
+	url = https://github.com/Tang-Haojin/ysyxSoC.git
