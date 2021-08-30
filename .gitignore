@@ -16,3 +16,5 @@ bin/
 *.hier
 .config
 .mill-version
+*.bin
+obj_dir/
