@@ -24,7 +24,7 @@ class DMAC(implicit val p: Parameters) extends RawModule with SimParams {
     val regTransLen   = RegInit(0.U(xlen.W))
     val regFree       = RegInit(1.B)
 
-    val fifo = Module(new Queue(UInt(xlen.W), 8))
+    val fifo = Module(new YQueue(UInt(xlen.W), 8))
     fifo.io.enq.valid := io.toDevice.axiRd.RREADY && io.toDevice.axiRd.RVALID
     fifo.io.enq.bits  := io.toDevice.axiRd.RDATA
     fifo.io.deq.ready := io.toCPU.axiWd.WREADY && io.toCPU.axiWd.WVALID

@@ -19,11 +19,11 @@ class AXIRMux(implicit p: Parameters) extends YQModule {
 
   val pending = RegInit(0.U(2.W))
 
-  val RID_FIFO   = Module(new Queue(UInt(idlen.W), 2))
-  val RDATA_FIFO = Module(new Queue(UInt(xlen.W), 2))
-  val RRESP_FIFO = Module(new Queue(UInt(2.W), 2))
-  val RLAST_FIFO = Module(new Queue(Bool(), 2))
-  val RUSER_FIFO = Module(new Queue(UInt(1.W), 2))
+  val RID_FIFO   = Module(new YQueue(UInt(idlen.W), 2))
+  val RDATA_FIFO = Module(new YQueue(UInt(xlen.W), 2))
+  val RRESP_FIFO = Module(new YQueue(UInt(2.W), 2))
+  val RLAST_FIFO = Module(new YQueue(Bool(), 2))
+  val RUSER_FIFO = Module(new YQueue(UInt(1.W), 2))
 
   RID_FIFO.io.enq.valid   := 0.B; RID_FIFO.io.deq.ready   := 0.B
   RDATA_FIFO.io.enq.valid := 0.B; RDATA_FIFO.io.deq.ready := 0.B
