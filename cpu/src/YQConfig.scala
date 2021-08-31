@@ -21,7 +21,6 @@ object YQConfig {
     case DRAM_MMAP     => new DRAM
     case ALUTYPEWIDTH  => 5
     case USEFLASH      => true
-    case RAMSIZE       => 512L * 1024 * 1024
     case SPIFLASH_MMAP => new PeripheralConfig.SPIFLASH
     case ENABLE_DEBUG  => false
   }
@@ -46,5 +45,4 @@ case object CLINT_MMAP   extends Field[YQConfig.CLINT]
 case object DRAM_MMAP    extends Field[YQConfig.DRAM]
 case object ALUTYPEWIDTH extends Field[Int]
 case object USEFLASH     extends Field[Boolean]
-case object RAMSIZE      extends Field[Long]
 case object ENABLE_DEBUG extends Field[Boolean]

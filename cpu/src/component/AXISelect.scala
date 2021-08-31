@@ -45,12 +45,12 @@ class AXISelect(implicit p: Parameters) extends YQModule {
 
   when(
     (io.input.axiRa.ARADDR >= DRAM.BASE.U) &&
-    (io.input.axiRa.ARADDR < (DRAM.BASE + RamSize).U)
+    (io.input.axiRa.ARADDR < (DRAM.BASE + DRAM.SIZE).U)
   ) { wireRdevice := mem }.otherwise { wireRdevice := mmio }
 
   when(
     (io.input.axiWa.AWADDR >= DRAM.BASE.U) &&
-    (io.input.axiWa.AWADDR < (DRAM.BASE + RamSize).U)
+    (io.input.axiWa.AWADDR < (DRAM.BASE + DRAM.SIZE).U)
   ) { wireWdevice := mem }.otherwise { wireWdevice := mmio }
 
   when((wireRdevice === mem) && ARREADY) {

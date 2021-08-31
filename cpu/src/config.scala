@@ -4,7 +4,6 @@ import chisel3.util._
 import utils._
 
 object GeneralConfig {
-  val RamSize     = 100 * 1024 * 1024
   val MEMSize     = 100 * 1024 * 1024
 
   val IALIGN = 32 // compressed instructions are not implemented yet
