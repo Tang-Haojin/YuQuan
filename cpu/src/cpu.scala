@@ -7,7 +7,6 @@ import chipsalliance.rocketchip.config._
 import cpu.pipeline._
 import component._
 import tools._
-import config.RegisterConfig._
 import cache._
 import utils._
 
@@ -109,7 +108,7 @@ class InternalCPU(implicit p: Parameters) extends YQModule {
   moduleBypass.io.isLd         := moduleEX.io.output.isLd
 
   moduleBypassCsr.io.request <> moduleCSRs.io.csrsR
-  for (i <- 0 until writeCsrsPort) {
+  for (i <- 0 until RegConf.writeCsrsPort) {
     moduleBypassCsr.io.idOut.wcsr(i)  := moduleID.io.output.wcsr(i)  | Fill(12, !moduleID.io.nextVR.VALID)
     moduleBypassCsr.io.exOut.wcsr(i)  := moduleEX.io.output.wcsr(i)  | Fill(12, !moduleEX.io.nextVR.VALID)
     moduleBypassCsr.io.memOut.wcsr(i) := moduleMEM.io.output.wcsr(i) | Fill(12, !moduleMEM.io.nextVR.VALID)

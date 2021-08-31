@@ -5,7 +5,6 @@ import chisel3.util._
 import chipsalliance.rocketchip.config._
 
 import utils._
-import cpu.config.GeneralConfig._
 import cpu.tools._
 
 class StorageRead(implicit p: Parameters) extends YQBlackBox with HasBlackBoxInline {
@@ -119,7 +118,7 @@ class Storage(implicit p: Parameters) extends YQRawModule {
       }
     }.elsewhen(io.channel.axiRa.ARVALID && io.channel.axiRa.ARREADY) {
       RID        := io.channel.axiRa.ARID
-      wireARADDR := io.channel.axiRa.ARADDR(alen - 1, axSize) ## 0.U(axSize.W) - STROAGE.BASE.U
+      wireARADDR := io.channel.axiRa.ARADDR(alen - 1, axSize) ## 0.U(axSize.W) - SPIFLASH.BASE.U
       ARADDR     := wireARADDR
       ARREADY    := 0.B
       RVALID     := 1.B
@@ -128,7 +127,7 @@ class Storage(implicit p: Parameters) extends YQRawModule {
     }
 
     when(io.channel.axiWa.AWVALID && io.channel.axiWa.AWREADY) {
-      AWADDR  := io.channel.axiWa.AWADDR(alen - 1, axSize) ## 0.U(axSize.W) - STROAGE.BASE.U
+      AWADDR  := io.channel.axiWa.AWADDR(alen - 1, axSize) ## 0.U(axSize.W) - SPIFLASH.BASE.U
       BID     := io.channel.axiWa.AWID
       AWREADY := 0.B
       WREADY  := 1.B

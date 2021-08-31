@@ -7,8 +7,6 @@ import chipsalliance.rocketchip.config._
 
 import utils._
 
-import cpu.config.GeneralConfig._
-import cpu.config.RegisterConfig._
 import cpu.cache._
 import cpu.tools._
 
@@ -27,8 +25,8 @@ class MEM(implicit p: Parameters) extends YQModule {
 
   val rd      = RegInit(0.U(5.W));    io.output.rd   := rd
   val data    = RegInit(0.U(xlen.W)); io.output.data := data
-  val wcsr    = RegInit(VecInit(Seq.fill(writeCsrsPort)(0xFFF.U(12.W)))); io.output.wcsr    := wcsr
-  val csrData = RegInit(VecInit(Seq.fill(writeCsrsPort)(0.U(xlen.W))));   io.output.csrData := csrData
+  val wcsr    = RegInit(VecInit(Seq.fill(RegConf.writeCsrsPort)(0xFFF.U(12.W)))); io.output.wcsr    := wcsr
+  val csrData = RegInit(VecInit(Seq.fill(RegConf.writeCsrsPort)(0.U(xlen.W))));   io.output.csrData := csrData
   val exit    = if (Debug) RegInit(0.U(3.W)) else null
   val pc      = if (Debug) RegInit(0.U(xlen.W)) else null
 

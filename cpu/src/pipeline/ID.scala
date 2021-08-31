@@ -5,7 +5,6 @@ import chisel3.util._
 import chipsalliance.rocketchip.config._
 
 import cpu.component._
-import cpu.config.RegisterConfig._
 import ExecSpecials._
 import InstrTypes._
 import ExceptionCode._
@@ -22,7 +21,7 @@ class ID(implicit p: Parameters) extends YQModule {
 
   val NVALID  = RegInit(0.B)
   val rd      = RegInit(0.U(5.W))
-  val wcsr    = RegInit(VecInit(Seq.fill(writeCsrsPort)(0xFFF.U(12.W))))
+  val wcsr    = RegInit(VecInit(Seq.fill(RegConf.writeCsrsPort)(0xFFF.U(12.W))))
   val op1_2   = RegInit(0.U(AluTypeWidth.W))
   val op1_3   = RegInit(0.U(AluTypeWidth.W))
   val special = RegInit(0.U(5.W))
@@ -41,7 +40,7 @@ class ID(implicit p: Parameters) extends YQModule {
   val wireSpecial = WireDefault(UInt(5.W), decoded(8))
   val wireType    = WireDefault(7.U(3.W))
   val wireRd      = Wire(UInt(5.W))
-  val wireCsr     = WireDefault(VecInit(Seq.fill(writeCsrsPort)(0xFFF.U(12.W))))
+  val wireCsr     = WireDefault(VecInit(Seq.fill(RegConf.writeCsrsPort)(0xFFF.U(12.W))))
   val wireOp1_2   = WireDefault(UInt(AluTypeWidth.W), decoded(5))
   val wireOp1_3   = WireDefault(UInt(AluTypeWidth.W), decoded(6))
   val wireFunt3   = WireDefault(UInt(3.W), wireInstr(14, 12))
@@ -73,7 +72,7 @@ class ID(implicit p: Parameters) extends YQModule {
   io.gprsR.raddr(0) := 0.U
   io.gprsR.raddr(1) := 0.U
   io.gprsR.raddr(2) := 10.U
-  io.csrsR.rcsr     := VecInit(Seq.fill(readCsrsPort)(0xFFF.U(12.W)))
+  io.csrsR.rcsr     := VecInit(Seq.fill(RegConf.readCsrsPort)(0xFFF.U(12.W)))
 
   io.csrsR.rcsr(1) := csrsAddr().Mstatus
   io.csrsR.rcsr(2) := csrsAddr().Mie
@@ -198,7 +197,7 @@ class ID(implicit p: Parameters) extends YQModule {
   }.elsewhen(io.isWait && io.nextVR.READY) {
     NVALID  := 0.B
     rd      := 0.U
-    wcsr    := VecInit(Seq.fill(writeCsrsPort)(0xFFF.U(12.W)))
+    wcsr    := VecInit(Seq.fill(RegConf.writeCsrsPort)(0xFFF.U(12.W)))
     num     := VecInit(Seq.fill(4)(0.U))
     op1_2   := 0.U
     op1_3   := 0.U

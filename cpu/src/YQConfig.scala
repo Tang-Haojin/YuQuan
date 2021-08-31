@@ -23,6 +23,9 @@ object YQConfig {
     case USEFLASH      => true
     case SPIFLASH_MMAP => new PeripheralConfig.SPIFLASH
     case ENABLE_DEBUG  => false
+    case IALIGN        => 32 // compressed instructions are not implemented yet
+    case ILEN          => 32 // base instruction set supported only
+    case REG_CONF      => new RegConf
   }
 
   class CLINT extends MMAP {
@@ -37,6 +40,12 @@ object YQConfig {
     override val SIZE = 0x80000000L
   }
 
+  class RegConf {
+    val readPortsNum  = 3
+    val readCsrsPort  = 8
+    val writeCsrsPort = 4
+  }
+
   def apply(): YQConfig = new YQConfig
 }
 
@@ -46,3 +55,6 @@ case object DRAM_MMAP    extends Field[YQConfig.DRAM]
 case object ALUTYPEWIDTH extends Field[Int]
 case object USEFLASH     extends Field[Boolean]
 case object ENABLE_DEBUG extends Field[Boolean]
+case object IALIGN       extends Field[Int]
+case object ILEN         extends Field[Int]
+case object REG_CONF     extends Field[YQConfig.RegConf]

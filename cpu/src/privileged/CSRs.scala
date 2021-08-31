@@ -3,8 +3,6 @@ package cpu.privileged
 import chisel3._
 import chisel3.util._
 
-import cpu.config.GeneralConfig._
-import cpu.config.RegisterConfig._
 
 import utils.Convert._
 import chipsalliance.rocketchip.config._
@@ -12,13 +10,13 @@ import cpu.tools._
 import cpu.CPUParams
 
 class CSRsW(implicit p: Parameters) extends YQBundle {
-  val wen   = Input(Vec(writeCsrsPort, Bool()))
-  val wcsr  = Input(Vec(writeCsrsPort, UInt(12.W)))
-  val wdata = Input(Vec(writeCsrsPort, UInt(xlen.W)))
+  val wen   = Input(Vec(RegConf.writeCsrsPort, Bool()))
+  val wcsr  = Input(Vec(RegConf.writeCsrsPort, UInt(12.W)))
+  val wdata = Input(Vec(RegConf.writeCsrsPort, UInt(xlen.W)))
 }
 class CSRsR(implicit p: Parameters) extends YQBundle {
-  val rcsr  = Input (Vec(readCsrsPort, UInt(12.W)))
-  val rdata = Output(Vec(readCsrsPort, UInt(xlen.W)))
+  val rcsr  = Input (Vec(RegConf.readCsrsPort, UInt(12.W)))
+  val rdata = Output(Vec(RegConf.readCsrsPort, UInt(xlen.W)))
 }
 
 trait CSRsAddr extends CPUParams {
@@ -136,7 +134,7 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
   mcycle := mcycle + 1.U
   mtime  := mtime + 1.U
 
-  for (i <- 0 until writeCsrsPort) {
+  for (i <- 0 until RegConf.writeCsrsPort) {
     when(io.csrsW.wen(i)) {
       when(io.csrsW.wcsr(i)(11, 10) === "b11".U) {
         // TODO: Raise an illegal instruction exception.
@@ -215,7 +213,7 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
     }
   }
 
-  for (i <- 0 until readCsrsPort) {
+  for (i <- 0 until RegConf.readCsrsPort) {
     io.csrsR.rdata(i) := 0.U
     when(io.csrsR.rcsr(i) === Misa) { io.csrsR.rdata(i) := misa }
     when(io.csrsR.rcsr(i) === Mvendorid) { io.csrsR.rdata(i) := mvendorid }

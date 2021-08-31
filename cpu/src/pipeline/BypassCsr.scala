@@ -3,7 +3,6 @@ package cpu.pipeline
 import chisel3._
 import chipsalliance.rocketchip.config._
 
-import cpu.config.RegisterConfig._
 import cpu.tools._
 
 class BypassCsr(implicit p: Parameters) extends YQModule {
@@ -18,20 +17,20 @@ class BypassCsr(implicit p: Parameters) extends YQModule {
 
   io.isWait := 0.B
 
-  for (i <- 0 until readCsrsPort) {
+  for (i <- 0 until RegConf.readCsrsPort) {
     io.request.rcsr(i) := io.receive.rcsr(i)
     io.receive.rdata(i) := 0.U
     when(io.receive.rcsr(i) =/= 0xFFF.U) {
       io.receive.rdata(i) := io.request.rdata(i)
-      for (j <- 0 until writeCsrsPort)
+      for (j <- 0 until RegConf.writeCsrsPort)
         when(io.receive.rcsr(i) === io.memOut.wcsr(j)) {
           io.receive.rdata(i) := io.memOut.value(j)
         }
-      for (j <- 0 until writeCsrsPort)
+      for (j <- 0 until RegConf.writeCsrsPort)
         when(io.receive.rcsr(i) === io.exOut.wcsr(j)) {
           io.receive.rdata(i) := io.exOut.value(j)
         }
-      for (j <- 0 until writeCsrsPort)
+      for (j <- 0 until RegConf.writeCsrsPort)
         when(io.receive.rcsr(i) === io.idOut.wcsr(j)) {
           io.isWait := 1.B
           io.receive.rdata(i) := 0.U

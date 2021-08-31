@@ -3,7 +3,6 @@ package cpu.pipeline
 import chisel3._
 import chipsalliance.rocketchip.config._
 
-import cpu.config.RegisterConfig._
 import cpu.tools._
 
 class Bypass(implicit p: Parameters) extends YQModule {
@@ -19,7 +18,7 @@ class Bypass(implicit p: Parameters) extends YQModule {
 
   io.isWait := 0.B
 
-  for (i <- 0 until readPortsNum) {
+  for (i <- 0 until RegConf.readPortsNum) {
     io.request.raddr(i) := io.receive.raddr(i)
     io.receive.rdata(i) := 0.U
     when(io.receive.raddr(i) === 0.U) {

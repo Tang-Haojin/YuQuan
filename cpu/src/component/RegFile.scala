@@ -3,7 +3,6 @@ package cpu.component
 import chisel3._
 import chipsalliance.rocketchip.config._
 
-import cpu.config.RegisterConfig._
 import cpu.tools._
 
 class GPRsW(implicit p: Parameters) extends YQBundle {
@@ -13,8 +12,8 @@ class GPRsW(implicit p: Parameters) extends YQBundle {
 }
 
 class GPRsR(implicit p: Parameters) extends YQBundle {
-  val raddr = Input (Vec(readPortsNum, UInt( 5.W)))
-  val rdata = Output(Vec(readPortsNum, UInt(xlen.W)))
+  val raddr = Input (Vec(RegConf.readPortsNum, UInt( 5.W)))
+  val rdata = Output(Vec(RegConf.readPortsNum, UInt(xlen.W)))
 }
 
 class GPRs(implicit p: Parameters) extends YQModule {
@@ -32,7 +31,7 @@ class GPRs(implicit p: Parameters) extends YQModule {
     regs(io.gprsW.waddr) := io.gprsW.wdata
   }
 
-  for (i <- 0 until readPortsNum)
+  for (i <- 0 until RegConf.readPortsNum)
     io.gprsR.rdata(i) := regs(io.gprsR.raddr(i))
 
   if (Debug) {

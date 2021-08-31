@@ -7,8 +7,6 @@ import chipsalliance.rocketchip.config._
 import utils._
 import utils.Convert._
 
-import cpu.config.GeneralConfig._
-import cpu.config.RegisterConfig._
 import ExecSpecials._
 import cpu.component._
 import cpu.tools._
@@ -30,8 +28,8 @@ class EX(implicit p: Parameters) extends YQModule {
 
   val rd      = RegInit(0.U(5.W))
   val data    = RegInit(0.U(xlen.W))
-  val wcsr    = RegInit(VecInit(Seq.fill(writeCsrsPort)(0xFFF.U(12.W))))
-  val csrData = RegInit(VecInit(Seq.fill(writeCsrsPort)(0.U(xlen.W))))
+  val wcsr    = RegInit(VecInit(Seq.fill(RegConf.writeCsrsPort)(0xFFF.U(12.W))))
+  val csrData = RegInit(VecInit(Seq.fill(RegConf.writeCsrsPort)(0.U(xlen.W))))
   val isMem   = RegInit(0.B)
   val isLd    = RegInit(0.B)
   val addr    = RegInit(0.U(xlen.W))
@@ -41,7 +39,7 @@ class EX(implicit p: Parameters) extends YQModule {
 
   val wireRd      = WireDefault(UInt(5.W), io.input.rd)
   val wireData    = WireDefault(UInt(xlen.W), alu1_2.io.res.asUInt)
-  val wireCsrData = WireDefault(VecInit(Seq.fill(writeCsrsPort)(0.U(xlen.W))))
+  val wireCsrData = WireDefault(VecInit(Seq.fill(RegConf.writeCsrsPort)(0.U(xlen.W))))
   val wireIsMem   = WireDefault(Bool(), io.input.special === ld || io.input.special === st)
   val wireIsLd    = WireDefault(Bool(), io.input.special === ld)
   val wireAddr    = WireDefault(UInt(xlen.W), io.input.num(2) + io.input.num(3))

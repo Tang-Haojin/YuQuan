@@ -5,7 +5,6 @@ import chisel3.util._
 import chipsalliance.rocketchip.config._
 
 import utils._
-import cpu.config.GeneralConfig._
 import peripheral._
 import cpu.tools._
 import sim._

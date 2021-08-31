@@ -6,8 +6,6 @@ import chipsalliance.rocketchip.config._
 
 import utils._
 
-import cpu.config.GeneralConfig._
-import cpu.config.RegisterConfig._
 import cpu.instruction._
 import cpu.component._
 import cpu.tools._
@@ -22,8 +20,8 @@ object ExitReasons {
 class EXOutput(implicit p: Parameters) extends YQBundle {
   val rd      = Output(UInt(5.W))
   val data    = Output(UInt(xlen.W))
-  val wcsr    = Output(Vec(writeCsrsPort, UInt(12.W)))
-  val csrData = Output(Vec(writeCsrsPort, UInt(xlen.W)))
+  val wcsr    = Output(Vec(RegConf.writeCsrsPort, UInt(12.W)))
+  val csrData = Output(Vec(RegConf.writeCsrsPort, UInt(xlen.W)))
   val isMem   = Output(Bool())
   val isLd    = Output(Bool())
   val addr    = Output(UInt(xlen.W))
@@ -54,7 +52,7 @@ case class RVInstr()(implicit val p: Parameters) extends CPUParams {
 
 class IDOutput(implicit p: Parameters) extends YQBundle {
   val rd      = Output(UInt(5.W))
-  val wcsr    = Output(Vec(writeCsrsPort, UInt(12.W)))
+  val wcsr    = Output(Vec(RegConf.writeCsrsPort, UInt(12.W)))
   val num     = Output(Vec(4, UInt(xlen.W)))
   val op1_2   = Output(UInt(AluTypeWidth.W))
   val op1_3   = Output(UInt(AluTypeWidth.W))
@@ -87,8 +85,8 @@ class IFOutput(implicit p: Parameters) extends YQBundle {
 class MEMOutput(implicit p: Parameters) extends YQBundle {
   val rd      = Output(UInt(5.W))
   val data    = Output(UInt(xlen.W))
-  val wcsr    = Output(Vec(writeCsrsPort, UInt(12.W)))
-  val csrData = Output(Vec(writeCsrsPort, UInt(xlen.W)))
+  val wcsr    = Output(Vec(RegConf.writeCsrsPort, UInt(12.W)))
+  val csrData = Output(Vec(RegConf.writeCsrsPort, UInt(xlen.W)))
   val debug   =
     if (Debug) new YQBundle {
       val exit  = Output(UInt(3.W))
@@ -104,8 +102,8 @@ class RdVal(implicit p: Parameters) extends YQBundle {
 
 // BypassCsr
 class CsrVal(implicit p: Parameters) extends YQBundle {
-  val wcsr  = Input(Vec(writeCsrsPort, UInt(12.W)))
-  val value = Input(Vec(writeCsrsPort, UInt(xlen.W)))
+  val wcsr  = Input(Vec(RegConf.writeCsrsPort, UInt(12.W)))
+  val value = Input(Vec(RegConf.writeCsrsPort, UInt(xlen.W)))
 }
 
 object ExceptionCode extends Enumeration {

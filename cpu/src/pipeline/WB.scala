@@ -6,8 +6,6 @@ import chipsalliance.rocketchip.config._
 import utils._
 
 import cpu.component._
-import cpu.config.GeneralConfig._
-import cpu.config.RegisterConfig._
 import cpu.privileged.CSRsW
 import cpu.tools._
 
@@ -34,7 +32,7 @@ class WB(implicit p: Parameters) extends YQModule {
   io.gprsW.waddr := io.input.rd
   io.gprsW.wdata := io.input.data
 
-  io.csrsW.wen   := VecInit(Seq.fill(writeCsrsPort)(0.B))
+  io.csrsW.wen   := VecInit(Seq.fill(RegConf.writeCsrsPort)(0.B))
   io.csrsW.wcsr  := io.input.wcsr
   io.csrsW.wdata := io.input.csrData
 
@@ -42,7 +40,7 @@ class WB(implicit p: Parameters) extends YQModule {
   
   when(io.lastVR.VALID) { // ready to start fetching instr
     io.gprsW.wen := (io.input.rd =/= 0.U)
-    for (i <- 0 until writeCsrsPort) io.csrsW.wen(i) := (io.input.wcsr(i) =/= 0xFFF.U)
+    for (i <- 0 until RegConf.writeCsrsPort) io.csrsW.wen(i) := (io.input.wcsr(i) =/= 0xFFF.U)
     if (Debug) {
       exit  := io.input.debug.exit
       pc    := io.input.debug.pc

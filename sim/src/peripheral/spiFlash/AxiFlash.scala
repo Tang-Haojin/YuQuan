@@ -4,7 +4,6 @@ import chisel3._
 import chisel3.util._
 
 import utils._
-import cpu.config.GeneralConfig._
 import peripheral._
 import peripheral.spi.spi_axi_flash
 import cpu.tools._

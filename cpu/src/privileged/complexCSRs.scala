@@ -2,8 +2,8 @@ package cpu.privileged
 
 import chisel3._
 import chisel3.util._
-import cpu.config.GeneralConfig._
 import chipsalliance.rocketchip.config._
+
 import cpu.tools._
 import cpu._
 
