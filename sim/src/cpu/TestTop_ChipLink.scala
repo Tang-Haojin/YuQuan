@@ -45,18 +45,14 @@ class TestTop_ChipLink(io: DEBUG, clock: Clock, reset: Reset)(implicit p: Parame
   asic.io.ChiplinkIO.b2c.rst   := chiplink.io.fpga_io_c2b_rst  
   asic.io.ChiplinkIO.b2c.send  := chiplink.io.fpga_io_c2b_send 
 
-  asic.io.basic.ACLK            := clock
-  asic.io.basic.ARESETn         := reset
   mem.io.basic.ACLK             := clock
-  mem.io.basic.ARESETn          := reset
-  tty.io.clock                  := clock
-  tty.io.reset                  := reset
+  mem.io.basic.ARESETn          := !reset.asBool
   chiplink.io.clock             := clock.asBool
-  chiplink.io.reset             := !reset.asBool
+  chiplink.io.reset             := reset
   storage.io.basic.ACLK         := clock
-  storage.io.basic.ARESETn      := reset
+  storage.io.basic.ARESETn      := !reset.asBool
   dmac.io.fromCPU.basic.ACLK    := clock
-  dmac.io.fromCPU.basic.ARESETn := reset
+  dmac.io.fromCPU.basic.ARESETn := !reset.asBool
 }
 
 private class LinkMEM(chiplinkIO: ChiplinkTopIO, memIO: AxiMasterChannel) {

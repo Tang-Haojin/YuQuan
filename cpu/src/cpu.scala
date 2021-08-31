@@ -10,9 +10,8 @@ import tools._
 import cache._
 import utils._
 
-class CPU(implicit p: Parameters) extends YQRawModule {
-  val io = IO(new Bundle {
-    val basic   = new BASIC
+class CPU(implicit p: Parameters) extends YQModule {
+  val io = IO(new YQBundle {
     val memAXI  = new AxiMasterChannel
     val dmaAXI  = Flipped(new AxiMasterChannel)
     val intr    = Input(Bool())
@@ -22,25 +21,6 @@ class CPU(implicit p: Parameters) extends YQRawModule {
   })
 
   dontTouch(io)
-
-  withClockAndReset(io.basic.ACLK, !io.basic.ARESETn) {
-    val cpu = Module(new InternalCPU)
-    io.intr    <> cpu.io.intr
-    io.memAXI  <> cpu.io.memAXI
-    io.dmaAXI  <> cpu.io.dmaAXI
-    if (Debug) io.debug <> cpu.io.debug
-  }
-}
-
-class InternalCPU(implicit p: Parameters) extends YQModule {
-  val io = IO(new YQBundle {
-    val memAXI  = new AxiMasterChannel
-    val dmaAXI  = Flipped(new AxiMasterChannel)
-    val intr    = Input(Bool())
-    val debug   = 
-    if(Debug)     new DEBUG
-    else          null
-  })
 
   val moduleGPRs      = Module(new GPRs)
   val moduleCSRs      = Module(new cpu.privileged.M_CSRs)

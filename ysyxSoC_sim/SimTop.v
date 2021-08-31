@@ -136,7 +136,7 @@ ysyxSoCFull soc(
 
 ysyx_CPU cpu(
   .io_basic_ACLK(clock),
-  .io_basic_ARESETn(~cpu_reset),
+  .io_basic_ARESETn(cpu_reset),
   .io_memAXI_axiRa_ARID(cpu_master_0_arid),
   .io_memAXI_axiRa_ARADDR(cpu_master_0_araddr),
   .io_memAXI_axiRa_ARLEN(cpu_master_0_arlen),

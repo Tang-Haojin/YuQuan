@@ -14,9 +14,8 @@ import peripheral._
 import _root_.cpu.component.AXISelect
 import utils._
 
-class ASIC(implicit val p: Parameters) extends RawModule with SimParams {
+class ASIC(implicit val p: Parameters) extends Module with SimParams {
   val io = IO(new Bundle {
-    val basic = new BASIC
     val UartIO = new Bundle {
       val srx = Input (UInt(1.W))
       val stx = Output(UInt(1.W))
@@ -33,17 +32,15 @@ class ASIC(implicit val p: Parameters) extends RawModule with SimParams {
   val plic      = Module(new Plic)
   val chiplink  = Module(new ChiplinkBridge)
 
-  withClockAndReset(io.basic.ACLK, !io.basic.ARESETn) {
-    val select = Module(new AXISelect)
-    select.io.input  <> cpu.io.memAXI
-    router.io.input  <> select.io.MMIO
-    router.io.UartIO <> uartCtrl.io.channel
-    router.io.PLICIO <> plic.io.channel
-    router.io.SpiIO  <> spiCtrl.io.axi_s.channel
-    LinkMEM (chiplink.io, select.io.RamIO)
-    LinkMMIO(chiplink.io, router.io.ChiplinkIO)
-    LinkDMA (chiplink.io, cpu.io.dmaAXI)
-  }
+  val select = Module(new AXISelect)
+  select.io.input  <> cpu.io.memAXI
+  router.io.input  <> select.io.MMIO
+  router.io.UartIO <> uartCtrl.io.channel
+  router.io.PLICIO <> plic.io.channel
+  router.io.SpiIO  <> spiCtrl.io.axi_s.channel
+  LinkMEM (chiplink.io, select.io.RamIO)
+  LinkMMIO(chiplink.io, router.io.ChiplinkIO)
+  LinkDMA (chiplink.io, cpu.io.dmaAXI)
 
   io.UartIO.stx   := uartCtrl.io.stx
   uartCtrl.io.srx := io.UartIO.srx
@@ -61,25 +58,21 @@ class ASIC(implicit val p: Parameters) extends RawModule with SimParams {
   plic.io.inter(10) := uartCtrl.io.interrupt
   cpu.io.intr       := plic.io.eip
 
-  withClockAndReset(io.basic.ACLK, !io.basic.ARESETn) {
-    val delayCounter  = RegInit(15.U(4.W))
-    val delayedResetn = (delayCounter === 0.U)
+  val delayCounter  = RegInit(15.U(4.W))
+  val delayedResetn = (delayCounter === 0.U)
 
-    when(delayCounter =/= 0.U) { delayCounter := delayCounter - 1.U }
+  when(delayCounter =/= 0.U) { delayCounter := delayCounter - 1.U }
 
-    cpu.io.basic.ACLK              := io.basic.ACLK
-    cpu.io.basic.ARESETn           := delayedResetn
-    router.io.basic.ACLK           := io.basic.ACLK
-    router.io.basic.ARESETn        := io.basic.ARESETn
-    uartCtrl.io.basic.ACLK         := io.basic.ACLK
-    uartCtrl.io.basic.ARESETn      := io.basic.ARESETn
-    spiCtrl.io.axi_s.basic.ACLK    := io.basic.ACLK
-    spiCtrl.io.axi_s.basic.ARESETn := io.basic.ARESETn
-    plic.io.basic.ACLK             := io.basic.ACLK
-    plic.io.basic.ARESETn          := io.basic.ARESETn
-    chiplink.io.clock              := io.basic.ACLK.asBool
-    chiplink.io.reset              := !io.basic.ARESETn
-  }
+  router.io.basic.ACLK           := clock
+  router.io.basic.ARESETn        := !reset.asBool
+  uartCtrl.io.basic.ACLK         := clock
+  uartCtrl.io.basic.ARESETn      := !reset.asBool
+  spiCtrl.io.axi_s.basic.ACLK    := clock
+  spiCtrl.io.axi_s.basic.ARESETn := !reset.asBool
+  plic.io.basic.ACLK             := clock
+  plic.io.basic.ARESETn          := !reset.asBool
+  chiplink.io.clock              := clock.asBool
+  chiplink.io.reset              := reset
 
   if (Debug) io.debug <> cpu.io.debug
 }

@@ -68,7 +68,7 @@ int main(int argc, char **argv, char **env) {
   QData *gprs = &top->io_gprs_0;
 #endif
 
-  top->reset = 0;
+  top->reset = 1;
   top->clock = 0;
   top->eval();
 
@@ -78,7 +78,7 @@ int main(int argc, char **argv, char **env) {
     top->eval();
   }
 
-  top->reset = 1;
+  top->reset = 0;
   for (;!contextp->gotFinish();cycles++) {
     contextp->timeInc(1);
     top->clock = !top->clock;

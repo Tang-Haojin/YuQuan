@@ -162,12 +162,11 @@ class UartSim(implicit val p: Parameters) extends UartWrapper {
 
 class UartReal(implicit val p: Parameters) extends UartWrapper {
   val uart16550 = Module(new Uart16550)
-  val tty       = Module(new TTY)
-
-  tty.io.clock     := io.basic.ACLK
-  tty.io.reset     := io.basic.ARESETn
-  tty.io.srx       := uart16550.io.stx
-  uart16550.io.srx := tty.io.stx
+  withClockAndReset(io.basic.ACLK, !io.basic.ARESETn) {
+    val tty = Module(new TTY)
+    tty.io.srx       := uart16550.io.stx
+    uart16550.io.srx := tty.io.stx
+  }
 
   io.basic <> uart16550.io.basic
   io.channel.axiRa <> uart16550.io.channel.axiRa

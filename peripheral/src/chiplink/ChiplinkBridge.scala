@@ -7,8 +7,8 @@ class ChiplinkBridge extends BlackBox {
 }
 
 class ChiplinkBridgeIO extends Bundle {
-  val clock = Input(Bool())
-  val reset = Input(Bool())
+  val clock = Input(Clock())
+  val reset = Input(Reset())
   val fpga_io_c2b_clk = Output(Bool())
   val fpga_io_c2b_rst = Output(Bool())
   val fpga_io_c2b_send = Output(Bool())

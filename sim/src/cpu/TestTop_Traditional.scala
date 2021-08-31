@@ -37,18 +37,16 @@ class TestTop_Traditional(io: DEBUG, clock: Clock, reset: Reset)(implicit val p:
   plic.io.inter(10) := uart.io.interrupt
   cpu.io.intr       := plic.io.eip
 
-  cpu.io.basic.ACLK          := clock
-  cpu.io.basic.ARESETn       := reset
   mem.io.basic.ACLK          := clock
-  mem.io.basic.ARESETn       := reset
+  mem.io.basic.ARESETn       := !reset.asBool
   uart.io.basic.ACLK         := clock
-  uart.io.basic.ARESETn      := reset
+  uart.io.basic.ARESETn      := !reset.asBool
   plic.io.basic.ACLK         := clock
-  plic.io.basic.ARESETn      := reset
+  plic.io.basic.ARESETn      := !reset.asBool
   spi.io.basic.ACLK          := clock
-  spi.io.basic.ARESETn       := reset
+  spi.io.basic.ARESETn       := !reset.asBool
   nemu_uart.io.basic.ACLK    := clock
-  nemu_uart.io.basic.ARESETn := reset
+  nemu_uart.io.basic.ARESETn := !reset.asBool
   router.io.basic.ACLK       := clock
-  router.io.basic.ARESETn    := reset
+  router.io.basic.ARESETn    := !reset.asBool
 }
