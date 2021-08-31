@@ -30,7 +30,7 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
 
   val ramValid = SyncReadMem(IndexSize, Vec(Associativity, Bool()))
   val ramTag   = SyncReadMem(IndexSize, Vec(Associativity, UInt(Tag.W)))
-  val ramData  = SyncReadMem(IndexSize, Vec(Associativity, UInt((BlockSize * 8).W)))
+  val ramData  = SinglePortRam(clock, BlockSize * 8, IndexSize, Associativity)
 
   val hit = WireDefault(0.B)
   val grp = WireDefault(0.U(log2Ceil(Associativity).W))
@@ -93,7 +93,7 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
     when(io.memIO.axiRd.RREADY && io.memIO.axiRd.RVALID) {
       when(received === (BurstLen - 1).U) {
         received := 0.U
-        state    := compare
+        state    := idle
         wen(way) := 1.B
         RREADY   := 0.B
       }.otherwise {

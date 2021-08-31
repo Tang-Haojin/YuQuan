@@ -51,7 +51,7 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
   val ramValid = SyncReadMem(IndexSize, Vec(Associativity, Bool()))
   val ramDirty = SyncReadMem(IndexSize, Vec(Associativity, Bool()))
   val ramTag   = SyncReadMem(IndexSize, Vec(Associativity, UInt(Tag.W)))
-  val ramData  = SyncReadMem(IndexSize, Vec(Associativity, UInt((BlockSize * 8).W)))
+  val ramData  = SinglePortRam(clock, BlockSize * 8, IndexSize, Associativity)
 
   val hit = WireDefault(0.B)
   val grp = WireDefault(0.U(log2Ceil(Associativity).W))
@@ -127,10 +127,10 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
     }.elsewhen(useEmpty || (!useEmpty && !dirty(wireWay))) { // have empty or clean cache line
       when(wbBuffer.used && (io.memIO.axiRa.ARADDR === wbBuffer.wbAddr)) {
         readBack := 1.B
-        state    := compare
+        state    := idle
       }.otherwise { ARVALID := 1.B; state := allocate }
     }.elsewhen(wbBuffer.used && (io.memIO.axiRa.ARADDR === wbBuffer.wbAddr)) {
-      when(wbBuffer.ready) { readBack := 1.B; wbBuffer.valid := 1.B; state := compare } // swap wbBuffer and cache line
+      when(wbBuffer.ready) { readBack := 1.B; wbBuffer.valid := 1.B; state := idle } // swap wbBuffer and cache line
     }.otherwise { state := writeback }
   }
   when(state === writeback) {
@@ -141,7 +141,7 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
     when(io.memIO.axiRd.RREADY && io.memIO.axiRd.RVALID) {
       when(received === (BurstLen - 1).U) {
         received := 0.U
-        state    := compare
+        state    := idle
         wen(way) := 1.B
         RREADY   := 0.B
       }.otherwise {
