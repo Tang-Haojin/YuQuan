@@ -41,7 +41,7 @@ class UartAxiSlaveIO(implicit p: Parameters) extends AxiSlaveIO with UartASICIOT
 
 class uart_regs(implicit p: Parameters) extends BlackBox with HasBlackBoxPath {
   val io = IO(new UregIO)
-  addPath(new File("playground/src/peripheral/uart16550/uart16550/uart_regs.v").getCanonicalPath)
+  addPath(new File("peripheral/src/uart16550/uart16550/uart_regs.v").getCanonicalPath)
 }
 
 class Uart16550(implicit val p: Parameters) extends RawModule with PeripheralParams {
