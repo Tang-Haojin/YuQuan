@@ -24,14 +24,14 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
   val AWVALID = RegInit(0.B)
   val RREADY  = RegInit(0.B)
 
-  val addr       = RegInit(0.U(xlen.W))
+  val addr       = RegInit(0.U(alen.W))
   val reqData    = RegInit(0.U(xlen.W))
   val reqRw      = RegInit(0.B)
   val reqWMask   = RegInit(0.U((xlen / 8).W))
   val addrOffset = addr(Offset - 1, 0)
   val addrIndex  = WireDefault(UInt(Index.W), addr(Index + Offset - 1, Offset))
-  val addrTag    = addr(xlen - 1, Index + Offset)
-  val memAddr    = addr(xlen - 1, Offset) ## 0.U(Offset.W)
+  val addrTag    = addr(alen - 1, Index + Offset)
+  val memAddr    = addr(alen - 1, Offset) ## 0.U(Offset.W)
 
   io.memIO.axiRa.ARID     := 1.U // 1 for MEM
   io.memIO.axiRa.ARLEN    := (BurstLen - 1).U // (ARLEN + 1) AXI Burst per AXI Transfer (a.k.a. AXI Beat)
@@ -167,5 +167,5 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
 }
 
 object DCache {
-  def apply()(implicit p: Parameters): DCache = Module(new DCache)
+  def apply(implicit p: Parameters): DCache = Module(new DCache)
 }

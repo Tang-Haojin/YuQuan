@@ -10,7 +10,7 @@ import cpu._
 
 // CPU -> Cache Controller
 class CpuReq(implicit p: Parameters) extends YQBundle {
-  val addr  = Input(UInt(xlen.W))
+  val addr  = Input(UInt(alen.W))
   val data  = Input(UInt(xlen.W))
   val rw    = Input(Bool())
   val wmask = Input(UInt((xlen / 8).W))

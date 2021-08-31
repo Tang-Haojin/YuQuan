@@ -17,7 +17,7 @@ object CacheConfig {
     case OFFSET        => log2Ceil(here(BLOCK_SIZE))
     case INDEX_SIZE    => here(CACHE_SIZE) / here(ASSOCIATIVITY) / here(BLOCK_SIZE)
     case INDEX         => log2Ceil(here(INDEX_SIZE))
-    case TAG           => up(XLEN) - here(OFFSET) - here(INDEX)
+    case TAG           => up(ALEN) - here(OFFSET) - here(INDEX)
     case BURST_LEN     => 8 * here(BLOCK_SIZE) / up(XLEN)
     case LOG_BURST_LEN => log2Ceil(8 * here(BLOCK_SIZE) / up(XLEN))
   }

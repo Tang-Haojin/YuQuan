@@ -19,11 +19,11 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   val state = RegInit(UInt(2.W), idle)
   val received = RegInit(0.U(LogBurstLen.W))
 
-  val addr       = RegInit(0.U(xlen.W))
+  val addr       = RegInit(0.U(alen.W))
   val addrOffset = addr(Offset - 1, 0)
   val addrIndex  = WireDefault(UInt(Index.W), addr(Index + Offset - 1, Offset))
-  val addrTag    = addr(xlen - 1, Index + Offset)
-  val memAddr    = addr(xlen - 1, Offset) ## 0.U(Offset.W)
+  val addrTag    = addr(alen - 1, Index + Offset)
+  val memAddr    = addr(alen - 1, Offset) ## 0.U(Offset.W)
 
   val ARVALID = RegInit(0.B); val RREADY  = RegInit(0.B)
   ICacheMemIODefault(io.memIO, ARVALID, memAddr, RREADY)
@@ -123,7 +123,7 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
 }
 
 object ICache {
-  def apply()(implicit p: Parameters): ICache = {
+  def apply(implicit p: Parameters): ICache = {
     val t = Module(new ICache)
     t.io.memIO.axiWa := DontCare
     t.io.memIO.axiWd := DontCare
