@@ -47,8 +47,7 @@ object IsPeripheral {
   implicit def getResult(x: IsPeripheral): Bool = x.isPeripheral
 }
 
-class WbBuffer(memIO: AxiMasterChannel, sendData: UInt, sendAddr: UInt)(implicit val p: Parameters) extends CPUParams {
-  import cpu.config.CacheConfig.DCache._
+class WbBuffer(memIO: AxiMasterChannel, sendData: UInt, sendAddr: UInt)(implicit val p: Parameters) extends CPUParams with CacheParams {
   val used   = RegInit(0.B)
   val buffer = RegInit(0.U((BlockSize * 8).W))
   val ready  = RegInit(1.B)
@@ -205,8 +204,7 @@ object PassThrough {
   def apply(readonly: Boolean)(memIO: AxiMasterChannel, wbFree: Bool, addr: UInt, wdata: UInt, wstrb: UInt, rw: Bool)(implicit p: Parameters): PassThrough = new PassThrough(readonly)(memIO, wbFree, addr, wdata, wstrb, rw)
 }
 
-class ICacheMemIODefault(memIO: AxiMasterChannel, arValid: Bool, arAddr: UInt, rReady: Bool)(implicit val p: Parameters) extends CPUParams {
-  import cpu.config.CacheConfig.ICache._
+class ICacheMemIODefault(memIO: AxiMasterChannel, arValid: Bool, arAddr: UInt, rReady: Bool)(implicit val p: Parameters) extends CPUParams with CacheParams {
   memIO.axiRa.ARID     := 0.U // 0 for IF
   memIO.axiRa.ARLEN    := (BurstLen - 1).U // (ARLEN + 1) AXI Burst per AXI Transfer (a.k.a. AXI Beat)
   memIO.axiRa.ARSIZE   := axSize.U // 2^(ARSIZE) bytes per AXI Transfer

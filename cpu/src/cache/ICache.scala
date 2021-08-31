@@ -5,11 +5,10 @@ import chisel3.util._
 import chisel3.util.random._
 import chipsalliance.rocketchip.config._
 
-import cpu.config.CacheConfig.ICache._
 import utils._
 import cpu.tools._
 
-class ICache(implicit p: Parameters) extends YQModule {
+class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   val io = IO(new YQBundle {
     val cpuIO = new CpuIO
     val memIO = new AxiMasterChannel
@@ -35,10 +34,12 @@ class ICache(implicit p: Parameters) extends YQModule {
 
   val hit = WireDefault(0.B)
   val grp = WireDefault(0.U(log2Ceil(Associativity).W))
+  val wen = WireDefault(VecInit(Seq.fill(Associativity)(0.B)))
+  val ren = { var x = 1.B; for (i <- wen.indices) { x = x | ~wen(i) }; x }
 
-  val valid = ramValid.read(addrIndex, 1.B)
-  val tag   = ramTag  .read(addrIndex, 1.B)
-  val data  = ramData .read(addrIndex, 1.B)
+  val valid = ramValid.read(addrIndex, ren)
+  val tag   = ramTag  .read(addrIndex, ren)
+  val data  = ramData .read(addrIndex, ren)
 
   val way = RegInit(0.U(log2Ceil(Associativity).W))
   val writeBuffer = RegInit(VecInit(Seq.fill(BurstLen - 1)(0.U(xlen.W))))
@@ -46,7 +47,6 @@ class ICache(implicit p: Parameters) extends YQModule {
     data(grp)(i * 32 + 31, i * 32)
   }))
 
-  val wen       = WireDefault(VecInit(Seq.fill(Associativity)(0.B)))
   val wdata     = io.memIO.axiRd.RDATA ## writeBuffer.asUInt
   val vecWvalid = VecInit(Seq.fill(Associativity)(1.B))
   val vecWtag   = VecInit(Seq.fill(Associativity)(addrTag))

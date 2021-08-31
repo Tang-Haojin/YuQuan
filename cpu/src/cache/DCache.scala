@@ -5,11 +5,10 @@ import chisel3.util._
 import chisel3.util.random._
 import chipsalliance.rocketchip.config._
 
-import cpu.config.CacheConfig.DCache._
 import utils._
 import cpu.tools._
 
-class DCache(implicit p: Parameters) extends YQModule {
+class DCache(implicit p: Parameters) extends YQModule with CacheParams {
   val io = IO(new YQBundle {
     val cpuIO = new CpuIO
     val memIO = new AxiMasterChannel
@@ -56,6 +55,8 @@ class DCache(implicit p: Parameters) extends YQModule {
 
   val hit = WireDefault(0.B)
   val grp = WireDefault(0.U(log2Ceil(Associativity).W))
+  val wen = WireDefault(VecInit(Seq.fill(Associativity)(0.B)))
+  val ren = { var x = 1.B; for (i <- wen.indices) { x = x | ~wen(i) }; x }
 
   val valid = ramValid.read(addrIndex, 1.B)
   val dirty = ramDirty.read(addrIndex, 1.B)
@@ -80,7 +81,6 @@ class DCache(implicit p: Parameters) extends YQModule {
     data(grp)(i * 8 + 7, i * 8)
   })); val byteDatas = byteData.asUInt()
 
-  val wen       = WireDefault(VecInit(Seq.fill(Associativity)(0.B)))
   val wdata     = io.memIO.axiRd.RDATA ## inBuffer.asUInt
   val vecWvalid = VecInit(Seq.fill(Associativity)(1.B))
   val vecWdirty = VecInit(Seq.fill(Associativity)(0.B))
@@ -167,5 +167,5 @@ class DCache(implicit p: Parameters) extends YQModule {
 }
 
 object DCache {
-  def apply(implicit p: Parameters): DCache = Module(new DCache)
+  def apply()(implicit p: Parameters): DCache = Module(new DCache)
 }

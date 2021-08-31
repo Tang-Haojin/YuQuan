@@ -50,8 +50,8 @@ class InternalCPU(implicit p: Parameters) extends YQModule {
   val moduleAXIRMux   = Module(new AXIRMux)
   val moduleAXIWMux   = Module(new AXIWMux)
 
-  val moduleICache = ICache()
-  val moduleDCache = Module(new DCache)
+  val moduleICache = ICache()(p.alter(cache.CacheConfig.f))
+  val moduleDCache = DCache()(p.alter(cache.CacheConfig.f))
 
   val moduleIF  = Module(new IF)
   val moduleID  = Module(new ID)
