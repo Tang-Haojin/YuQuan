@@ -16,12 +16,12 @@ object YQConfig {
     case EXTENSIONS    => List('I', 'M')
     case ALEN          => 32
     case IDLEN         => 4
-    case MODULE_PREFIX => s"ysyx_"
+    case MODULE_PREFIX => s"ysyx_210153_"
     case CLINT_MMAP    => new CLINT
     case DRAM_MMAP     => new DRAM
     case ALUTYPEWIDTH  => 5
     case USEFLASH      => true
-    case RAMSIZE       => 100L * 1024 * 1024
+    case RAMSIZE       => 512L * 1024 * 1024
     case SPIFLASH_MMAP => new PeripheralConfig.SPIFLASH
     case ENABLE_DEBUG  => false
   }
