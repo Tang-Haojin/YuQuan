@@ -2,70 +2,9 @@ package utils
 
 import chisel3._
 import chipsalliance.rocketchip.config._
-
-// Write address channel signals
-class AXIwa(implicit val p: Parameters) extends Bundle with UtilsParams {
-  val AWID     = Output(UInt(idlen.W))
-  val AWADDR   = Output(UInt(alen.W))
-  val AWLEN    = Output(UInt(8.W))
-  val AWSIZE   = Output(UInt(3.W))
-  val AWBURST  = Output(UInt(2.W))
-  val AWLOCK   = Output(UInt(2.W))
-  val AWCACHE  = Output(UInt(4.W))
-  val AWPROT   = Output(UInt(3.W))
-  val AWQOS    = Output(UInt(4.W))
-  val AWREGION = Output(UInt(4.W))
-  val AWUSER   = Output(UInt(1.W))
-  val AWVALID  = Output(Bool())
-  val AWREADY  = Input (Bool())
-}
-
-// Write data channel signals
-class AXIwd(implicit val p: Parameters) extends Bundle with UtilsParams {
-  val WDATA    = Output(UInt(xlen.W))
-  val WSTRB    = Output(UInt((xlen / 8).W))
-  val WLAST    = Output(Bool())
-  val WUSER    = Output(UInt(1.W))
-  val WVALID   = Output(Bool())
-  val WREADY   = Input (Bool())
-}
-
-// Write response channel signals
-class AXIwr(implicit val p: Parameters) extends Bundle with UtilsParams {
-  val BID      = Input (UInt(idlen.W))
-  val BRESP    = Input (UInt(2.W))
-  val BUSER    = Input (UInt(1.W))
-  val BVALID   = Input (Bool())
-  val BREADY   = Output(Bool())
-}
-
-// Read address channel signals
-class AXIra(implicit val p: Parameters) extends Bundle with UtilsParams {
-  val ARID     = Output(UInt(idlen.W))
-  val ARADDR   = Output(UInt(alen.W))
-  val ARLEN    = Output(UInt(8.W))
-  val ARSIZE   = Output(UInt(3.W))
-  val ARBURST  = Output(UInt(2.W))
-  val ARLOCK   = Output(UInt(2.W))
-  val ARCACHE  = Output(UInt(4.W))
-  val ARPROT   = Output(UInt(3.W))
-  val ARQOS    = Output(UInt(4.W))
-  val ARREGION = Output(UInt(4.W))
-  val ARUSER   = Output(UInt(1.W))
-  val ARVALID  = Output(Bool())
-  val ARREADY  = Input (Bool())
-}
-
-// Read data channel signals
-class AXIrd(implicit val p: Parameters) extends Bundle with UtilsParams {
-  val RID      = Input (UInt(idlen.W))
-  val RDATA    = Input (UInt(xlen.W))
-  val RRESP    = Input (UInt(2.W))
-  val RLAST    = Input (Bool())
-  val RUSER    = Input (UInt(1.W))
-  val RVALID   = Input (Bool())
-  val RREADY   = Output(Bool())
-}
+import freechips.rocketchip.diplomacy.ValName
+import chisel3.util.Decoupled
+import chisel3.util.Irrevocable
 
 // for simple single-direction communication
 class LastVR(implicit val p: Parameters) extends Bundle with UtilsParams {
@@ -79,110 +18,66 @@ class BASIC(implicit val p: Parameters) extends Bundle with UtilsParams {
   val ARESETn  = Input (Bool())
 }
 
-class AxiMasterReadChannel(implicit val p: Parameters) extends Bundle with UtilsParams {
-  val axiRa = new AXIra
-  val axiRd = new AXIrd
-}
-
-class AxiMasterChannel(implicit p: Parameters) extends AxiMasterReadChannel {
-  val axiWa = new AXIwa
-  val axiWd = new AXIwd
-  val axiWr = new AXIwr
-}
-
-class AxiSlaveChannel(implicit val p: Parameters) extends Bundle with UtilsParams {
-  val axiWa = Flipped(new AXIwa)
-  val axiWd = Flipped(new AXIwd)
-  val axiWr = Flipped(new AXIwr)
-  val axiRa = Flipped(new AXIra)
-  val axiRd = Flipped(new AXIrd)
-}
-
 class AxiSlaveIO(implicit val p: Parameters) extends Bundle with UtilsParams {
   val basic   = new BASIC
-  val channel = Flipped(new AxiMasterChannel)
-}
-
-class AxiMasterIO(implicit val p: Parameters) extends Bundle with UtilsParams {
-  val basic   = new BASIC
-  val channel = new AxiMasterChannel
+  val channel = Flipped(new AXI_BUNDLE)
 }
 
 class AxiSelectIO(implicit val p: Parameters) extends Bundle with UtilsParams {
-  val input   = Flipped(new AxiMasterChannel)
-  val RamIO   = new AxiMasterChannel
-  val MMIO    = new AxiMasterChannel
+  val input   = Flipped(new AXI_BUNDLE)
+  val RamIO   = new AXI_BUNDLE
+  val MMIO    = new AXI_BUNDLE
 }
 
-/*
-abstract class HandleAxiSlave(channel: AxiMasterChannel, baseAddr: Long = 0L) {
-  val AWREADY = RegInit(1.B); channel.axiWa.AWREADY := AWREADY
-  val WREADY  = RegInit(0.B); channel.axiWd.WREADY  := WREADY
-  val BVALID  = RegInit(0.B); channel.axiWr.BVALID  := BVALID
-  val ARREADY = RegInit(1.B); channel.axiRa.ARREADY := ARREADY
-  val RVALID  = RegInit(0.B); channel.axiRd.RVALID  := RVALID
-  val ARSIZE  = RegInit(0.U(3.W))
-  val ARLEN   = RegInit(0.U(8.W))
-  val AWSIZE  = RegInit(0.U(3.W))
-  val AWLEN   = RegInit(0.U(8.W))
-
-  val RID    = RegInit(0.U(IDLEN.W)); channel.axiRd.RID := RID
-  val BID    = RegInit(0.U(IDLEN.W)); channel.axiWr.BID := BID
-  val ARADDR = RegInit(0.U(alen.W))
-  val AWADDR = RegInit(0.U(alen.W))
-
-  val wireARADDR = WireDefault(UInt(alen.W), ARADDR)
-  val wireRStep  = WireDefault(0.U(128.W))
-  val wireWStep  = WireDefault(0.U(128.W))
-
-  for (i <- 0 until 8) {
-    when(ARSIZE === i.U) { wireRStep := (1 << i).U }
-    when(AWSIZE === i.U) { wireWStep := (1 << i).U }
-  }
-
-  when(channel.axiRd.RVALID && channel.axiRd.RREADY) {
-    when(ARLEN === 0.U) {
-      RVALID         := 0.B
-      ARREADY        := 1.B
-      channel.axiRd.RLAST := 1.B
-    }.otherwise {
-      wireARADDR := ARADDR + wireRStep
-      ARADDR     := wireARADDR
-      ARLEN      := ARLEN - 1.U
-    }
-  }.elsewhen(channel.axiRa.ARVALID && channel.axiRa.ARREADY) {
-    RID        := channel.axiRa.ARID
-    wireARADDR := channel.axiRa.ARADDR(alen - 1, axSize) ## 0.U(axSize.W) - baseAddr.U
-    ARADDR     := wireARADDR
-    ARREADY    := 0.B
-    RVALID     := 1.B
-    ARSIZE     := channel.axiRa.ARSIZE
-    ARLEN      := channel.axiRa.ARLEN
-  }
-
-  when(channel.axiWa.AWVALID && channel.axiWa.AWREADY) {
-    AWADDR  := channel.axiWa.AWADDR(alen - 1, axSize) ## 0.U(axSize.W) - baseAddr.U
-    BID     := channel.axiWa.AWID
-    AWREADY := 0.B
-    WREADY  := 1.B
-    AWSIZE  := channel.axiWa.AWSIZE
-    AWLEN   := channel.axiWa.AWLEN
-  }
-
-  when(channel.axiWd.WVALID && channel.axiWd.WREADY) {
-    ram_write.io.wen := 1.B
-    when(AWLEN === 0.U) {
-      WREADY  := 0.B
-      BVALID  := 1.B
-    }.otherwise {
-      AWADDR := AWADDR + wireWStep
-      AWLEN  := AWLEN - 1.U
-    }
-  }
-
-  when(channel.axiWr.BVALID && channel.axiWr.BREADY) {
-    AWREADY := 1.B
-    BVALID := 0.B
-  }
+class AXI_BUNDLE_A(implicit val p: Parameters) extends Bundle with UtilsParams {
+  val id     = UInt(idlen.W)
+  val addr   = UInt(alen.W)
+  val len    = UInt(8.W)
+  val size   = UInt(3.W)
+  val burst  = UInt(2.W)
+  val lock   = UInt(2.W)
+  val cache  = UInt(4.W)
+  val prot   = UInt(3.W)
+  val qos    = UInt(4.W)
+  val region = UInt(4.W)
+  val user   = UInt(1.W)
 }
-*/
+
+class AXI_BUNDLE_AW(implicit p: Parameters) extends AXI_BUNDLE_A
+class AXI_BUNDLE_AR(implicit p: Parameters) extends AXI_BUNDLE_A
+
+// Write data channel signals
+class AXI_BUNDLE_W(implicit val p: Parameters) extends Bundle with UtilsParams {
+  val data    = UInt(xlen.W)
+  val strb    = UInt((xlen / 8).W)
+  val last    = Bool()
+  val user    = UInt(1.W)
+}
+
+// Write response channel signals
+class AXI_BUNDLE_B(implicit val p: Parameters) extends Bundle with UtilsParams {
+  val id      = UInt(idlen.W)
+  val resp    = UInt(2.W)
+  val user    = UInt(1.W)
+}
+// Read data channel signals
+class AXI_BUNDLE_R(implicit val p: Parameters) extends Bundle with UtilsParams {
+  val id      = Input (UInt(idlen.W))
+  val data    = Input (UInt(xlen.W))
+  val resp    = Input (UInt(2.W))
+  val last    = Input (Bool())
+  val user    = Input (UInt(1.W))
+}
+
+class AXI_BUNDLE(implicit val p: Parameters, valName: ValName) extends Bundle with UtilsParams {
+  val aw = Irrevocable(new AXI_BUNDLE_AW)
+  val ar = Irrevocable(new AXI_BUNDLE_AR)
+  val w  = Irrevocable(new AXI_BUNDLE_W)
+  val b  = Flipped(Irrevocable(new AXI_BUNDLE_B))
+  val r  = Flipped(Irrevocable(new AXI_BUNDLE_R))
+}
+
+abstract trait AXI_RENAME extends Bundle {
+  protected def rename: Unit = 
+    println(this.getElements(0).computeName(None, None))
+}

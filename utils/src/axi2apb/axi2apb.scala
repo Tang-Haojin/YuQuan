@@ -95,11 +95,11 @@ class Axi2Apb(implicit val p: Parameters) extends RawModule with UtilsParams {
     val regWREADY  = RegInit(1.B)
     val regBVALID  = RegInit(0.B)
 
-    val wireARREADY = WireDefault(Bool(), regARREADY); io.axi_s.channel.axiRa.ARREADY := wireARREADY
-    val wireRVALID  = WireDefault(Bool(), regRVALID ); io.axi_s.channel.axiRd.RVALID  := wireRVALID
-    val wireAWREADY = WireDefault(Bool(), regAWREADY); io.axi_s.channel.axiWa.AWREADY := wireAWREADY
-    val wireWREADY  = WireDefault(Bool(), regWREADY ); io.axi_s.channel.axiWd.WREADY  := wireWREADY
-    val wireBVALID  = WireDefault(Bool(), regBVALID ); io.axi_s.channel.axiWr.BVALID  := wireBVALID
+    val wireARREADY = WireDefault(Bool(), regARREADY); io.axi_s.channel.ar.ready := wireARREADY
+    val wireRVALID  = WireDefault(Bool(), regRVALID ); io.axi_s.channel.r .valid  := wireRVALID
+    val wireAWREADY = WireDefault(Bool(), regAWREADY); io.axi_s.channel.aw.ready := wireAWREADY
+    val wireWREADY  = WireDefault(Bool(), regWREADY ); io.axi_s.channel.w .ready  := wireWREADY
+    val wireBVALID  = WireDefault(Bool(), regBVALID ); io.axi_s.channel.b .valid  := wireBVALID
 
     val read_pending  = RegInit(0.U(Seq(1, log2Ceil(xlen / 8) - 2).max.W))
     val write_pending = RegInit(0.U(Seq(1, log2Ceil(xlen / 8) - 2).max.W))
@@ -143,25 +143,25 @@ class Axi2Apb(implicit val p: Parameters) extends RawModule with UtilsParams {
     inner_Axi2Apb.io.pslverr := io.apb_m.pslverr
     inner_Axi2Apb.io.prdata  := io.apb_m.prdata
 
-    io.axi_s.channel.axiRd.RID   := inner_ARID
-    io.axi_s.channel.axiRd.RLAST := 1.B
-    io.axi_s.channel.axiRd.RRESP := 0.U
-    io.axi_s.channel.axiRd.RUSER := DontCare
-    io.axi_s.channel.axiRd.RDATA := inner_RDATA.asUInt()
+    io.axi_s.channel.r.bits.id   := inner_ARID
+    io.axi_s.channel.r.bits.last := 1.B
+    io.axi_s.channel.r.bits.resp := 0.U
+    io.axi_s.channel.r.bits.user := DontCare
+    io.axi_s.channel.r.bits.data := inner_RDATA.asUInt()
 
-    io.axi_s.channel.axiWr.BID   := inner_AWID
-    io.axi_s.channel.axiWr.BRESP := 0.U
-    io.axi_s.channel.axiWr.BUSER := DontCare
+    io.axi_s.channel.b.bits.id   := inner_AWID
+    io.axi_s.channel.b.bits.resp := 0.U
+    io.axi_s.channel.b.bits.user := DontCare
 
-    val readAddrReq  = regARREADY && io.axi_s.channel.axiRa.ARVALID
-    val writeAddrReq = regAWREADY && io.axi_s.channel.axiWa.AWVALID
-    val writeDataReq = regWREADY  && io.axi_s.channel.axiWd.WVALID
+    val readAddrReq  = regARREADY && io.axi_s.channel.ar.valid
+    val writeAddrReq = regAWREADY && io.axi_s.channel.aw.valid
+    val writeDataReq = regWREADY  && io.axi_s.channel.w .valid
 
-    val readAddrAcpt  = io.axi_s.channel.axiRa.ARREADY && io.axi_s.channel.axiRa.ARVALID
-    val readDataAcpt  = io.axi_s.channel.axiRd.RREADY  && io.axi_s.channel.axiRd.RVALID
-    val writeAddrAcpt = io.axi_s.channel.axiWa.AWREADY && io.axi_s.channel.axiWa.AWVALID
-    val writeDataAcpt = io.axi_s.channel.axiWd.WREADY  && io.axi_s.channel.axiWd.WVALID
-    val writeRespAcpt = io.axi_s.channel.axiWr.BREADY  && io.axi_s.channel.axiWr.BVALID
+    val readAddrAcpt  = io.axi_s.channel.ar.fire
+    val readDataAcpt  = io.axi_s.channel.r .fire
+    val writeAddrAcpt = io.axi_s.channel.aw.fire
+    val writeDataAcpt = io.axi_s.channel.w .fire
+    val writeRespAcpt = io.axi_s.channel.b .fire
 
     val inner_readAddrAcpt  = inner_Axi2Apb.io.ARREADY && inner_Axi2Apb.io.ARVALID
     val inner_readDataAcpt  = inner_Axi2Apb.io.RREADY  && inner_Axi2Apb.io.RVALID
@@ -173,30 +173,30 @@ class Axi2Apb(implicit val p: Parameters) extends RawModule with UtilsParams {
       state := reading
       regARREADY := 0.B
       inner_ARVALID := 1.B
-      inner_ARID := io.axi_s.channel.axiRa.ARID
-      inner_ARADDR := io.axi_s.channel.axiRa.ARADDR(alen - 1, log2Ceil(xlen / 8)) ## 0.U(log2Ceil(xlen / 8).W)
+      inner_ARID := io.axi_s.channel.ar.bits.id
+      inner_ARADDR := io.axi_s.channel.ar.bits.addr(alen - 1, log2Ceil(xlen / 8)) ## 0.U(log2Ceil(xlen / 8).W)
       read_counter := 0.U
-      when(io.axi_s.channel.axiRa.ARSIZE < 3.U) { read_pending := 0.U }
+      when(io.axi_s.channel.ar.bits.size < 3.U) { read_pending := 0.U }
       for (i <- 3 to log2Ceil(xlen / 8))
-        when(io.axi_s.channel.axiRa.ARSIZE === i.U) { read_pending := Fill(i - 2, 1.B) }
+        when(io.axi_s.channel.ar.bits.size === i.U) { read_pending := Fill(i - 2, 1.B) }
     }
 
     when(writeAddrAcpt) {
       state := writing
       regAWREADY := 0.B
       inner_AWVALID := 1.B
-      inner_AWID := io.axi_s.channel.axiWa.AWID
-      inner_AWADDR := io.axi_s.channel.axiWa.AWADDR
-      when(io.axi_s.channel.axiWa.AWSIZE < 3.U) { write_pending := 0.U }
+      inner_AWID := io.axi_s.channel.aw.bits.id
+      inner_AWADDR := io.axi_s.channel.aw.bits.addr
+      when(io.axi_s.channel.aw.bits.size < 3.U) { write_pending := 0.U }
       for (i <- 3 to log2Ceil(xlen / 8))
-        when(io.axi_s.channel.axiWa.AWSIZE === i.U) { write_pending := Fill(i - 2, 1.B) }
+        when(io.axi_s.channel.aw.bits.size === i.U) { write_pending := Fill(i - 2, 1.B) }
     }
 
     when(writeDataAcpt) {
       state := writing
       regWREADY := 0.B
       inner_WVALID := 1.B
-      inner_WDATA := io.axi_s.channel.axiWd.WDATA
+      inner_WDATA := io.axi_s.channel.w.bits.data
     }
 
     when(state === idle) {

@@ -9,12 +9,12 @@ import cpu.tools._
 
 class AXIRMux(implicit p: Parameters) extends YQModule {
   val io = IO(new YQBundle {
-    val axiRaIn0 = Flipped(new AXIra)
-    val axiRaIn1 = Flipped(new AXIra)
-    val axiRaOut = new AXIra
-    val axiRdIn0 = Flipped(new AXIrd)
-    val axiRdIn1 = Flipped(new AXIrd)
-    val axiRdOut = new AXIrd
+    val axiRaIn0 = Flipped(Irrevocable(new AXI_BUNDLE_AR))
+    val axiRaIn1 = Flipped(Irrevocable(new AXI_BUNDLE_AR))
+    val axiRaOut =         Irrevocable(new AXI_BUNDLE_AR)
+    val axiRdIn0 =         Irrevocable(new AXI_BUNDLE_R)
+    val axiRdIn1 =         Irrevocable(new AXI_BUNDLE_R)
+    val axiRdOut = Flipped(Irrevocable(new AXI_BUNDLE_R))
   })
 
   val pending = RegInit(0.U(2.W))
@@ -37,75 +37,75 @@ class AXIRMux(implicit p: Parameters) extends YQModule {
   RLAST_FIFO.io.enq.bits := 0.B
   RUSER_FIFO.io.enq.bits := 0.U
 
-  io.axiRaIn0.ARREADY := 0.B
-  io.axiRaIn1.ARREADY := 0.B
+  io.axiRaIn0.ready := 0.B
+  io.axiRaIn1.ready := 0.B
 
-  when(io.axiRaIn1.ARVALID) {
+  when(io.axiRaIn1.valid) {
     io.axiRaIn1 <> io.axiRaOut
   }.otherwise {
     io.axiRaIn0 <> io.axiRaOut
   }
 
-  io.axiRdIn0.RID    := 0xf.U
-  io.axiRdIn1.RID    := 0xf.U
-  io.axiRdIn0.RDATA  := 0.U
-  io.axiRdIn1.RDATA  := 0.U
-  io.axiRdIn0.RRESP  := 0.U
-  io.axiRdIn1.RRESP  := 0.U
-  io.axiRdIn0.RLAST  := 0.B
-  io.axiRdIn1.RLAST  := 0.B
-  io.axiRdIn0.RUSER  := 0.U
-  io.axiRdIn1.RUSER  := 0.U
-  io.axiRdIn0.RVALID := 0.B
-  io.axiRdIn1.RVALID := 0.B
+  io.axiRdIn0.bits.id   := 0xf.U
+  io.axiRdIn1.bits.id   := 0xf.U
+  io.axiRdIn0.bits.data := 0.U
+  io.axiRdIn1.bits.data := 0.U
+  io.axiRdIn0.bits.resp := 0.U
+  io.axiRdIn1.bits.resp := 0.U
+  io.axiRdIn0.bits.last := 0.B
+  io.axiRdIn1.bits.last := 0.B
+  io.axiRdIn0.bits.user := 0.U
+  io.axiRdIn1.bits.user := 0.U
+  io.axiRdIn0.valid     := 0.B
+  io.axiRdIn1.valid     := 0.B
 
-  when(io.axiRdOut.RVALID && io.axiRdIn1.RREADY && io.axiRdOut.RID === 1.U) {
+  when(io.axiRdOut.valid && io.axiRdIn1.ready && io.axiRdOut.bits.id === 1.U) {
     io.axiRdIn1 <> io.axiRdOut
   }.otherwise {
     io.axiRdIn0 <> io.axiRdOut
 
-    when(!io.axiRdIn0.RREADY || (RID_FIFO.io.count =/= 0.U)) {
-      io.axiRdOut.RREADY := RID_FIFO.io.enq.ready
+    when(!io.axiRdIn0.ready || (RID_FIFO.io.count =/= 0.U)) {
+      io.axiRdOut.ready := RID_FIFO.io.enq.ready
 
-      RID_FIFO.io.enq.bits   := io.axiRdOut.RID
-      RDATA_FIFO.io.enq.bits := io.axiRdOut.RDATA
-      RRESP_FIFO.io.enq.bits := io.axiRdOut.RRESP
-      RLAST_FIFO.io.enq.bits := io.axiRdOut.RLAST
-      RUSER_FIFO.io.enq.bits := io.axiRdOut.RUSER
+      RID_FIFO.io.enq.bits   := io.axiRdOut.bits.id
+      RDATA_FIFO.io.enq.bits := io.axiRdOut.bits.data
+      RRESP_FIFO.io.enq.bits := io.axiRdOut.bits.resp
+      RLAST_FIFO.io.enq.bits := io.axiRdOut.bits.last
+      RUSER_FIFO.io.enq.bits := io.axiRdOut.bits.user
 
-      RID_FIFO.io.enq.valid   := io.axiRdOut.RVALID
-      RDATA_FIFO.io.enq.valid := io.axiRdOut.RVALID
-      RRESP_FIFO.io.enq.valid := io.axiRdOut.RVALID
-      RLAST_FIFO.io.enq.valid := io.axiRdOut.RVALID
-      RUSER_FIFO.io.enq.valid := io.axiRdOut.RVALID
+      RID_FIFO.io.enq.valid   := io.axiRdOut.valid
+      RDATA_FIFO.io.enq.valid := io.axiRdOut.valid
+      RRESP_FIFO.io.enq.valid := io.axiRdOut.valid
+      RLAST_FIFO.io.enq.valid := io.axiRdOut.valid
+      RUSER_FIFO.io.enq.valid := io.axiRdOut.valid
     }
 
     when(RID_FIFO.io.count =/= 0.U) {
-      io.axiRdIn0.RID    := RID_FIFO.io.deq.bits
-      io.axiRdIn0.RDATA  := RDATA_FIFO.io.deq.bits
-      io.axiRdIn0.RRESP  := RRESP_FIFO.io.deq.bits
-      io.axiRdIn0.RLAST  := RLAST_FIFO.io.deq.bits
-      io.axiRdIn0.RUSER  := RUSER_FIFO.io.deq.bits
-      io.axiRdIn0.RVALID := RID_FIFO.io.deq.valid
+      io.axiRdIn0.bits.id   := RID_FIFO.io.deq.bits
+      io.axiRdIn0.bits.data := RDATA_FIFO.io.deq.bits
+      io.axiRdIn0.bits.resp := RRESP_FIFO.io.deq.bits
+      io.axiRdIn0.bits.last := RLAST_FIFO.io.deq.bits
+      io.axiRdIn0.bits.user := RUSER_FIFO.io.deq.bits
+      io.axiRdIn0.valid     := RID_FIFO.io.deq.valid
 
-      RID_FIFO.io.deq.ready   := io.axiRdIn0.RREADY
-      RDATA_FIFO.io.deq.ready := io.axiRdIn0.RREADY
-      RRESP_FIFO.io.deq.ready := io.axiRdIn0.RREADY
-      RLAST_FIFO.io.deq.ready := io.axiRdIn0.RREADY
-      RUSER_FIFO.io.deq.ready := io.axiRdIn0.RREADY
+      RID_FIFO.io.deq.ready   := io.axiRdIn0.ready
+      RDATA_FIFO.io.deq.ready := io.axiRdIn0.ready
+      RRESP_FIFO.io.deq.ready := io.axiRdIn0.ready
+      RLAST_FIFO.io.deq.ready := io.axiRdIn0.ready
+      RUSER_FIFO.io.deq.ready := io.axiRdIn0.ready
     }
   }
 
   when(pending === 2.U) {
-    io.axiRaIn0.ARREADY := 0.B
-    when(io.axiRdIn0.RREADY && io.axiRdIn0.RVALID) {
+    io.axiRaIn0.ready := 0.B
+    when(io.axiRdIn0.fire) {
       pending := pending - 1.U
     }
   }.otherwise {
-    when(io.axiRdIn0.RREADY && io.axiRdIn0.RVALID && !(io.axiRaIn0.ARREADY && io.axiRaIn0.ARVALID)) {
+    when(io.axiRdIn0.fire && !(io.axiRaIn0.fire)) {
       pending := pending - 1.U
-    }.elsewhen(!(io.axiRdIn0.RREADY && io.axiRdIn0.RVALID) && io.axiRaIn0.ARREADY && io.axiRaIn0.ARVALID) {
-      pending := pending + 1.U + io.axiRaIn0.ARLEN
+    }.elsewhen(!(io.axiRdIn0.fire) && io.axiRaIn0.fire) {
+      pending := pending + 1.U + io.axiRaIn0.bits.len
     }
   }
 }

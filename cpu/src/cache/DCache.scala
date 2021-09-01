@@ -11,7 +11,7 @@ import cpu.tools._
 class DCache(implicit p: Parameters) extends YQModule with CacheParams {
   val io = IO(new YQBundle {
     val cpuIO = new CpuIO
-    val memIO = new AxiMasterChannel
+    val memIO = new AXI_BUNDLE
   })
 
   val rand = GaloisLFSR.maxPeriod(2)
@@ -33,20 +33,20 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
   val addrTag    = addr(alen - 1, Index + Offset)
   val memAddr    = addr(alen - 1, Offset) ## 0.U(Offset.W)
 
-  io.memIO.axiRa.ARID     := 1.U // 1 for MEM
-  io.memIO.axiRa.ARLEN    := (BurstLen - 1).U // (ARLEN + 1) AXI Burst per AXI Transfer (a.k.a. AXI Beat)
-  io.memIO.axiRa.ARSIZE   := axSize.U // 2^(ARSIZE) bytes per AXI Transfer
-  io.memIO.axiRa.ARBURST  := 1.U // 1 for INCR type
-  io.memIO.axiRa.ARLOCK   := 0.U // since we do not use it yet
-  io.memIO.axiRa.ARCACHE  := 0.U // since we do not use it yet
-  io.memIO.axiRa.ARPROT   := 0.U // since we do not use it yet
-  io.memIO.axiRa.ARQOS    := DontCare
-  io.memIO.axiRa.ARUSER   := DontCare
-  io.memIO.axiRa.ARREGION := DontCare
-  io.memIO.axiRa.ARVALID  := ARVALID
-  io.memIO.axiRa.ARADDR   := memAddr
+  io.memIO.ar.bits.id     := 1.U // 1 for MEM
+  io.memIO.ar.bits.len    := (BurstLen - 1).U // (ARLEN + 1) AXI Burst per AXI Transfer (a.k.a. AXI Beat)
+  io.memIO.ar.bits.size   := axSize.U // 2^(ARSIZE) bytes per AXI Transfer
+  io.memIO.ar.bits.burst  := 1.U // 1 for INCR type
+  io.memIO.ar.bits.lock   := 0.U // since we do not use it yet
+  io.memIO.ar.bits.cache  := 0.U // since we do not use it yet
+  io.memIO.ar.bits.prot   := 0.U // since we do not use it yet
+  io.memIO.ar.bits.qos    := DontCare
+  io.memIO.ar.bits.user   := DontCare
+  io.memIO.ar.bits.region := DontCare
+  io.memIO.ar.bits.addr   := memAddr
+  io.memIO.ar.valid       := ARVALID
 
-  io.memIO.axiRd.RREADY := RREADY
+  io.memIO.r.ready := RREADY
 
   val ramValid = SyncReadMem(IndexSize, Vec(Associativity, Bool()))
   val ramDirty = SyncReadMem(IndexSize, Vec(Associativity, Bool()))
@@ -81,7 +81,7 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
     data(grp)(i * 8 + 7, i * 8)
   })); val byteDatas = byteData.asUInt()
 
-  val wdata     = io.memIO.axiRd.RDATA ## inBuffer.asUInt
+  val wdata     = io.memIO.r.bits.data ## inBuffer.asUInt
   val vecWvalid = VecInit(Seq.fill(Associativity)(1.B))
   val vecWdirty = VecInit(Seq.fill(Associativity)(0.B))
   val vecWtag   = VecInit(Seq.fill(Associativity)(addrTag))
@@ -125,11 +125,11 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
           when(reqWMask(i)) { byteData((addrOffset(Offset - 1, 3) ## 0.U(3.W)) + i.U) := reqData(i * 8 + 7, i * 8) }
       }
     }.elsewhen(useEmpty || (!useEmpty && !dirty(wireWay))) { // have empty or clean cache line
-      when(wbBuffer.used && (io.memIO.axiRa.ARADDR === wbBuffer.wbAddr)) {
+      when(wbBuffer.used && (io.memIO.ar.bits.addr === wbBuffer.wbAddr)) {
         readBack := 1.B
         state    := idle
       }.otherwise { ARVALID := 1.B; state := allocate }
-    }.elsewhen(wbBuffer.used && (io.memIO.axiRa.ARADDR === wbBuffer.wbAddr)) {
+    }.elsewhen(wbBuffer.used && (io.memIO.ar.bits.addr === wbBuffer.wbAddr)) {
       when(wbBuffer.ready) { readBack := 1.B; wbBuffer.valid := 1.B; state := idle } // swap wbBuffer and cache line
     }.otherwise { state := writeback }
   }
@@ -138,7 +138,7 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
     when(wbBuffer.ready && wbBuffer.valid) { ARVALID := 1.B; state := allocate }
   }
   when(state === allocate) {
-    when(io.memIO.axiRd.RREADY && io.memIO.axiRd.RVALID) {
+    when(io.memIO.r.fire) {
       when(received === (BurstLen - 1).U) {
         received := 0.U
         state    := idle
@@ -146,9 +146,9 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
         RREADY   := 0.B
       }.otherwise {
         received           := received + 1.U
-        inBuffer(received) := io.memIO.axiRd.RDATA
+        inBuffer(received) := io.memIO.r.bits.data
       }
-    }.elsewhen(io.memIO.axiRa.ARREADY && io.memIO.axiRa.ARVALID) {
+    }.elsewhen(io.memIO.ar.fire) {
       ARVALID := 0.B
       RREADY  := 1.B
     }

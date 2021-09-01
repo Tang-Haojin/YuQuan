@@ -11,7 +11,7 @@ import cpu.tools._
 class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   val io = IO(new YQBundle {
     val cpuIO = new CpuIO
-    val memIO = new AxiMasterChannel
+    val memIO = new AXI_BUNDLE
   })
 
   val rand = GaloisLFSR.maxPeriod(2)
@@ -47,7 +47,7 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
     data(grp)(i * 32 + 31, i * 32)
   }))
 
-  val wdata     = io.memIO.axiRd.RDATA ## writeBuffer.asUInt
+  val wdata     = io.memIO.r.bits.data ## writeBuffer.asUInt
   val vecWvalid = VecInit(Seq.fill(Associativity)(1.B))
   val vecWtag   = VecInit(Seq.fill(Associativity)(addrTag))
   val vecWdata  = VecInit(Seq.fill(Associativity)(wdata))
@@ -90,7 +90,7 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
       .otherwise       { way := i.U }
   }
   when(state === allocate) {
-    when(io.memIO.axiRd.RREADY && io.memIO.axiRd.RVALID) {
+    when(io.memIO.r.fire) {
       when(received === (BurstLen - 1).U) {
         received := 0.U
         state    := idle
@@ -98,9 +98,9 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
         RREADY   := 0.B
       }.otherwise {
         received              := received + 1.U
-        writeBuffer(received) := io.memIO.axiRd.RDATA
+        writeBuffer(received) := io.memIO.r.bits.data
       }
-    }.elsewhen(io.memIO.axiRa.ARREADY && io.memIO.axiRa.ARVALID) {
+    }.elsewhen(io.memIO.ar.fire) {
       ARVALID := 0.B
       RREADY  := 1.B
     }
@@ -125,9 +125,9 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
 object ICache {
   def apply(implicit p: Parameters): ICache = {
     val t = Module(new ICache)
-    t.io.memIO.axiWa := DontCare
-    t.io.memIO.axiWd := DontCare
-    t.io.memIO.axiWr := DontCare
+    t.io.memIO.aw := DontCare
+    t.io.memIO.w  := DontCare
+    t.io.memIO.b  := DontCare
     t
   }
 }

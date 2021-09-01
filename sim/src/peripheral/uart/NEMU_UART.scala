@@ -12,54 +12,54 @@ import sim._
 class Nemu_Uart(implicit val p: Parameters) extends RawModule with SimParams {
   val io = IO(new AxiSlaveIO)
 
-  io.channel.axiWr.BRESP := 0.U
-  io.channel.axiWr.BUSER := DontCare
+  io.channel.b.bits.resp := 0.U
+  io.channel.b.bits.user := DontCare
 
-  io.channel.axiRd.RLAST := 1.B
-  io.channel.axiRd.RUSER := DontCare
-  io.channel.axiRd.RRESP := 0.U
+  io.channel.r.bits.last := 1.B
+  io.channel.r.bits.user := DontCare
+  io.channel.r.bits.resp := 0.U
 
   withClockAndReset(io.basic.ACLK, !io.basic.ARESETn) {
-    val AWREADY = RegInit(1.B); io.channel.axiWa.AWREADY := AWREADY
-    val WREADY  = RegInit(0.B); io.channel.axiWd.WREADY  := WREADY
-    val BVALID  = RegInit(0.B); io.channel.axiWr.BVALID  := BVALID
-    val ARREADY = RegInit(1.B); io.channel.axiRa.ARREADY := ARREADY
-    val RVALID  = RegInit(0.B); io.channel.axiRd.RVALID  := RVALID
+    val AWREADY = RegInit(1.B); io.channel.aw.ready := AWREADY
+    val WREADY  = RegInit(0.B); io.channel.w .ready := WREADY
+    val BVALID  = RegInit(0.B); io.channel.b .valid := BVALID
+    val ARREADY = RegInit(1.B); io.channel.ar.ready := ARREADY
+    val RVALID  = RegInit(0.B); io.channel.r .valid := RVALID
 
-    val RID    = RegInit(0.U(idlen.W)); io.channel.axiRd.RID := RID
-    val BID    = RegInit(0.U(idlen.W)); io.channel.axiWr.BID := BID
+    val RID    = RegInit(0.U(idlen.W)); io.channel.r.bits.id := RID
+    val BID    = RegInit(0.U(idlen.W)); io.channel.b.bits.id := BID
     val ARADDR = RegInit(0.U(3.W))
     val AWADDR = RegInit(0.U(3.W))
 
     val wireARADDR = WireDefault(UInt(3.W), ARADDR)
 
-    io.channel.axiRd.RDATA := 0.U
+    io.channel.r.bits.data := 0.U
 
-    when(io.channel.axiRd.RVALID && io.channel.axiRd.RREADY) {
+    when(io.channel.r.fire) {
       RVALID  := 0.B
       ARREADY := 1.B
-    }.elsewhen(io.channel.axiRa.ARVALID && io.channel.axiRa.ARREADY) {
-      wireARADDR := io.channel.axiRa.ARADDR
+    }.elsewhen(io.channel.ar.fire) {
+      wireARADDR := io.channel.ar.bits.addr
       ARADDR  := wireARADDR
-      RID     := io.channel.axiRa.ARID
+      RID     := io.channel.ar.bits.id
       ARREADY := 0.B
       RVALID  := 1.B
     }
 
-    when(io.channel.axiWa.AWVALID && io.channel.axiWa.AWREADY) {
-      AWADDR  := io.channel.axiWa.AWADDR
-      BID     := io.channel.axiWa.AWID
+    when(io.channel.aw.fire) {
+      AWADDR  := io.channel.aw.bits.addr
+      BID     := io.channel.aw.bits.id
       AWREADY := 0.B
       WREADY  := 1.B
     }
 
-    when(io.channel.axiWd.WVALID && io.channel.axiWd.WREADY) {
-      printf("%c", io.channel.axiWd.WDATA(7, 0))
+    when(io.channel.w.fire) {
+      printf("%c", io.channel.w.bits.data(7, 0))
       WREADY := 0.B
       BVALID := 1.B
     }
 
-    when(io.channel.axiWr.BVALID && io.channel.axiWr.BREADY) {
+    when(io.channel.b.fire) {
       AWREADY := 1.B
       BVALID  := 0.B
     }

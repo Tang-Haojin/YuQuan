@@ -77,140 +77,140 @@ class ASIC(implicit val p: Parameters) extends Module with SimParams {
   if (Debug) io.debug <> cpu.io.debug
 }
 
-private class LinkMEM(chiplinkIO: ChiplinkBridgeIO, cpuIO: AxiMasterChannel) {
-  chiplinkIO.slave_axi4_mem_0_awvalid := cpuIO.axiWa.AWVALID
-  chiplinkIO.slave_axi4_mem_0_awid    := cpuIO.axiWa.AWID
-  chiplinkIO.slave_axi4_mem_0_awaddr  := cpuIO.axiWa.AWADDR
-  chiplinkIO.slave_axi4_mem_0_awlen   := cpuIO.axiWa.AWLEN
-  chiplinkIO.slave_axi4_mem_0_awsize  := cpuIO.axiWa.AWSIZE
-  chiplinkIO.slave_axi4_mem_0_awburst := cpuIO.axiWa.AWBURST
+private class LinkMEM(chiplinkIO: ChiplinkBridgeIO, cpuIO: AXI_BUNDLE) {
+  chiplinkIO.slave_axi4_mem_0_awvalid := cpuIO.aw.valid
+  chiplinkIO.slave_axi4_mem_0_awid    := cpuIO.aw.bits.id
+  chiplinkIO.slave_axi4_mem_0_awaddr  := cpuIO.aw.bits.addr
+  chiplinkIO.slave_axi4_mem_0_awlen   := cpuIO.aw.bits.len
+  chiplinkIO.slave_axi4_mem_0_awsize  := cpuIO.aw.bits.size
+  chiplinkIO.slave_axi4_mem_0_awburst := cpuIO.aw.bits.burst
 
-  chiplinkIO.slave_axi4_mem_0_wvalid := cpuIO.axiWd.WVALID
-  chiplinkIO.slave_axi4_mem_0_wdata  := cpuIO.axiWd.WDATA
-  chiplinkIO.slave_axi4_mem_0_wstrb  := cpuIO.axiWd.WSTRB
-  chiplinkIO.slave_axi4_mem_0_wlast  := cpuIO.axiWd.WLAST
+  chiplinkIO.slave_axi4_mem_0_wvalid := cpuIO.w.valid
+  chiplinkIO.slave_axi4_mem_0_wdata  := cpuIO.w.bits.data
+  chiplinkIO.slave_axi4_mem_0_wstrb  := cpuIO.w.bits.strb
+  chiplinkIO.slave_axi4_mem_0_wlast  := cpuIO.w.bits.last
 
-  chiplinkIO.slave_axi4_mem_0_bready := cpuIO.axiWr.BREADY
+  chiplinkIO.slave_axi4_mem_0_bready := cpuIO.b.ready
 
-  chiplinkIO.slave_axi4_mem_0_arvalid := cpuIO.axiRa.ARVALID
-  chiplinkIO.slave_axi4_mem_0_arid    := cpuIO.axiRa.ARID
-  chiplinkIO.slave_axi4_mem_0_araddr  := cpuIO.axiRa.ARADDR
-  chiplinkIO.slave_axi4_mem_0_arlen   := cpuIO.axiRa.ARLEN
-  chiplinkIO.slave_axi4_mem_0_arsize  := cpuIO.axiRa.ARSIZE
-  chiplinkIO.slave_axi4_mem_0_arburst := cpuIO.axiRa.ARBURST
+  chiplinkIO.slave_axi4_mem_0_arvalid := cpuIO.ar.valid
+  chiplinkIO.slave_axi4_mem_0_arid    := cpuIO.ar.bits.id
+  chiplinkIO.slave_axi4_mem_0_araddr  := cpuIO.ar.bits.addr
+  chiplinkIO.slave_axi4_mem_0_arlen   := cpuIO.ar.bits.len
+  chiplinkIO.slave_axi4_mem_0_arsize  := cpuIO.ar.bits.size
+  chiplinkIO.slave_axi4_mem_0_arburst := cpuIO.ar.bits.burst
 
-  chiplinkIO.slave_axi4_mem_0_rready := cpuIO.axiRd.RREADY
+  chiplinkIO.slave_axi4_mem_0_rready := cpuIO.r.ready
 
-  cpuIO.axiWa.AWREADY := chiplinkIO.slave_axi4_mem_0_awready
-  cpuIO.axiWd.WREADY  := chiplinkIO.slave_axi4_mem_0_wready
-  cpuIO.axiWr.BVALID  := chiplinkIO.slave_axi4_mem_0_bvalid
-  cpuIO.axiWr.BID     := chiplinkIO.slave_axi4_mem_0_bid
-  cpuIO.axiWr.BRESP   := chiplinkIO.slave_axi4_mem_0_bresp
-  cpuIO.axiRa.ARREADY := chiplinkIO.slave_axi4_mem_0_arready
-  cpuIO.axiRd.RVALID  := chiplinkIO.slave_axi4_mem_0_rvalid
-  cpuIO.axiRd.RID     := chiplinkIO.slave_axi4_mem_0_rid
-  cpuIO.axiRd.RDATA   := chiplinkIO.slave_axi4_mem_0_rdata
-  cpuIO.axiRd.RRESP   := chiplinkIO.slave_axi4_mem_0_rresp
-  cpuIO.axiRd.RLAST   := chiplinkIO.slave_axi4_mem_0_rlast
+  cpuIO.aw.ready    := chiplinkIO.slave_axi4_mem_0_awready
+  cpuIO.aw.ready    := chiplinkIO.slave_axi4_mem_0_wready
+  cpuIO.b.valid     := chiplinkIO.slave_axi4_mem_0_bvalid
+  cpuIO.b.bits.id   := chiplinkIO.slave_axi4_mem_0_bid
+  cpuIO.b.bits.resp := chiplinkIO.slave_axi4_mem_0_bresp
+  cpuIO.ar.ready    := chiplinkIO.slave_axi4_mem_0_arready
+  cpuIO.r.valid     := chiplinkIO.slave_axi4_mem_0_rvalid
+  cpuIO.r.bits.id   := chiplinkIO.slave_axi4_mem_0_rid
+  cpuIO.r.bits.data := chiplinkIO.slave_axi4_mem_0_rdata
+  cpuIO.r.bits.resp := chiplinkIO.slave_axi4_mem_0_rresp
+  cpuIO.r.bits.last := chiplinkIO.slave_axi4_mem_0_rlast
 
-  cpuIO.axiWr.BUSER := 0.U
-  cpuIO.axiRd.RUSER := 0.U
+  cpuIO.b.bits.user := 0.U
+  cpuIO.r.bits.user := 0.U
 }
 
 private object LinkMEM {
-  def apply(chiplinkIO: ChiplinkBridgeIO, cpuIO: AxiMasterChannel): LinkMEM = new LinkMEM(chiplinkIO, cpuIO)
+  def apply(chiplinkIO: ChiplinkBridgeIO, cpuIO: AXI_BUNDLE): LinkMEM = new LinkMEM(chiplinkIO, cpuIO)
 }
 
-private class LinkMMIO(chiplinkIO: ChiplinkBridgeIO, cpuIO: AxiMasterChannel) {
-  chiplinkIO.slave_axi4_mmio_0_awvalid := cpuIO.axiWa.AWVALID
-  chiplinkIO.slave_axi4_mmio_0_awid    := cpuIO.axiWa.AWID
-  chiplinkIO.slave_axi4_mmio_0_awaddr  := cpuIO.axiWa.AWADDR
-  chiplinkIO.slave_axi4_mmio_0_awlen   := cpuIO.axiWa.AWLEN
-  chiplinkIO.slave_axi4_mmio_0_awsize  := cpuIO.axiWa.AWSIZE
-  chiplinkIO.slave_axi4_mmio_0_awburst := cpuIO.axiWa.AWBURST
+private class LinkMMIO(chiplinkIO: ChiplinkBridgeIO, cpuIO: AXI_BUNDLE) {
+  chiplinkIO.slave_axi4_mmio_0_awvalid := cpuIO.aw.valid
+  chiplinkIO.slave_axi4_mmio_0_awid    := cpuIO.aw.bits.id
+  chiplinkIO.slave_axi4_mmio_0_awaddr  := cpuIO.aw.bits.addr
+  chiplinkIO.slave_axi4_mmio_0_awlen   := cpuIO.aw.bits.len
+  chiplinkIO.slave_axi4_mmio_0_awsize  := cpuIO.aw.bits.size
+  chiplinkIO.slave_axi4_mmio_0_awburst := cpuIO.aw.bits.burst
 
-  chiplinkIO.slave_axi4_mmio_0_wvalid := cpuIO.axiWd.WVALID
-  chiplinkIO.slave_axi4_mmio_0_wdata  := cpuIO.axiWd.WDATA
-  chiplinkIO.slave_axi4_mmio_0_wstrb  := cpuIO.axiWd.WSTRB
-  chiplinkIO.slave_axi4_mmio_0_wlast  := cpuIO.axiWd.WLAST
+  chiplinkIO.slave_axi4_mmio_0_wvalid := cpuIO.w.valid
+  chiplinkIO.slave_axi4_mmio_0_wdata  := cpuIO.w.bits.data
+  chiplinkIO.slave_axi4_mmio_0_wstrb  := cpuIO.w.bits.strb
+  chiplinkIO.slave_axi4_mmio_0_wlast  := cpuIO.w.bits.last
 
-  chiplinkIO.slave_axi4_mmio_0_bready := cpuIO.axiWr.BREADY
+  chiplinkIO.slave_axi4_mmio_0_bready := cpuIO.b.ready
 
-  chiplinkIO.slave_axi4_mmio_0_arvalid := cpuIO.axiRa.ARVALID
-  chiplinkIO.slave_axi4_mmio_0_arid    := cpuIO.axiRa.ARID
-  chiplinkIO.slave_axi4_mmio_0_araddr  := cpuIO.axiRa.ARADDR
-  chiplinkIO.slave_axi4_mmio_0_arlen   := cpuIO.axiRa.ARLEN
-  chiplinkIO.slave_axi4_mmio_0_arsize  := cpuIO.axiRa.ARSIZE
-  chiplinkIO.slave_axi4_mmio_0_arburst := cpuIO.axiRa.ARBURST
+  chiplinkIO.slave_axi4_mmio_0_arvalid := cpuIO.ar.valid
+  chiplinkIO.slave_axi4_mmio_0_arid    := cpuIO.ar.bits.id
+  chiplinkIO.slave_axi4_mmio_0_araddr  := cpuIO.ar.bits.addr
+  chiplinkIO.slave_axi4_mmio_0_arlen   := cpuIO.ar.bits.len
+  chiplinkIO.slave_axi4_mmio_0_arsize  := cpuIO.ar.bits.size
+  chiplinkIO.slave_axi4_mmio_0_arburst := cpuIO.ar.bits.burst
 
-  chiplinkIO.slave_axi4_mmio_0_rready := cpuIO.axiRd.RREADY
+  chiplinkIO.slave_axi4_mmio_0_rready := cpuIO.r.ready
 
-  cpuIO.axiWa.AWREADY := chiplinkIO.slave_axi4_mmio_0_awready
-  cpuIO.axiWd.WREADY  := chiplinkIO.slave_axi4_mmio_0_wready
-  cpuIO.axiWr.BVALID  := chiplinkIO.slave_axi4_mmio_0_bvalid
-  cpuIO.axiWr.BID     := chiplinkIO.slave_axi4_mmio_0_bid
-  cpuIO.axiWr.BRESP   := chiplinkIO.slave_axi4_mmio_0_bresp
-  cpuIO.axiRa.ARREADY := chiplinkIO.slave_axi4_mmio_0_arready
-  cpuIO.axiRd.RVALID  := chiplinkIO.slave_axi4_mmio_0_rvalid
-  cpuIO.axiRd.RID     := chiplinkIO.slave_axi4_mmio_0_rid
-  cpuIO.axiRd.RDATA   := chiplinkIO.slave_axi4_mmio_0_rdata
-  cpuIO.axiRd.RRESP   := chiplinkIO.slave_axi4_mmio_0_rresp
-  cpuIO.axiRd.RLAST   := chiplinkIO.slave_axi4_mmio_0_rlast
+  cpuIO.aw.ready    := chiplinkIO.slave_axi4_mmio_0_awready
+  cpuIO.w.ready     := chiplinkIO.slave_axi4_mmio_0_wready
+  cpuIO.b.valid     := chiplinkIO.slave_axi4_mmio_0_bvalid
+  cpuIO.b.bits.id   := chiplinkIO.slave_axi4_mmio_0_bid
+  cpuIO.b.bits.resp := chiplinkIO.slave_axi4_mmio_0_bresp
+  cpuIO.ar.ready    := chiplinkIO.slave_axi4_mmio_0_arready
+  cpuIO.r.valid     := chiplinkIO.slave_axi4_mmio_0_rvalid
+  cpuIO.r.bits.id   := chiplinkIO.slave_axi4_mmio_0_rid
+  cpuIO.r.bits.data := chiplinkIO.slave_axi4_mmio_0_rdata
+  cpuIO.r.bits.resp := chiplinkIO.slave_axi4_mmio_0_rresp
+  cpuIO.r.bits.last := chiplinkIO.slave_axi4_mmio_0_rlast
 
-  cpuIO.axiWr.BUSER := 0.U
-  cpuIO.axiRd.RUSER := 0.U
+  cpuIO.b.bits.user := 0.U
+  cpuIO.r.bits.user := 0.U
 }
 
 private object LinkMMIO {
-  def apply(chiplinkIO: ChiplinkBridgeIO, cpuIO: AxiMasterChannel): LinkMMIO = new LinkMMIO(chiplinkIO, cpuIO)
+  def apply(chiplinkIO: ChiplinkBridgeIO, cpuIO: AXI_BUNDLE): LinkMMIO = new LinkMMIO(chiplinkIO, cpuIO)
 }
 
-private class LinkDMA(chiplinkIO: ChiplinkBridgeIO, cpuIO: AxiMasterChannel) {
-  cpuIO.axiWa.AWADDR   := chiplinkIO.mem_axi4_0_awaddr
-  cpuIO.axiWa.AWBURST  := chiplinkIO.mem_axi4_0_awburst
-  cpuIO.axiWa.AWCACHE  := 0.U
-  cpuIO.axiWa.AWID     := chiplinkIO.mem_axi4_0_awid
-  cpuIO.axiWa.AWLEN    := chiplinkIO.mem_axi4_0_awlen
-  cpuIO.axiWa.AWLOCK   := 0.U
-  cpuIO.axiWa.AWPROT   := 0.U
-  cpuIO.axiWa.AWQOS    := 0.U
-  cpuIO.axiWa.AWREGION := 0.U
-  cpuIO.axiWa.AWSIZE   := chiplinkIO.mem_axi4_0_awsize
-  cpuIO.axiWa.AWUSER   := 0.U
-  cpuIO.axiWa.AWVALID  := chiplinkIO.mem_axi4_0_awvalid
-  cpuIO.axiWd.WDATA    := chiplinkIO.mem_axi4_0_wdata
-  cpuIO.axiWd.WLAST    := chiplinkIO.mem_axi4_0_wlast
-  cpuIO.axiWd.WSTRB    := chiplinkIO.mem_axi4_0_wstrb
-  cpuIO.axiWd.WUSER    := 0.U
-  cpuIO.axiWd.WVALID   := chiplinkIO.mem_axi4_0_wvalid
-  cpuIO.axiWr.BREADY   := chiplinkIO.mem_axi4_0_bready
-  cpuIO.axiRa.ARADDR   := chiplinkIO.mem_axi4_0_araddr
-  cpuIO.axiRa.ARBURST  := chiplinkIO.mem_axi4_0_arburst
-  cpuIO.axiRa.ARCACHE  := 0.U
-  cpuIO.axiRa.ARID     := chiplinkIO.mem_axi4_0_arid
-  cpuIO.axiRa.ARLEN    := chiplinkIO.mem_axi4_0_arlen
-  cpuIO.axiRa.ARLOCK   := 0.U
-  cpuIO.axiRa.ARPROT   := 0.U
-  cpuIO.axiRa.ARQOS    := 0.U
-  cpuIO.axiRa.ARREGION := 0.U
-  cpuIO.axiRa.ARSIZE   := chiplinkIO.mem_axi4_0_arsize
-  cpuIO.axiRa.ARUSER   := 0.U
-  cpuIO.axiRa.ARVALID  := chiplinkIO.mem_axi4_0_arvalid
-  cpuIO.axiRd.RREADY   := chiplinkIO.mem_axi4_0_rready
+private class LinkDMA(chiplinkIO: ChiplinkBridgeIO, cpuIO: AXI_BUNDLE) {
+  cpuIO.aw.bits.addr   := chiplinkIO.mem_axi4_0_awaddr
+  cpuIO.aw.bits.burst  := chiplinkIO.mem_axi4_0_awburst
+  cpuIO.aw.bits.cache  := 0.U
+  cpuIO.aw.bits.id     := chiplinkIO.mem_axi4_0_awid
+  cpuIO.aw.bits.len    := chiplinkIO.mem_axi4_0_awlen
+  cpuIO.aw.bits.lock   := 0.U
+  cpuIO.aw.bits.prot   := 0.U
+  cpuIO.aw.bits.qos    := 0.U
+  cpuIO.aw.bits.region := 0.U
+  cpuIO.aw.bits.size   := chiplinkIO.mem_axi4_0_awsize
+  cpuIO.aw.bits.user   := 0.U
+  cpuIO.aw.valid       := chiplinkIO.mem_axi4_0_awvalid
+  cpuIO.w.bits.data    := chiplinkIO.mem_axi4_0_wdata
+  cpuIO.w.bits.last    := chiplinkIO.mem_axi4_0_wlast
+  cpuIO.w.bits.strb    := chiplinkIO.mem_axi4_0_wstrb
+  cpuIO.w.bits.user    := 0.U
+  cpuIO.w.valid        := chiplinkIO.mem_axi4_0_wvalid
+  cpuIO.b.ready        := chiplinkIO.mem_axi4_0_bready
+  cpuIO.ar.bits.addr   := chiplinkIO.mem_axi4_0_araddr
+  cpuIO.ar.bits.burst  := chiplinkIO.mem_axi4_0_arburst
+  cpuIO.ar.bits.cache  := 0.U
+  cpuIO.ar.bits.id     := chiplinkIO.mem_axi4_0_arid
+  cpuIO.ar.bits.len    := chiplinkIO.mem_axi4_0_arlen
+  cpuIO.ar.bits.lock   := 0.U
+  cpuIO.ar.bits.prot   := 0.U
+  cpuIO.ar.bits.qos    := 0.U
+  cpuIO.ar.bits.region := 0.U
+  cpuIO.ar.bits.size   := chiplinkIO.mem_axi4_0_arsize
+  cpuIO.ar.bits.user   := 0.U
+  cpuIO.ar.valid       := chiplinkIO.mem_axi4_0_arvalid
+  cpuIO.r.ready        := chiplinkIO.mem_axi4_0_rready
 
-  chiplinkIO.mem_axi4_0_awready := cpuIO.axiWa.AWREADY
-  chiplinkIO.mem_axi4_0_wready  := cpuIO.axiWd.WREADY
-  chiplinkIO.mem_axi4_0_bvalid  := cpuIO.axiWr.BVALID
-  chiplinkIO.mem_axi4_0_bid     := cpuIO.axiWr.BID
-  chiplinkIO.mem_axi4_0_bresp   := cpuIO.axiWr.BRESP
-  chiplinkIO.mem_axi4_0_arready := cpuIO.axiRa.ARREADY
-  chiplinkIO.mem_axi4_0_rvalid  := cpuIO.axiRd.RVALID
-  chiplinkIO.mem_axi4_0_rid     := cpuIO.axiRd.RID
-  chiplinkIO.mem_axi4_0_rdata   := cpuIO.axiRd.RDATA
-  chiplinkIO.mem_axi4_0_rresp   := cpuIO.axiRd.RRESP
-  chiplinkIO.mem_axi4_0_rlast   := cpuIO.axiRd.RLAST
+  chiplinkIO.mem_axi4_0_awready := cpuIO.aw.ready
+  chiplinkIO.mem_axi4_0_wready  := cpuIO.w.ready
+  chiplinkIO.mem_axi4_0_bvalid  := cpuIO.b.valid
+  chiplinkIO.mem_axi4_0_bid     := cpuIO.b.bits.id
+  chiplinkIO.mem_axi4_0_bresp   := cpuIO.b.bits.resp
+  chiplinkIO.mem_axi4_0_arready := cpuIO.ar.ready
+  chiplinkIO.mem_axi4_0_rvalid  := cpuIO.r.valid
+  chiplinkIO.mem_axi4_0_rid     := cpuIO.r.bits.id
+  chiplinkIO.mem_axi4_0_rdata   := cpuIO.r.bits.data
+  chiplinkIO.mem_axi4_0_rresp   := cpuIO.r.bits.resp
+  chiplinkIO.mem_axi4_0_rlast   := cpuIO.r.bits.last
 }
 
 private object LinkDMA {
-  def apply(chiplinkIO: ChiplinkBridgeIO, cpuIO: AxiMasterChannel): LinkDMA = new LinkDMA(chiplinkIO, cpuIO)
+  def apply(chiplinkIO: ChiplinkBridgeIO, cpuIO: AXI_BUNDLE): LinkDMA = new LinkDMA(chiplinkIO, cpuIO)
 }

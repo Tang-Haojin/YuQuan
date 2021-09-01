@@ -8,11 +8,11 @@ import utils._
 
 class AsicXbarIO(implicit val p: Parameters) extends Bundle with SimParams {
   val basic       = new BASIC
-  val input       = Flipped(new AxiMasterChannel)
-  val UartIO      = new AxiMasterChannel
-  val PLICIO      = new AxiMasterChannel
-  val SpiIO       = new AxiMasterChannel
-  val ChiplinkIO  = new AxiMasterChannel
+  val input       = Flipped(new AXI_BUNDLE)
+  val UartIO      = new AXI_BUNDLE
+  val PLICIO      = new AXI_BUNDLE
+  val SpiIO       = new AXI_BUNDLE
+  val ChiplinkIO  = new AXI_BUNDLE
 }
 
 class AsicXbar(implicit val p: Parameters) extends RawModule with SimParams {
@@ -21,20 +21,20 @@ class AsicXbar(implicit val p: Parameters) extends RawModule with SimParams {
   val uart::plic::spiflash::chiplink::Nil = Enum(4)
 
   for (i <- 2 until io.getElements.length) {
-    val devIO = io.getElements.reverse(i).asInstanceOf[AxiMasterChannel]
+    val devIO = io.getElements.reverse(i).asInstanceOf[AXI_BUNDLE]
     io.input <> devIO
-    devIO.axiRa.ARVALID := 0.B
-    devIO.axiRd.RREADY  := 0.B
-    devIO.axiWa.AWVALID := 0.B
-    devIO.axiWd.WVALID  := 0.B
-    devIO.axiWr.BREADY  := 0.B
+    devIO.ar.valid := 0.B
+    devIO.r .ready := 0.B
+    devIO.aw.valid := 0.B
+    devIO.w .valid := 0.B
+    devIO.b .ready := 0.B
   }
 
-  io.input.axiRa.ARREADY := 0.B
-  io.input.axiRd.RVALID  := 0.B
-  io.input.axiWa.AWREADY := 0.B
-  io.input.axiWd.WREADY  := 0.B
-  io.input.axiWr.BVALID  := 0.B
+  io.input.ar.ready := 0.B
+  io.input.r .valid := 0.B
+  io.input.aw.ready := 0.B
+  io.input.w .ready := 0.B
+  io.input.b .valid := 0.B
 
   withClockAndReset(io.basic.ACLK, !io.basic.ARESETn) {
     val AWREADY = RegInit(1.B)
@@ -48,40 +48,40 @@ class AsicXbar(implicit val p: Parameters) extends RawModule with SimParams {
     val wireRdevice = WireDefault(0.U(2.W))
     val wireWdevice = WireDefault(0.U(2.W))
 
-    def AddDevice(dev: UInt, devConf: MMAP, devIO: AxiMasterChannel): Unit = {
+    def AddDevice(dev: UInt, devConf: MMAP, devIO: AXI_BUNDLE): Unit = {
       when((wireRdevice === dev) && ARREADY) {
-        io.input.axiRa <> devIO.axiRa
-        io.input.axiRa.ARREADY := devIO.axiRa.ARREADY
+        io.input.ar <> devIO.ar
+        io.input.ar.ready := devIO.ar.ready
       }
 
       when(rdevice === dev) {
-        io.input.axiRd <> devIO.axiRd
-        io.input.axiRd.RVALID := RVALID && devIO.axiRd.RVALID
+        io.input.r <> devIO.r
+        io.input.r.valid := RVALID && devIO.r.valid
       }
 
       when((wireWdevice === dev) && AWREADY) {
-        io.input.axiWa <> devIO.axiWa
-        io.input.axiWa.AWREADY := io.input.axiWa.AWVALID && devIO.axiWa.AWREADY
+        io.input.aw <> devIO.aw
+        io.input.aw.ready := io.input.aw.valid && devIO.aw.ready
       }
 
       when((wireWdevice === dev) && WREADY) {
-        io.input.axiWd <> devIO.axiWd
-        io.input.axiWd.WREADY  := io.input.axiWd.WVALID  && devIO.axiWd.WREADY
+        io.input.w <> devIO.w
+        io.input.w.ready  := io.input.w.valid  && devIO.w.ready
       }
 
       when(wdevice === dev) {
-        io.input.axiWr <> devIO.axiWr
-        io.input.axiWr.BVALID := BVALID && devIO.axiWr.BVALID
+        io.input.b <> devIO.b
+        io.input.b.valid := BVALID && devIO.b.valid
       }
       
       when(
-        (io.input.axiRa.ARADDR >= devConf.BASE.U) &&
-        (io.input.axiRa.ARADDR < (devConf.BASE + devConf.SIZE).U)
+        (io.input.ar.bits.addr >= devConf.BASE.U) &&
+        (io.input.ar.bits.addr < (devConf.BASE + devConf.SIZE).U)
       ) { wireRdevice := dev }
       
       when(
-        (io.input.axiWa.AWADDR >= devConf.BASE.U) &&
-        (io.input.axiWa.AWADDR < (devConf.BASE + devConf.SIZE).U)
+        (io.input.aw.bits.addr >= devConf.BASE.U) &&
+        (io.input.aw.bits.addr < (devConf.BASE + devConf.SIZE).U)
       ) { wireWdevice := dev }
     }
 
@@ -90,28 +90,28 @@ class AsicXbar(implicit val p: Parameters) extends RawModule with SimParams {
     AddDevice(spiflash, SPIFLASH, io.SpiIO )
     AddDevice(chiplink, CHIPLINK, io.ChiplinkIO)
 
-    when(io.input.axiRd.RVALID && io.input.axiRd.RREADY) {
-      when(io.input.axiRd.RLAST) {
+    when(io.input.r.fire) {
+      when(io.input.r.bits.last) {
         ARREADY := 1.B
         RVALID  := 0.B
       }
-    }.elsewhen(io.input.axiRa.ARVALID && io.input.axiRa.ARREADY) {
+    }.elsewhen(io.input.ar.fire) {
       ARREADY := 0.B
       RVALID  := 1.B
       rdevice := wireRdevice
     }
 
-    when(io.input.axiWa.AWVALID && io.input.axiWa.AWREADY) {
+    when(io.input.aw.fire) {
       AWREADY := 0.B
       wdevice := wireWdevice
     }
 
-    when(io.input.axiWd.WVALID && io.input.axiWd.WREADY && io.input.axiWd.WLAST) {
+    when(io.input.w.fire && io.input.w.bits.last) {
       WREADY := 0.B
       BVALID := 1.B
     }
 
-    when(io.input.axiWr.BVALID && io.input.axiWr.BREADY) {
+    when(io.input.b.fire) {
       AWREADY := 1.B
       WREADY  := 1.B
       BVALID  := 0.B

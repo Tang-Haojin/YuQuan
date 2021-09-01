@@ -9,15 +9,15 @@ import cpu.tools._
 
 class AXIWMux(implicit p: Parameters) extends YQModule {
   val io = IO(new YQBundle {
-    val axiWaIn0 = Flipped(new AXIwa)
-    val axiWaIn1 = Flipped(new AXIwa)
-    val axiWaOut = new AXIwa
-    val axiWdIn0 = Flipped(new AXIwd)
-    val axiWdIn1 = Flipped(new AXIwd)
-    val axiWdOut = new AXIwd
-    val axiWrIn0 = Flipped(new AXIwr)
-    val axiWrIn1 = Flipped(new AXIwr)
-    val axiWrOut = new AXIwr
+    val axiWaIn0 = Flipped(Irrevocable(new AXI_BUNDLE_AW))
+    val axiWaIn1 = Flipped(Irrevocable(new AXI_BUNDLE_AW))
+    val axiWaOut =         Irrevocable(new AXI_BUNDLE_AW)
+    val axiWdIn0 = Flipped(Irrevocable(new AXI_BUNDLE_W))
+    val axiWdIn1 = Flipped(Irrevocable(new AXI_BUNDLE_W))
+    val axiWdOut =         Irrevocable(new AXI_BUNDLE_W)
+    val axiWrIn0 =         Irrevocable(new AXI_BUNDLE_B)
+    val axiWrIn1 =         Irrevocable(new AXI_BUNDLE_B)
+    val axiWrOut = Flipped(Irrevocable(new AXI_BUNDLE_B))
   })
 
   private val idle::busy::Nil = Enum(2)
@@ -39,13 +39,13 @@ class AXIWMux(implicit p: Parameters) extends YQModule {
        * Factually, to avoid deadlock or combinational loop, we must not
        * consider the `READY` signal at all.
       */
-      when(io.axiWaIn0.AWVALID || io.axiWdIn0.WVALID) {
+      when(io.axiWaIn0.valid || io.axiWdIn0.valid) {
         state        := busy
         regCurrentID := rrID
       }
     }
     when(rrID === 1.U) {
-      when(io.axiWaIn1.AWVALID || io.axiWdIn1.WVALID) {
+      when(io.axiWaIn1.valid || io.axiWdIn1.valid) {
         state        := busy
         regCurrentID := rrID
       }
@@ -65,46 +65,46 @@ class AXIWMux(implicit p: Parameters) extends YQModule {
       io.axiWdIn1 <> io.axiWdOut
       io.axiWrIn1 <> io.axiWrOut
     }
-    when(io.axiWrOut.BREADY && io.axiWrOut.BVALID) {
+    when(io.axiWrOut.fire) {
       regState := idle
     }
   }
 }
 
-private class InitLinkIn(wa: AXIwa, wd: AXIwd, wr: AXIwr) {
-  wa.AWREADY := 0.B
-  wd.WREADY  := 0.B
-  wr.BID     := 0xf.U
-  wr.BVALID  := 0.B
-  wr.BRESP   := 0.U
-  wr.BUSER   := 0.U
+private class InitLinkIn(aw: IrrevocableIO[AXI_BUNDLE_AW], w: IrrevocableIO[AXI_BUNDLE_W], b: IrrevocableIO[AXI_BUNDLE_B]) {
+  aw.ready    := 0.B
+  w.ready     := 0.B
+  b.bits.id   := 0xf.U
+  b.valid     := 0.B
+  b.bits.resp := 0.U
+  b.bits.user := 0.U
 }
 
 private object InitLinkIn {
-  def apply(wa: AXIwa, wd: AXIwd, wr: AXIwr): InitLinkIn = new InitLinkIn(wa, wd, wr)
+  def apply(aw: IrrevocableIO[AXI_BUNDLE_AW], w: IrrevocableIO[AXI_BUNDLE_W], b: IrrevocableIO[AXI_BUNDLE_B]): InitLinkIn = new InitLinkIn(aw, w, b)
 }
 
-private class InitLinkOut(wa: AXIwa, wd: AXIwd, wr: AXIwr) {
-  wa.AWADDR   := 0.U
-  wa.AWBURST  := 1.U
-  wa.AWCACHE  := 0.U
-  wa.AWID     := 0xf.U
-  wa.AWLEN    := 0.U
-  wa.AWLOCK   := 0.U
-  wa.AWPROT   := 0.U
-  wa.AWQOS    := 0.U
-  wa.AWREGION := 0.U
-  wa.AWSIZE   := 0.U
-  wa.AWUSER   := 0.U
-  wa.AWVALID  := 0.U
-  wd.WDATA    := 0xfade.U
-  wd.WLAST    := 0.B
-  wd.WSTRB    := 0.U
-  wd.WUSER    := 0.U
-  wd.WVALID   := 0.B
-  wr.BREADY   := 0.B
+private class InitLinkOut(aw: IrrevocableIO[AXI_BUNDLE_AW], w: IrrevocableIO[AXI_BUNDLE_W], b: IrrevocableIO[AXI_BUNDLE_B]) {
+  aw.bits.addr   := 0.U
+  aw.bits.burst  := 1.U
+  aw.bits.cache  := 0.U
+  aw.bits.id     := 0xf.U
+  aw.bits.len    := 0.U
+  aw.bits.lock   := 0.U
+  aw.bits.prot   := 0.U
+  aw.bits.qos    := 0.U
+  aw.bits.region := 0.U
+  aw.bits.size   := 0.U
+  aw.bits.user   := 0.U
+  aw.valid       := 0.U
+  w.bits.data    := 0xfade.U
+  w.bits.last    := 0.B
+  w.bits.strb    := 0.U
+  w.bits.user    := 0.U
+  w.valid        := 0.B
+  b.ready        := 0.B
 }
 
 private object InitLinkOut {
-  def apply(wa: AXIwa, wd: AXIwd, wr: AXIwr): InitLinkOut = new InitLinkOut(wa, wd, wr)
+  def apply(aw: IrrevocableIO[AXI_BUNDLE_AW], w: IrrevocableIO[AXI_BUNDLE_W], b: IrrevocableIO[AXI_BUNDLE_B]): InitLinkOut = new InitLinkOut(aw, w, b)
 }

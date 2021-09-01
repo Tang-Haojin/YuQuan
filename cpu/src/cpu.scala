@@ -14,8 +14,8 @@ class CPU(implicit p: Parameters) extends YQModule {
   override val desiredName = if (IsYsyx) modulePrefix.dropRight(1)
                              else modulePrefix + this.getClass().getSimpleName()
   val io = IO(new YQBundle {
-    val memAXI  = new AxiMasterChannel
-    val dmaAXI  = Flipped(new AxiMasterChannel)
+    val memAXI  = new AXI_BUNDLE
+    val dmaAXI  = Flipped(new AXI_BUNDLE)
     val intr    = Input(Bool())
     val debug   = 
     if(Debug)     new DEBUG
@@ -40,27 +40,27 @@ class CPU(implicit p: Parameters) extends YQModule {
   val moduleMEM = Module(new MEM)
   val moduleWB  = Module(new WB)
 
-  moduleAXIRMux.io.axiRaIn0 <> moduleICache.io.memIO.axiRa
-  moduleAXIRMux.io.axiRaIn1 <> moduleDCache.io.memIO.axiRa
-  moduleAXIRMux.io.axiRaOut <> io.memAXI.axiRa
+  moduleAXIRMux.io.axiRaIn0 <> moduleICache.io.memIO.ar
+  moduleAXIRMux.io.axiRaIn1 <> moduleDCache.io.memIO.ar
+  moduleAXIRMux.io.axiRaOut <> io.memAXI.ar
 
-  moduleAXIRMux.io.axiRdIn0 <> moduleICache.io.memIO.axiRd
-  moduleAXIRMux.io.axiRdIn1 <> moduleDCache.io.memIO.axiRd
-  moduleAXIRMux.io.axiRdOut <> io.memAXI.axiRd
+  moduleAXIRMux.io.axiRdIn0 <> moduleICache.io.memIO.r
+  moduleAXIRMux.io.axiRdIn1 <> moduleDCache.io.memIO.r
+  moduleAXIRMux.io.axiRdOut <> io.memAXI.r
 
-  moduleAXIWMux.io.axiWaIn0 <> moduleDCache.io.memIO.axiWa
-  moduleAXIWMux.io.axiWdIn0 <> moduleDCache.io.memIO.axiWd
-  moduleAXIWMux.io.axiWrIn0 <> moduleDCache.io.memIO.axiWr
+  moduleAXIWMux.io.axiWaIn0 <> moduleDCache.io.memIO.aw
+  moduleAXIWMux.io.axiWdIn0 <> moduleDCache.io.memIO.w
+  moduleAXIWMux.io.axiWrIn0 <> moduleDCache.io.memIO.b
 
-  io.memAXI.axiWa <> moduleAXIWMux.io.axiWaOut
-  io.memAXI.axiWd <> moduleAXIWMux.io.axiWdOut
-  io.memAXI.axiWr <> moduleAXIWMux.io.axiWrOut
+  io.memAXI.aw <> moduleAXIWMux.io.axiWaOut
+  io.memAXI.w  <> moduleAXIWMux.io.axiWdOut
+  io.memAXI.b  <> moduleAXIWMux.io.axiWrOut
 
-  io.dmaAXI.axiRa <> DontCare
-  io.dmaAXI.axiRd <> DontCare
-  io.dmaAXI.axiWa <> moduleAXIWMux.io.axiWaIn1
-  io.dmaAXI.axiWd <> moduleAXIWMux.io.axiWdIn1
-  io.dmaAXI.axiWr <> moduleAXIWMux.io.axiWrIn1
+  io.dmaAXI.ar <> DontCare
+  io.dmaAXI.r  <> DontCare
+  io.dmaAXI.aw <> moduleAXIWMux.io.axiWaIn1
+  io.dmaAXI.w  <> moduleAXIWMux.io.axiWdIn1
+  io.dmaAXI.b  <> moduleAXIWMux.io.axiWrIn1
 
   moduleID.io.gprsR <> moduleBypass.io.receive
   moduleID.io.csrsR <> moduleBypassCsr.io.receive

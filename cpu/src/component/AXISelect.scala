@@ -13,24 +13,24 @@ class AXISelect(implicit p: Parameters) extends YQModule {
   val mem::mmio::Nil = Enum(2)
 
   io.input <> io.RamIO
-  io.RamIO.axiRa.ARVALID := 0.B
-  io.RamIO.axiRd.RREADY  := 0.B
-  io.RamIO.axiWa.AWVALID := 0.B
-  io.RamIO.axiWd.WVALID  := 0.B
-  io.RamIO.axiWr.BREADY  := 0.B
+  io.RamIO.ar.valid := 0.B
+  io.RamIO.r .ready := 0.B
+  io.RamIO.aw.valid := 0.B
+  io.RamIO.w .valid := 0.B
+  io.RamIO.b .ready := 0.B
 
   io.input <> io.MMIO
-  io.MMIO.axiRa.ARVALID := 0.B
-  io.MMIO.axiRd.RREADY  := 0.B
-  io.MMIO.axiWa.AWVALID := 0.B
-  io.MMIO.axiWd.WVALID  := 0.B
-  io.MMIO.axiWr.BREADY  := 0.B
+  io.MMIO.ar.valid := 0.B
+  io.MMIO.r .ready := 0.B
+  io.MMIO.aw.valid := 0.B
+  io.MMIO.w .valid := 0.B
+  io.MMIO.b .ready := 0.B
 
-  io.input.axiRa.ARREADY := 0.B
-  io.input.axiRd.RVALID  := 0.B
-  io.input.axiWa.AWREADY := 0.B
-  io.input.axiWd.WREADY  := 0.B
-  io.input.axiWr.BVALID  := 0.B
+  io.input.ar.valid := 0.B
+  io.input.r .ready := 0.B
+  io.input.aw.valid := 0.B
+  io.input.w .valid := 0.B
+  io.input.b .ready := 0.B
 
   val AWREADY = RegInit(1.B)
   val WREADY  = RegInit(1.B)
@@ -44,82 +44,82 @@ class AXISelect(implicit p: Parameters) extends YQModule {
   val wireWdevice = WireDefault(UInt(1.W), wdevice)
 
   when(
-    (io.input.axiRa.ARADDR >= DRAM.BASE.U) &&
-    (io.input.axiRa.ARADDR < (DRAM.BASE + DRAM.SIZE).U)
+    (io.input.ar.bits.addr >= DRAM.BASE.U) &&
+    (io.input.ar.bits.addr < (DRAM.BASE + DRAM.SIZE).U)
   ) { wireRdevice := mem }.otherwise { wireRdevice := mmio }
 
   when(
-    (io.input.axiWa.AWADDR >= DRAM.BASE.U) &&
-    (io.input.axiWa.AWADDR < (DRAM.BASE + DRAM.SIZE).U)
+    (io.input.ar.bits.addr >= DRAM.BASE.U) &&
+    (io.input.ar.bits.addr < (DRAM.BASE + DRAM.SIZE).U)
   ) { wireWdevice := mem }.otherwise { wireWdevice := mmio }
 
   when((wireRdevice === mem) && ARREADY) {
-    io.input.axiRa <> io.RamIO.axiRa
-    io.input.axiRa.ARREADY := io.RamIO.axiRa.ARREADY
+    io.input.ar <> io.RamIO.ar
+    io.input.ar.ready := io.RamIO.ar.ready
   }
   when((wireRdevice === mmio) && ARREADY) {
-    io.input.axiRa <> io.MMIO.axiRa
-    io.input.axiRa.ARREADY := io.MMIO.axiRa.ARREADY
+    io.input.ar <> io.MMIO.ar
+    io.input.ar.ready := io.MMIO.ar.ready
   }
 
   when(rdevice === mem) {
-    io.input.axiRd <> io.RamIO.axiRd
-    io.input.axiRd.RVALID := RVALID && io.RamIO.axiRd.RVALID
+    io.input.r <> io.RamIO.r
+    io.input.r.valid := RVALID && io.RamIO.r.valid
   }
   when(rdevice === mmio) {
-    io.input.axiRd <> io.MMIO.axiRd
-    io.input.axiRd.RVALID := RVALID && io.MMIO.axiRd.RVALID
+    io.input.r <> io.MMIO.r
+    io.input.r.valid := RVALID && io.MMIO.r.valid
   }
 
   when((wireWdevice === mem) && AWREADY) {
-    io.input.axiWa <> io.RamIO.axiWa
-    io.input.axiWa.AWREADY := io.input.axiWa.AWVALID && io.RamIO.axiWa.AWREADY
+    io.input.aw <> io.RamIO.aw
+    io.input.aw.ready := io.input.aw.valid && io.RamIO.aw.ready
   }
   when((wireWdevice === mmio) && AWREADY) {
-    io.input.axiWa <> io.MMIO.axiWa
-    io.input.axiWa.AWREADY := io.input.axiWa.AWVALID && io.MMIO.axiWa.AWREADY
+    io.input.aw <> io.MMIO.aw
+    io.input.aw.ready := io.input.aw.valid && io.MMIO.aw.ready
   }
   when((wireWdevice === mem) && WREADY) {
-    io.input.axiWd <> io.RamIO.axiWd
-    io.input.axiWd.WREADY := io.input.axiWd.WVALID  && io.RamIO.axiWd.WREADY
+    io.input.w <> io.RamIO.w
+    io.input.w.ready := io.input.w.valid  && io.RamIO.w.ready
   }
   when((wireWdevice === mmio) && WREADY) {
-    io.input.axiWd <> io.MMIO.axiWd
-    io.input.axiWd.WREADY := io.input.axiWd.WVALID  && io.MMIO.axiWd.WREADY
+    io.input.w <> io.MMIO.w
+    io.input.w.ready := io.input.w.valid  && io.MMIO.w.ready
   }
 
   when(wdevice === mem) {
-    io.input.axiWr <> io.RamIO.axiWr
-    io.input.axiWr.BVALID := BVALID && io.RamIO.axiWr.BVALID
+    io.input.b <> io.RamIO.b
+    io.input.b.valid := BVALID && io.RamIO.b.valid
   }
   when(wdevice === mmio) {
-    io.input.axiWr <> io.MMIO.axiWr
-    io.input.axiWr.BVALID := BVALID && io.MMIO.axiWr.BVALID
+    io.input.b <> io.MMIO.b
+    io.input.b.valid := BVALID && io.MMIO.b.valid
   }
 
-  when(io.input.axiRd.RVALID && io.input.axiRd.RREADY) {
-    when(io.input.axiRd.RLAST) {
+  when(io.input.r.fire) {
+    when(io.input.r.bits.last) {
       ARREADY := 1.B
       RVALID  := 0.B
     }
-  }.elsewhen(io.input.axiRa.ARVALID && io.input.axiRa.ARREADY) {
+  }.elsewhen(io.input.ar.fire) {
     ARREADY := 0.B
     RVALID  := 1.B
     rdevice := wireRdevice
   }
 
-  when(io.input.axiWa.AWVALID && io.input.axiWa.AWREADY) {
+  when(io.input.aw.fire) {
     AWREADY := 0.B
     wdevice := wireWdevice
   }
 
-  when(io.input.axiWd.WVALID && io.input.axiWd.WREADY && io.input.axiWd.WLAST) {
+  when(io.input.w.fire && io.input.w.bits.last) {
     // TODO: What if write data transfer before write address? We need a buffer.
     WREADY := 0.B
     BVALID := 1.B
   }
 
-  when(io.input.axiWr.BVALID && io.input.axiWr.BREADY) {
+  when(io.input.b.fire) {
     AWREADY := 1.B
     WREADY  := 1.B
     BVALID  := 0.B

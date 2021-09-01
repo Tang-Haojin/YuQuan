@@ -62,26 +62,26 @@ class StorageWrite(implicit p: Parameters) extends YQBlackBox with HasBlackBoxIn
 class Storage(implicit p: Parameters) extends YQRawModule {
   val io = IO(new AxiSlaveIO)
 
-  io.channel.axiWr.BRESP := 0.U
-  io.channel.axiWr.BUSER := DontCare
+  io.channel.b.bits.resp := 0.U
+  io.channel.b.bits.user := DontCare
 
-  io.channel.axiRd.RLAST := 0.B
-  io.channel.axiRd.RUSER := DontCare
-  io.channel.axiRd.RRESP := 0.U
+  io.channel.r.bits.last := 0.B
+  io.channel.r.bits.user := DontCare
+  io.channel.r.bits.resp := 0.U
 
   withClockAndReset(io.basic.ACLK, !io.basic.ARESETn) {
-    val AWREADY = RegInit(1.B); io.channel.axiWa.AWREADY := AWREADY
-    val WREADY  = RegInit(0.B); io.channel.axiWd.WREADY  := WREADY
-    val BVALID  = RegInit(0.B); io.channel.axiWr.BVALID  := BVALID
-    val ARREADY = RegInit(1.B); io.channel.axiRa.ARREADY := ARREADY
-    val RVALID  = RegInit(0.B); io.channel.axiRd.RVALID  := RVALID
+    val AWREADY = RegInit(1.B); io.channel.aw.ready := AWREADY
+    val WREADY  = RegInit(0.B); io.channel.w .ready := WREADY
+    val BVALID  = RegInit(0.B); io.channel.b .valid := BVALID
+    val ARREADY = RegInit(1.B); io.channel.ar.ready := ARREADY
+    val RVALID  = RegInit(0.B); io.channel.r .valid := RVALID
     val ARSIZE  = RegInit(0.U(3.W))
     val ARLEN   = RegInit(0.U(8.W))
     val AWSIZE  = RegInit(0.U(3.W))
     val AWLEN   = RegInit(0.U(8.W))
 
-    val RID    = RegInit(0.U(idlen.W)); io.channel.axiRd.RID := RID
-    val BID    = RegInit(0.U(idlen.W)); io.channel.axiWr.BID := BID
+    val RID    = RegInit(0.U(idlen.W)); io.channel.r.bits.id := RID
+    val BID    = RegInit(0.U(idlen.W)); io.channel.b.bits.id := BID
     val ARADDR = RegInit(0.U(alen.W))
     val AWADDR = RegInit(0.U(alen.W))
 
@@ -97,45 +97,45 @@ class Storage(implicit p: Parameters) extends YQRawModule {
     val storage_read = Module(new StorageRead)
     storage_read.io.clock  := io.basic.ACLK
     storage_read.io.addr   := wireARADDR
-    io.channel.axiRd.RDATA := storage_read.io.data
+    io.channel.r.bits.data := storage_read.io.data
 
     val storage_write = Module(new StorageWrite)
     storage_write.io.clock := io.basic.ACLK
     storage_write.io.wen   := 0.B
     storage_write.io.addr  := AWADDR
-    storage_write.io.data  := io.channel.axiWd.WDATA
-    storage_write.io.mask  := io.channel.axiWd.WSTRB
+    storage_write.io.data  := io.channel.w.bits.data
+    storage_write.io.mask  := io.channel.w.bits.strb
 
-    when(io.channel.axiRd.RVALID && io.channel.axiRd.RREADY) {
+    when(io.channel.r.fire) {
       when(ARLEN === 0.U) {
         RVALID         := 0.B
         ARREADY        := 1.B
-        io.channel.axiRd.RLAST := 1.B
+        io.channel.r.bits.last := 1.B
       }.otherwise {
         wireARADDR := ARADDR + wireRStep
         ARADDR     := wireARADDR
         ARLEN      := ARLEN - 1.U
       }
-    }.elsewhen(io.channel.axiRa.ARVALID && io.channel.axiRa.ARREADY) {
-      RID        := io.channel.axiRa.ARID
-      wireARADDR := io.channel.axiRa.ARADDR(alen - 1, axSize) ## 0.U(axSize.W) - SPIFLASH.BASE.U
+    }.elsewhen(io.channel.ar.fire) {
+      RID        := io.channel.ar.bits.id
+      wireARADDR := io.channel.ar.bits.addr(alen - 1, axSize) ## 0.U(axSize.W) - SPIFLASH.BASE.U
       ARADDR     := wireARADDR
       ARREADY    := 0.B
       RVALID     := 1.B
-      ARSIZE     := io.channel.axiRa.ARSIZE
-      ARLEN      := io.channel.axiRa.ARLEN
+      ARSIZE     := io.channel.ar.bits.size
+      ARLEN      := io.channel.ar.bits.len
     }
 
-    when(io.channel.axiWa.AWVALID && io.channel.axiWa.AWREADY) {
-      AWADDR  := io.channel.axiWa.AWADDR(alen - 1, axSize) ## 0.U(axSize.W) - SPIFLASH.BASE.U
-      BID     := io.channel.axiWa.AWID
+    when(io.channel.aw.fire) {
+      AWADDR  := io.channel.aw.bits.addr(alen - 1, axSize) ## 0.U(axSize.W) - SPIFLASH.BASE.U
+      BID     := io.channel.aw.bits.id
       AWREADY := 0.B
       WREADY  := 1.B
-      AWSIZE  := io.channel.axiWa.AWSIZE
-      AWLEN   := io.channel.axiWa.AWLEN
+      AWSIZE  := io.channel.aw.bits.size
+      AWLEN   := io.channel.aw.bits.len
     }
 
-    when(io.channel.axiWd.WVALID && io.channel.axiWd.WREADY) {
+    when(io.channel.w.fire) {
       storage_write.io.wen := 1.B
       when(AWLEN === 0.U) {
         WREADY  := 0.B
@@ -146,7 +146,7 @@ class Storage(implicit p: Parameters) extends YQRawModule {
       }
     }
 
-    when(io.channel.axiWr.BVALID && io.channel.axiWr.BREADY) {
+    when(io.channel.b.fire) {
       AWREADY := 1.B
       BVALID := 0.B
     }
