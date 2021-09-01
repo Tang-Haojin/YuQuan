@@ -11,6 +11,8 @@ import cache._
 import utils._
 
 class CPU(implicit p: Parameters) extends YQModule {
+  override val desiredName = if (IsYsyx) modulePrefix.dropRight(1)
+                             else modulePrefix + this.getClass().getSimpleName()
   val io = IO(new YQBundle {
     val memAXI  = new AxiMasterChannel
     val dmaAXI  = Flipped(new AxiMasterChannel)
@@ -29,8 +31,8 @@ class CPU(implicit p: Parameters) extends YQModule {
   val moduleAXIRMux   = Module(new AXIRMux)
   val moduleAXIWMux   = Module(new AXIWMux)
 
-  val moduleICache = ICache()(p.alter(cache.CacheConfig.f))
-  val moduleDCache = DCache()(p.alter(cache.CacheConfig.f))
+  val moduleICache = ICache(p.alter(cache.CacheConfig.f))
+  val moduleDCache = DCache(p.alter(cache.CacheConfig.f))
 
   val moduleIF  = Module(new IF)
   val moduleID  = Module(new ID)

@@ -30,6 +30,7 @@ object SimConfig {
     case MODULE_PREFIX  => s""
     case REG_CONF       => new YQConfig.RegConf
     case ENABLE_DEBUG   => true
+    case IS_YSYX        => false
   }
 
   val basicConfig: (View, View, View) => PartialFunction[Any, Any] = (site, here, up) => basePartFunc.orElse({

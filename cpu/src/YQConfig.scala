@@ -26,6 +26,7 @@ object YQConfig {
     case IALIGN        => 32 // compressed instructions are not implemented yet
     case ILEN          => 32 // base instruction set supported only
     case REG_CONF      => new RegConf
+    case IS_YSYX       => true
   }
 
   class CLINT extends MMAP {
@@ -58,3 +59,4 @@ case object ENABLE_DEBUG extends Field[Boolean]
 case object IALIGN       extends Field[Int]
 case object ILEN         extends Field[Int]
 case object REG_CONF     extends Field[YQConfig.RegConf]
+case object IS_YSYX      extends Field[Boolean]
