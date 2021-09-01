@@ -9,15 +9,15 @@ import cpu.tools._
 
 class AXIWMux(implicit p: Parameters) extends YQModule {
   val io = IO(new YQBundle {
-    val axiWaIn0 = Flipped(Irrevocable(new AXI_BUNDLE_AW))
-    val axiWaIn1 = Flipped(Irrevocable(new AXI_BUNDLE_AW))
-    val axiWaOut =         Irrevocable(new AXI_BUNDLE_AW)
-    val axiWdIn0 = Flipped(Irrevocable(new AXI_BUNDLE_W))
-    val axiWdIn1 = Flipped(Irrevocable(new AXI_BUNDLE_W))
-    val axiWdOut =         Irrevocable(new AXI_BUNDLE_W)
-    val axiWrIn0 =         Irrevocable(new AXI_BUNDLE_B)
-    val axiWrIn1 =         Irrevocable(new AXI_BUNDLE_B)
-    val axiWrOut = Flipped(Irrevocable(new AXI_BUNDLE_B))
+    val axiWaIn0 = Flipped(new AXI_BUNDLE_AW)
+    val axiWaIn1 = Flipped(new AXI_BUNDLE_AW)
+    val axiWaOut = new AXI_BUNDLE_AW
+    val axiWdIn0 = Flipped(new AXI_BUNDLE_W)
+    val axiWdIn1 = Flipped(new AXI_BUNDLE_W)
+    val axiWdOut = new AXI_BUNDLE_W
+    val axiWrIn0 = new AXI_BUNDLE_B
+    val axiWrIn1 = new AXI_BUNDLE_B
+    val axiWrOut = Flipped(new AXI_BUNDLE_B)
   })
 
   private val idle::busy::Nil = Enum(2)
@@ -71,7 +71,7 @@ class AXIWMux(implicit p: Parameters) extends YQModule {
   }
 }
 
-private class InitLinkIn(aw: IrrevocableIO[AXI_BUNDLE_AW], w: IrrevocableIO[AXI_BUNDLE_W], b: IrrevocableIO[AXI_BUNDLE_B]) {
+private class InitLinkIn(aw: AXI_BUNDLE_AW, w: AXI_BUNDLE_W, b: AXI_BUNDLE_B) {
   aw.ready    := 0.B
   w.ready     := 0.B
   b.bits.id   := 0xf.U
@@ -81,10 +81,10 @@ private class InitLinkIn(aw: IrrevocableIO[AXI_BUNDLE_AW], w: IrrevocableIO[AXI_
 }
 
 private object InitLinkIn {
-  def apply(aw: IrrevocableIO[AXI_BUNDLE_AW], w: IrrevocableIO[AXI_BUNDLE_W], b: IrrevocableIO[AXI_BUNDLE_B]): InitLinkIn = new InitLinkIn(aw, w, b)
+  def apply(aw: AXI_BUNDLE_AW, w: AXI_BUNDLE_W, b: AXI_BUNDLE_B): InitLinkIn = new InitLinkIn(aw, w, b)
 }
 
-private class InitLinkOut(aw: IrrevocableIO[AXI_BUNDLE_AW], w: IrrevocableIO[AXI_BUNDLE_W], b: IrrevocableIO[AXI_BUNDLE_B]) {
+private class InitLinkOut(aw: AXI_BUNDLE_AW, w: AXI_BUNDLE_W, b: AXI_BUNDLE_B) {
   aw.bits.addr   := 0.U
   aw.bits.burst  := 1.U
   aw.bits.cache  := 0.U
@@ -106,5 +106,5 @@ private class InitLinkOut(aw: IrrevocableIO[AXI_BUNDLE_AW], w: IrrevocableIO[AXI
 }
 
 private object InitLinkOut {
-  def apply(aw: IrrevocableIO[AXI_BUNDLE_AW], w: IrrevocableIO[AXI_BUNDLE_W], b: IrrevocableIO[AXI_BUNDLE_B]): InitLinkOut = new InitLinkOut(aw, w, b)
+  def apply(aw: AXI_BUNDLE_AW, w: AXI_BUNDLE_W, b: AXI_BUNDLE_B): InitLinkOut = new InitLinkOut(aw, w, b)
 }

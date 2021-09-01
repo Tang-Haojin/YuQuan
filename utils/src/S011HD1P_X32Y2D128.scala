@@ -4,7 +4,7 @@ import chisel3._
 import chisel3.util._
 import chipsalliance.rocketchip.config._
 
-class SRAM(bits: Int = 128, wordDepth: Int = 64)(implicit val p: Parameters) extends BlackBox with HasBlackBoxInline with PrefixParams {
+class S011HD1P_X32Y2D128(bits: Int = 128, wordDepth: Int = 64) extends BlackBox with HasBlackBoxInline {
   val io = IO(new Bundle {
     val Q   = Output(UInt(bits.W))
     val CLK = Input (Clock())
@@ -13,9 +13,8 @@ class SRAM(bits: Int = 128, wordDepth: Int = 64)(implicit val p: Parameters) ext
     val A   = Input (UInt(log2Ceil(wordDepth).W))
     val D   = Input (UInt(bits.W))
   })
-  override val desiredName = modulePrefix + this.getClass().getSimpleName()
-  this.setInline(desiredName + ".v", s"""
-    |module ${desiredName} (
+  this.setInline("S011HD1P_X32Y2D128.v", s"""
+    |module S011HD1P_X32Y2D128 (
     |  output reg [${bits - 1}:0]                Q,
     |  input                                     CLK,
     |  input                                     CEN,
@@ -36,12 +35,12 @@ class SRAM(bits: Int = 128, wordDepth: Int = 64)(implicit val p: Parameters) ext
   """.stripMargin)
 }
 
-object SRAM {
-  def apply(bits: Int = 128, wordDepth: Int = 64)(implicit p: Parameters): SRAM = Module(new SRAM(bits, wordDepth))
+object S011HD1P_X32Y2D128 {
+  def apply(bits: Int = 128, wordDepth: Int = 64): S011HD1P_X32Y2D128 = Module(new S011HD1P_X32Y2D128(bits, wordDepth))
 }
 
-class SramWrapper(clock: Clock, bits: Int = 128, wordDepth: Int = 64)(implicit val p: Parameters) extends PrefixParams {
-  private val sram = SRAM(bits, wordDepth)
+class SramWrapper(clock: Clock, bits: Int = 128, wordDepth: Int = 64) {
+  private val sram = S011HD1P_X32Y2D128(bits, wordDepth)
   private val rAddr = WireDefault(0.U(log2Ceil(wordDepth).W))
   private val wAddr = WireDefault(0.U(log2Ceil(wordDepth).W))
 
@@ -62,10 +61,10 @@ class SramWrapper(clock: Clock, bits: Int = 128, wordDepth: Int = 64)(implicit v
 }
 
 object SramWrapper {
-  def apply(clock: Clock, bits: Int = 128, wordDepth: Int = 64)(implicit p: Parameters): SramWrapper = new SramWrapper(clock, bits, wordDepth)
+  def apply(clock: Clock, bits: Int = 128, wordDepth: Int = 64): SramWrapper = new SramWrapper(clock, bits, wordDepth)
 }
 
-class SinglePortRam(clock: Clock, bits: Int = 128, wordDepth: Int = 64, associativity: Int = 4)(implicit val p: Parameters) extends PrefixParams {
+class SinglePortRam(clock: Clock, bits: Int = 128, wordDepth: Int = 64, associativity: Int = 4) {
   private val SRAMs = Seq.fill(associativity)(SramWrapper(clock, bits, wordDepth))
 
   def read(x: UInt, en: Bool = 1.B): Vec[UInt] = {
@@ -78,5 +77,5 @@ class SinglePortRam(clock: Clock, bits: Int = 128, wordDepth: Int = 64, associat
 }
 
 object SinglePortRam {
-  def apply(clock: Clock, bits: Int = 128, wordDepth: Int = 64, associativity: Int = 4)(implicit p: Parameters): SinglePortRam = new SinglePortRam(clock, bits, wordDepth, associativity)
+  def apply(clock: Clock, bits: Int = 128, wordDepth: Int = 64, associativity: Int = 4): SinglePortRam = new SinglePortRam(clock, bits, wordDepth, associativity)
 }

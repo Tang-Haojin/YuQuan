@@ -16,6 +16,12 @@ object SimConfig {
     case XLEN           => 64
     case ALEN           => 32
     case IDLEN          => 4
+    case USRLEN         => 0
+    case USEQOS         => 0
+    case USEPROT        => 0
+    case USECACHE       => 0
+    case USELOCK        => 0
+    case USEREGION      => 0
     case EXTENSIONS     => List('I', 'M')
     case DMAC_MMAP      => new DMAC
     case UART_MMAP      => new PeripheralConfig.UART

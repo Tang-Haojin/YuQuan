@@ -3,6 +3,7 @@ package peripheral.uart16550
 import chisel3._
 import chisel3.util._
 import chipsalliance.rocketchip.config._
+import freechips.rocketchip.diplomacy.ValName
 import java.io.File
 
 import uart_config._
@@ -37,7 +38,7 @@ trait UartASICIOTrait {
   val stx       = Output(UInt(1.W))
 }
 
-class UartAxiSlaveIO(implicit p: Parameters) extends AxiSlaveIO with UartASICIOTrait
+class UartAxiSlaveIO(implicit p: Parameters, valName: ValName) extends AxiSlaveIO with UartASICIOTrait
 
 class uart_regs(implicit p: Parameters) extends BlackBox with HasBlackBoxPath {
   val io = IO(new UregIO)

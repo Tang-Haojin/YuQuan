@@ -24,8 +24,8 @@ class TestTop_Traditional(io: DEBUG, clock: Clock, reset: Reset)(implicit val p:
 
   io <> cpu.io.debug
 
-  cpu.io.memAXI  <> router.io.input
-  cpu.io.dmaAXI  := DontCare
+  cpu.io.master <> router.io.input
+  cpu.io.slave  := DontCare
 
   router.io.DramIO      <> mem.io.channel
   router.io.UartIO      <> uart.io.channel
@@ -35,7 +35,7 @@ class TestTop_Traditional(io: DEBUG, clock: Clock, reset: Reset)(implicit val p:
 
   plic.io.inter     := VecInit(Seq.fill(plic.io.inter.length)(0.B))
   plic.io.inter(10) := uart.io.interrupt
-  cpu.io.intr       := plic.io.eip
+  cpu.io.interrupt  := plic.io.eip
 
   mem.io.basic.ACLK          := clock
   mem.io.basic.ARESETn       := !reset.asBool

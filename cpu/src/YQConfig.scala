@@ -16,6 +16,12 @@ object YQConfig {
     case EXTENSIONS    => List('I', 'M')
     case ALEN          => 32
     case IDLEN         => 4
+    case USRLEN        => 0
+    case USEQOS        => 0
+    case USEPROT       => 0
+    case USECACHE      => 0
+    case USELOCK       => 0
+    case USEREGION     => 0
     case MODULE_PREFIX => s"ysyx_210153_"
     case CLINT_MMAP    => new CLINT
     case DRAM_MMAP     => new DRAM

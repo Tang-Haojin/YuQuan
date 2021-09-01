@@ -2,10 +2,11 @@ package peripheral
 
 import chisel3._
 import chipsalliance.rocketchip.config._
+import freechips.rocketchip.diplomacy.ValName
 
 import utils._
 
-class PlicIO(implicit p: Parameters) extends AxiSlaveIO {
+class PlicIO(implicit p: Parameters, valName: ValName) extends AxiSlaveIO {
   val inter = Input (Vec(1024, Bool()))
   val eip   = Output(Bool())
 }

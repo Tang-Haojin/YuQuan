@@ -9,12 +9,12 @@ import cpu.tools._
 
 class AXIRMux(implicit p: Parameters) extends YQModule {
   val io = IO(new YQBundle {
-    val axiRaIn0 = Flipped(Irrevocable(new AXI_BUNDLE_AR))
-    val axiRaIn1 = Flipped(Irrevocable(new AXI_BUNDLE_AR))
-    val axiRaOut =         Irrevocable(new AXI_BUNDLE_AR)
-    val axiRdIn0 =         Irrevocable(new AXI_BUNDLE_R)
-    val axiRdIn1 =         Irrevocable(new AXI_BUNDLE_R)
-    val axiRdOut = Flipped(Irrevocable(new AXI_BUNDLE_R))
+    val axiRaIn0 = Flipped(new AXI_BUNDLE_AR)
+    val axiRaIn1 = Flipped(new AXI_BUNDLE_AR)
+    val axiRaOut = new AXI_BUNDLE_AR
+    val axiRdIn0 = new AXI_BUNDLE_R
+    val axiRdIn1 = new AXI_BUNDLE_R
+    val axiRdOut = Flipped(new AXI_BUNDLE_R)
   })
 
   val pending = RegInit(0.U(2.W))

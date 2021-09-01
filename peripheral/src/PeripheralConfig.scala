@@ -14,6 +14,12 @@ object PeripheralConfig {
     case AxSIZE        => log2Ceil(here(XLEN) / 8)
     case ALEN          => 32
     case IDLEN         => 4
+    case USRLEN        => 0
+    case USEQOS        => 0
+    case USEPROT       => 0
+    case USECACHE      => 0
+    case USELOCK       => 0
+    case USEREGION     => 0
     case UART_MMAP     => new UART
     case PLIC_MMAP     => new PLIC
     case CHIPLINK_MMAP => new CHIPLINK

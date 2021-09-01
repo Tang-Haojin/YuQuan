@@ -2,7 +2,6 @@ package cpu.cache
 
 import chisel3._
 import chisel3.util._
-import chisel3.util.random._
 import chipsalliance.rocketchip.config._
 
 import utils._
@@ -14,7 +13,7 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
     val memIO = new AXI_BUNDLE
   })
 
-  val rand = GaloisLFSR.maxPeriod(2)
+  val rand = MaximalPeriodGaloisLFSR(2)
 
   val idle::compare::writeback::allocate::passing::Nil = Enum(5)
   val state = RegInit(UInt(3.W), idle)

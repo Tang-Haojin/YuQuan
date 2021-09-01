@@ -33,14 +33,14 @@ class ASIC(implicit val p: Parameters) extends Module with SimParams {
   val chiplink  = Module(new ChiplinkBridge)
 
   val select = Module(new AXISelect)
-  select.io.input  <> cpu.io.memAXI
+  select.io.input  <> cpu.io.master
   router.io.input  <> select.io.MMIO
   router.io.UartIO <> uartCtrl.io.channel
   router.io.PLICIO <> plic.io.channel
   router.io.SpiIO  <> spiCtrl.io.axi_s.channel
   LinkMEM (chiplink.io, select.io.RamIO)
   LinkMMIO(chiplink.io, router.io.ChiplinkIO)
-  LinkDMA (chiplink.io, cpu.io.dmaAXI)
+  LinkDMA (chiplink.io, cpu.io.slave)
 
   io.UartIO.stx   := uartCtrl.io.stx
   uartCtrl.io.srx := io.UartIO.srx
@@ -56,7 +56,7 @@ class ASIC(implicit val p: Parameters) extends Module with SimParams {
 
   plic.io.inter     := VecInit(Seq.fill(plic.io.inter.length)(0.B))
   plic.io.inter(10) := uartCtrl.io.interrupt
-  cpu.io.intr       := plic.io.eip
+  cpu.io.interrupt       := plic.io.eip
 
   val delayCounter  = RegInit(15.U(4.W))
   val delayedResetn = (delayCounter === 0.U)
