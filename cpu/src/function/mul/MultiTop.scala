@@ -2,8 +2,10 @@ package cpu.function.mul
 
 import chisel3._
 import chisel3.util._
+import chipsalliance.rocketchip.config.Parameters
+import cpu.tools._
 
-class MultiTop extends Module {
+class MultiTop(implicit p: Parameters) extends YQModule {
   val io = IO(new MultiTopIO)
 
   private val isFree = RegInit(1.B)

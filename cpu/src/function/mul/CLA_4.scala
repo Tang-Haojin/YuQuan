@@ -2,8 +2,10 @@ package function.mul
 
 import chisel3._
 import chisel3.util._
+import chipsalliance.rocketchip.config.Parameters
+import cpu.tools._
 
-class CLA_4 extends RawModule {
+class CLA_4(implicit p: Parameters) extends YQRawModule {
   val io = IO(new Bundle {
     val op1  = Input (UInt(4.W))
     val op2  = Input (UInt(4.W))
@@ -11,14 +13,14 @@ class CLA_4 extends RawModule {
     val sum  = Output(UInt(4.W))
     val cout = Output(Bool())
   })
-  private val g = Seq.tabulate(4)(x => io.op1(x) & io.op2(x))
-  private val p = Seq.tabulate(4)(x => io.op1(x) ^ io.op2(x))
-  private val c:  Seq[Bool] = Seq(
+  private val G = Seq.tabulate(4)(x => io.op1(x) & io.op2(x))
+  private val P = Seq.tabulate(4)(x => io.op1(x) ^ io.op2(x))
+  private val C:  Seq[Bool] = Seq(
     io.cin,
-    g(0) ^ (c(0) & p(0)),
-    g(1) ^ ((g(0) ^ (c(0) & p(0))) & p(1)),
-    g(2) ^ ((g(1) ^ ((g(0) ^ (c(0) & p(0))) & p(1))) & p(2))
+    G(0) ^ (C(0) & P(0)),
+    G(1) ^ ((G(0) ^ (C(0) & P(0))) & P(1)),
+    G(2) ^ ((G(1) ^ ((G(0) ^ (C(0) & P(0))) & P(1))) & P(2))
   )
-  io.sum  := (p(3) ## p(2) ## p(1) ## p(0)) ^ (c(3) ## c(2) ## c(1) ## c(0))
-  io.cout := g(3) ^ ((g(2) ^ ((g(1) ^ ((g(0) ^ (c(0) & p(0))) & p(1))) & p(2))) & p(3))
+  io.sum  := (P(3) ## P(2) ## P(1) ## P(0)) ^ (C(3) ## C(2) ## C(1) ## C(0))
+  io.cout := G(3) ^ ((G(2) ^ ((G(1) ^ ((G(0) ^ (C(0) & P(0))) & P(1))) & P(2))) & P(3))
 }
