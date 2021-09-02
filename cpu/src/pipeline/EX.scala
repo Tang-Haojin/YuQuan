@@ -127,9 +127,7 @@ class EX(implicit p: Parameters) extends YQModule {
   }
 
   when(io.lastVR.VALID && io.lastVR.READY) { // let's start working
-    when((io.input.op1_2 =/= mul) && (io.input.op1_2 =/= mulh)) {
-      NVALID  := 1.B
-    }
+    NVALID := (io.input.op1_2 =/= mul) && (io.input.op1_2 =/= mulh)
     rd      := wireRd
     data    := wireData
     wcsr    := io.input.wcsr
