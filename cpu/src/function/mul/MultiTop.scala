@@ -6,24 +6,24 @@ import chisel3.util._
 class MultiTop extends Module {
   val io = IO(new MultiTopIO)
 
-  val isFree = RegInit(1.B)
-  val stage  = RegInit(0.B)
+  private val isFree = RegInit(1.B)
+  private val stage  = RegInit(0.B)
 
-  val data_in = RegInit(VecInit(Seq.fill(2)(0.U(64.W))))
-  val sign_in = RegInit(VecInit(Seq.fill(2)(0.B)))
+  private val data_in = RegInit(VecInit(Seq.fill(2)(0.U(64.W))))
+  private val sign_in = RegInit(VecInit(Seq.fill(2)(0.B)))
 
-  val data = WireDefault(Vec(2, UInt(64.W)), io.input.bits.data)
-  val sign = WireDefault(Vec(2, Bool()), io.input.bits.sign)
+  private val data = WireDefault(Vec(2, UInt(64.W)), io.input.bits.data)
+  private val sign = WireDefault(Vec(2, Bool()), io.input.bits.sign)
 
-  val op_0 = data(0)
-  val op_1 = Fill(2, (sign(1) & data(1)(63))) ## data(1)
+  private val op_0 = data(0)
+  private val op_1 = Fill(2, (sign(1) & data(1)(63))) ## data(1)
 
-  val lo_34    = RegInit(0.U(34.W))
-  val lo_34_in = RegInit(0.B)
-  val hi_94    = RegInit(0.U(94.W))
+  private val lo_34    = RegInit(0.U(34.W))
+  private val lo_34_in = RegInit(0.B)
+  private val hi_94    = RegInit(0.U(94.W))
 
-  val boothSext = Module(new BoothSext(17, 64))
-  val wallaceTree = Module(new Wallace_Improved(128))
+  private val boothSext = Module(new BoothSext(17, 64))
+  private val wallaceTree = Module(new Wallace_Improved(128))
   boothSext.io.sign := sign(0)
   boothSext.io.op_0 := data(0)
   boothSext.io.input(0)   := op_1(1, 0) ## 0.B
@@ -34,11 +34,11 @@ class MultiTop extends Module {
   }
   wallaceTree.io.input(17) := 1.B ## op_1(65) ## 0.U(31.W) ## op_1(33) ## 0.U(32.W)
 
-  val part_sum = RegInit(VecInit(Seq.fill(2)(0.U(128.W))))
-  val res_1 = wallaceTree.io.output(0)(33, 0) +& wallaceTree.io.output(1)(33, 0)
-  val res_2 = wallaceTree.io.output(0)(127, 34) + wallaceTree.io.output(1)(127, 34)
+  private val part_sum = RegInit(VecInit(Seq.fill(2)(0.U(128.W))))
+  private val res_1 = wallaceTree.io.output(0)(33, 0) +& wallaceTree.io.output(1)(33, 0)
+  private val res_2 = wallaceTree.io.output(0)(127, 34) + wallaceTree.io.output(1)(127, 34)
 
-  val out_valid = RegInit(0.B)
+  private val out_valid = RegInit(0.B)
 
   io.output.bits  := hi_94 ## lo_34
   io.output.valid := out_valid

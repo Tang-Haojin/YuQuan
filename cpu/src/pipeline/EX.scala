@@ -19,10 +19,14 @@ class EX(implicit p: Parameters) extends YQModule {
     val output = new EXOutput
   })
 
-  val alu1_2 = Module(new ALU)
-  alu1_2.io.a  := io.input.num(0).asSInt
-  alu1_2.io.b  := io.input.num(1).asSInt
-  alu1_2.io.op := io.input.op1_2
+  val alu    = Module(new ALU)
+  val op     = RegInit(0.U(AluTypeWidth.W))
+  val wireOp = WireDefault(UInt(AluTypeWidth.W), op)
+  alu.io.input.bits.a  := io.input.num(0).asSInt
+  alu.io.input.bits.b  := io.input.num(1).asSInt
+  alu.io.input.bits.op := wireOp
+  alu.io.input.valid   := io.lastVR.VALID
+  alu.io.output.ready  := io.nextVR.READY
 
   val NVALID = RegInit(0.B); io.nextVR.VALID := NVALID
 
@@ -38,7 +42,7 @@ class EX(implicit p: Parameters) extends YQModule {
   val pc      = if (Debug) RegInit(0.U(xlen.W)) else null
 
   val wireRd      = WireDefault(UInt(5.W), io.input.rd)
-  val wireData    = WireDefault(UInt(xlen.W), alu1_2.io.res.asUInt)
+  val wireData    = WireDefault(UInt(xlen.W), alu.io.output.bits.asUInt)
   val wireCsrData = WireDefault(VecInit(Seq.fill(RegConf.writeCsrsPort)(0.U(xlen.W))))
   val wireIsMem   = WireDefault(Bool(), io.input.special === ld || io.input.special === st)
   val wireIsLd    = WireDefault(Bool(), io.input.special === ld)
@@ -56,7 +60,7 @@ class EX(implicit p: Parameters) extends YQModule {
   io.output.mask    := mask
 
   when(io.input.special === word) {
-    wireData := Fill(32, alu1_2.io.res(31)) ## alu1_2.io.res(31, 0)
+    wireData := Fill(32, alu.io.output.bits(31)) ## alu.io.output.bits(31, 0)
   }
 
   when(io.input.special === csr) {
@@ -111,10 +115,21 @@ class EX(implicit p: Parameters) extends YQModule {
     is(inv)  { wireExit := ExitReasons.inv  }
   }
 
-  io.lastVR.READY := io.nextVR.READY
+  io.lastVR.READY := io.nextVR.READY && alu.io.input.ready
+
+  import cpu.component.Operators.{mul, mulh}
+  when(alu.io.output.fire && ((op === mul) || (op === mulh))) {
+    io.output.data  := alu.io.output.bits.asUInt
+    data            := alu.io.output.bits.asUInt
+    io.nextVR.VALID := 1.B
+    NVALID          := 1.B
+    op              := 0.U
+  }
 
   when(io.lastVR.VALID && io.lastVR.READY) { // let's start working
-    NVALID  := 1.B
+    when((io.input.op1_2 =/= mul) && (io.input.op1_2 =/= mulh)) {
+      NVALID  := 1.B
+    }
     rd      := wireRd
     data    := wireData
     wcsr    := io.input.wcsr
@@ -123,6 +138,8 @@ class EX(implicit p: Parameters) extends YQModule {
     isLd    := wireIsLd
     addr    := wireAddr
     mask    := wireMask
+    op      := wireOp
+    wireOp  := io.input.op1_2
     if (Debug) {
       exit   := wireExit
       pc     := io.input.debug.pc
