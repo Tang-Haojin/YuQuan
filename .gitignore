@@ -18,3 +18,6 @@ bin/
 .mill-version
 *.bin
 obj_dir/
+
+#ysyxcheck
+log_cpuCheck.txt

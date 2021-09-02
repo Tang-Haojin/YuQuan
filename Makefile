@@ -98,6 +98,14 @@ reformat:
 checkformat:
 	mill -i __.checkFormat
 
+ysyxcheck: verilog
+	@echo
+	@cp $(pwd)/ysyxSoC/ysyx/soc/cpu-check.py $(pwd)/.cpu-check.py
+	@cp $(BUILD_DIR)/cpu/ysyx_21*.v $(pwd)
+	@sed -i '/stuNum = /c\stuNum = int(153)' $(pwd)/.cpu-check.py
+	@python3 $(pwd)/.cpu-check.py
+	@rm $(pwd)/.cpu-check.py $(pwd)/ysyx_21*.v
+
 clean:
 	-rm -rf $(BUILD_DIR)
 
@@ -123,4 +131,4 @@ simall:
 		else                   printf "[$$x] \33[1;31mfail\33[0m\n"; fi; \
 	done
 
-.PHONY: test verilog help compile bsp reformat checkformat clean clean-all sim simall
+.PHONY: test verilog help compile bsp reformat checkformat ysyxcheck clean clean-all sim simall
