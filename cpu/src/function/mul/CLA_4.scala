@@ -24,3 +24,18 @@ class CLA_4(implicit p: Parameters) extends YQRawModule {
   io.sum  := (P(3) ## P(2) ## P(1) ## P(0)) ^ (C(3) ## C(2) ## C(1) ## C(0))
   io.cout := G(3) ^ ((G(2) ^ ((G(1) ^ ((G(0) ^ (C(0) & P(0))) & P(1))) & P(2))) & P(3))
 }
+
+class CLA_4x24(implicit p: Parameters) {
+  private val outVec = WireDefault(VecInit(Seq.fill(24)(0.U(4.W))))
+  val input  = Seq.fill(2)(WireDefault(0.U(96.W)))
+  val output = outVec.asUInt
+  private val CLAs = Seq.tabulate(24)(x => {
+    val y = Module(new CLA_4)
+    y.io.op1  := input(0)(4 * x + 3, 4 * x)
+    y.io.op2  := input(1)(4 * x + 3, 4 * x)
+    outVec(x) := y.io.sum
+    y
+  })
+  CLAs(0).io.cin := 0.B
+  for (i <- 1 until CLAs.length) CLAs(i).io.cin := CLAs(i - 1).io.cout
+}

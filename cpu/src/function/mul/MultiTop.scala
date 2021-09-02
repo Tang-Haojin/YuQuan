@@ -9,7 +9,7 @@ class MultiTop(implicit p: Parameters) extends YQModule {
   val io = IO(new MultiTopIO)
 
   private val isFree = RegInit(1.B)
-  private val stage  = RegInit(0.B)
+  private val stage  = RegInit(0.U(2.W))
 
   private val data_in = RegInit(VecInit(Seq.fill(2)(0.U(64.W))))
   private val sign_in = RegInit(VecInit(Seq.fill(2)(0.B)))
@@ -37,8 +37,7 @@ class MultiTop(implicit p: Parameters) extends YQModule {
   wallaceTree.io.input(17) := 1.B ## op_1(65) ## 0.U(31.W) ## op_1(33) ## 0.U(32.W)
 
   private val part_sum = RegInit(VecInit(Seq.fill(2)(0.U(128.W))))
-  private val res_1 = wallaceTree.io.output(0)(33, 0) +& wallaceTree.io.output(1)(33, 0)
-  private val res_2 = wallaceTree.io.output(0)(127, 34) + wallaceTree.io.output(1)(127, 34)
+  private val cla = new CLA_4x24
 
   private val out_valid = RegInit(0.B)
 
@@ -48,19 +47,21 @@ class MultiTop(implicit p: Parameters) extends YQModule {
 
   when(io.input.fire()) {
     isFree   := 0.B
-    stage    := 1.B
+    stage    := 1.U
     data_in  := io.input.bits.data
     sign_in  := io.input.bits.sign
-    lo_34    := res_1(33, 0)
-    lo_34_in := res_1(34)
+    cla.input(0) := 0.U(2.W) ## wallaceTree.io.output(0)(33, 0) ## 0.U(60.W)
+    cla.input(1) := 0.U(2.W) ## wallaceTree.io.output(1)(33, 0) ## 0.U(60.W)
+    lo_34    := cla.output(93, 60)
+    lo_34_in := cla.output(94)
     part_sum(0) := wallaceTree.io.output(0)(108, 34) ## 0.U(34.W)
     part_sum(1) := wallaceTree.io.output(1)(108, 34) ## 0.U(34.W)
   }
 
-  when(stage) {
+  when(stage === 1.U) {
     data  := data_in
     sign  := sign_in
-    stage := 0.B
+    stage := 2.U
     for (i <- 0 until 16) {
       wallaceTree.io.input(i) := boothSext.io.output(i) << 32 + i * 2
       boothSext.io.input(i)   := op_1(2 * (i + 17) + 1, 2 * (i + 17) - 1)
@@ -68,8 +69,16 @@ class MultiTop(implicit p: Parameters) extends YQModule {
     wallaceTree.io.input( 2) := boothSext.io.output(2) ## 0.B ## lo_34_in ## 0.U(34.W)
     wallaceTree.io.input(16) := part_sum(0)
     wallaceTree.io.input(17) := part_sum(1)
-    hi_94 := res_2
-    io.output.bits := res_2 ## lo_34
+    part_sum(0) := wallaceTree.io.output(0)
+    part_sum(1) := wallaceTree.io.output(1)
+  }
+
+  when(stage === 2.U) {
+    stage := 0.U
+    cla.input(0) := 0.U(2.W) ## part_sum(0)(127, 34)
+    cla.input(1) := 0.U(2.W) ## part_sum(1)(127, 34)
+    hi_94 := cla.output(93, 0)
+    io.output.bits := cla.output(93, 0) ## lo_34
     io.output.valid := 1.B
     out_valid := 1.B
   }
