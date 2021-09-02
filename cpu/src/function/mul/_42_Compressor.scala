@@ -1,11 +1,8 @@
 package cpu.function.mul
 
 import chisel3._
-import chisel3.util._
-import chipsalliance.rocketchip.config._
-import cpu.tools._
 
-class _42_Compressor(length: Int = 128)(implicit p: Parameters) extends YQRawModule {
+class _42_Compressor(length: Int = 128) extends RawModule {
   val io = IO(new _42_CompressorIO(length))
   if (length == 1) {
     val xor = io.input(0) ^ io.input(1) ^ io.input(2) ^ io.input(3)
@@ -27,5 +24,5 @@ class _42_Compressor(length: Int = 128)(implicit p: Parameters) extends YQRawMod
 }
 
 object _42_Compressor {
-  def apply(length: Int = 128)(implicit p: Parameters): _42_Compressor = Module(new _42_Compressor(length))
+  def apply(length: Int = 128): _42_Compressor = Module(new _42_Compressor(length))
 }

@@ -1,11 +1,8 @@
 package cpu.function.mul
 
 import chisel3._
-import chisel3.util._
-import chipsalliance.rocketchip.config._
-import cpu.tools._
 
-class Wallace_Improved(length: Int = 128)(implicit p: Parameters) extends YQRawModule {
+class Wallace_Improved(length: Int = 128) extends RawModule {
   val io = IO(new Wallace_ImprovedIO(length))
   private val CSAs = List.tabulate(8)(x => CSA(length))
   private val _42s = List.tabulate(4)(x => _42_Compressor(length))

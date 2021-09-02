@@ -1,11 +1,8 @@
 package cpu.function.mul
 
 import chisel3._
-import chisel3.util._
-import chipsalliance.rocketchip.config._
-import cpu.tools._
 
-class BoothEnc(implicit p: Parameters) extends YQRawModule {
+class BoothEnc extends RawModule {
   val io = IO(new BoothEncIO)
 
   io.neg  := (io.code === "b100".U) || (io.code === "b101".U) || (io.code === "b110".U)
