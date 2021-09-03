@@ -69,42 +69,42 @@ class AXIWMux(implicit p: Parameters) extends YQModule {
       regState := idle
     }
   }
-}
 
-private class InitLinkIn(aw: AXI_BUNDLE_AW, w: AXI_BUNDLE_W, b: AXI_BUNDLE_B) {
-  aw.ready    := 0.B
-  w.ready     := 0.B
-  b.bits.id   := 0xf.U
-  b.valid     := 0.B
-  b.bits.resp := 0.U
-  b.bits.user := 0.U
-}
+  private class InitLinkIn(aw: AXI_BUNDLE_AW, w: AXI_BUNDLE_W, b: AXI_BUNDLE_B) {
+    aw.ready    := 0.B
+    w.ready     := 0.B
+    b.bits.id   := 0xf.U
+    b.valid     := 0.B
+    b.bits.resp := 0.U
+    b.bits.user := 0.U
+  }
 
-private object InitLinkIn {
-  def apply(aw: AXI_BUNDLE_AW, w: AXI_BUNDLE_W, b: AXI_BUNDLE_B): InitLinkIn = new InitLinkIn(aw, w, b)
-}
+  private object InitLinkIn {
+    def apply(aw: AXI_BUNDLE_AW, w: AXI_BUNDLE_W, b: AXI_BUNDLE_B): InitLinkIn = new InitLinkIn(aw, w, b)
+  }
 
-private class InitLinkOut(aw: AXI_BUNDLE_AW, w: AXI_BUNDLE_W, b: AXI_BUNDLE_B) {
-  aw.bits.addr   := 0.U
-  aw.bits.burst  := 1.U
-  aw.bits.cache  := 0.U
-  aw.bits.id     := 0xf.U
-  aw.bits.len    := 0.U
-  aw.bits.lock   := 0.U
-  aw.bits.prot   := 0.U
-  aw.bits.qos    := 0.U
-  aw.bits.region := 0.U
-  aw.bits.size   := 0.U
-  aw.bits.user   := 0.U
-  aw.valid       := 0.U
-  w.bits.data    := 0xfade.U
-  w.bits.last    := 0.B
-  w.bits.strb    := 0.U
-  w.bits.user    := 0.U
-  w.valid        := 0.B
-  b.ready        := 0.B
-}
+  private class InitLinkOut(aw: AXI_BUNDLE_AW, w: AXI_BUNDLE_W, b: AXI_BUNDLE_B) {
+    aw.bits.addr   := 0.U
+    aw.bits.burst  := 1.U
+    aw.bits.cache  := 0.U
+    aw.bits.id     := 0xf.U
+    aw.bits.len    := 0.U
+    aw.bits.lock   := 0.U
+    aw.bits.prot   := 0.U
+    aw.bits.qos    := 0.U
+    aw.bits.region := 0.U
+    aw.bits.size   := 0.U
+    aw.bits.user   := 0.U
+    aw.valid       := 0.U
+    w.bits.data    := 0xfade.U
+    w.bits.last    := 0.B
+    w.bits.strb    := 0.U
+    w.bits.user    := 0.U
+    w.valid        := 0.B
+    b.ready        := 0.B
+  }
 
-private object InitLinkOut {
-  def apply(aw: AXI_BUNDLE_AW, w: AXI_BUNDLE_W, b: AXI_BUNDLE_B): InitLinkOut = new InitLinkOut(aw, w, b)
+  private object InitLinkOut {
+    def apply(aw: AXI_BUNDLE_AW, w: AXI_BUNDLE_W, b: AXI_BUNDLE_B): InitLinkOut = new InitLinkOut(aw, w, b)
+  }
 }
