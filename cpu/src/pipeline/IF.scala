@@ -9,22 +9,22 @@ import cpu.tools._
 
 class IF(implicit p: Parameters) extends YQModule {
   val io = IO(new YQBundle {
-    val icache = Flipped(new CpuIO)
+    val icache = Flipped(new CpuIO(32))
     val nextVR = Flipped(new LastVR)
     val output = new IFOutput
     val jmpBch = Input(Bool())
-    val jbAddr = Input(UInt(xlen.W))
+    val jbAddr = Input(UInt(alen.W))
   })
 
   private val MEMBase = if (UseFlash) SPIFLASH.BASE else DRAM.BASE
   private val instr  = RegInit(0x00000013.U(32.W))
-  private val pc     = RegInit(MEMBase.U(xlen.W))
+  private val pc     = RegInit(MEMBase.U(alen.W))
   private val NVALID = RegInit(0.B)
 
   private val wireInstr  = WireDefault(UInt(32.W), instr);      io.output.instr := wireInstr
-  private val wirePC     = WireDefault(UInt(xlen.W), pc - 4.U); io.output.pc    := wirePC
+  private val wirePC     = WireDefault(UInt(alen.W), pc - 4.U); io.output.pc    := wirePC
   private val wireNVALID = WireDefault(Bool(), NVALID);         io.nextVR.VALID := wireNVALID
-  private val wireNewPC  = WireDefault(UInt(xlen.W), pc)
+  private val wireNewPC  = WireDefault(UInt(alen.W), pc)
 
   io.icache.cpuReq.data  := DontCare
   io.icache.cpuReq.rw    := DontCare

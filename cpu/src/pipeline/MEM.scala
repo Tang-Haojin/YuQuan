@@ -20,7 +20,7 @@ class MEM(implicit p: Parameters) extends YQModule {
   })
 
   val mask     = RegInit(0.U(8.W))
-  val addr     = RegInit(0.U(xlen.W))
+  val addr     = RegInit(0.U(alen.W))
   val extType  = RegInit(0.U(3.W))
 
   val rd      = RegInit(0.U(5.W));    io.output.rd   := rd
@@ -28,7 +28,7 @@ class MEM(implicit p: Parameters) extends YQModule {
   val wcsr    = RegInit(VecInit(Seq.fill(RegConf.writeCsrsPort)(0xFFF.U(12.W)))); io.output.wcsr    := wcsr
   val csrData = RegInit(VecInit(Seq.fill(RegConf.writeCsrsPort)(0.U(xlen.W))));   io.output.csrData := csrData
   val exit    = if (Debug) RegInit(0.U(3.W)) else null
-  val pc      = if (Debug) RegInit(0.U(xlen.W)) else null
+  val pc      = if (Debug) RegInit(0.U(alen.W)) else null
 
   val offset   = addr(axSize - 1, 0)
 
@@ -41,7 +41,7 @@ class MEM(implicit p: Parameters) extends YQModule {
   val rw    = RegInit(0.B); val wireRw    = WireDefault(Bool(), rw)
 
   val wireData = WireDefault(UInt(xlen.W), data)
-  val wireAddr = WireDefault(UInt(xlen.W), addr)
+  val wireAddr = WireDefault(UInt(alen.W), addr)
   val wireMask = WireDefault(UInt((xlen / 8).W), mask)
 
   val shiftRdata = VecInit((0 until 8).map { i => io.dcache.cpuResult.data >> (8 * i) })(offset)

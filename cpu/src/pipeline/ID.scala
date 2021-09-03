@@ -26,7 +26,7 @@ class ID(implicit p: Parameters) extends YQModule {
   val op1_3   = RegInit(0.U(AluTypeWidth.W))
   val special = RegInit(0.U(5.W))
   val instr   = RegInit(0.U(32.W))
-  val pc      = if (Debug) RegInit(0.U(xlen.W)) else null
+  val pc      = if (Debug) RegInit(0.U(alen.W)) else null
 
   val num = RegInit(VecInit(Seq.fill(4)(0.U(xlen.W))))
 
@@ -115,6 +115,8 @@ class ID(implicit p: Parameters) extends YQModule {
 
   io.jmpBch := 0.B
   io.jbAddr := 0.U
+  private val adder0 = WireDefault(UInt(32.W), io.input.pc)
+  private val jbaddr = adder0 + wireImm(alen - 1, 0)
   switch(decoded(8)) {
     is(ld) {
       when(isClint.io.addr_out =/= 0xFFF.U) {
@@ -148,16 +150,17 @@ class ID(implicit p: Parameters) extends YQModule {
     }
     is(jump) {
       io.jmpBch := 1.B
-      io.jbAddr := io.input.pc + wireImm
+      io.jbAddr := jbaddr
     }
     is(jalr) {
       io.jmpBch := 1.B
-      io.jbAddr := (wireImm + wireDataRs1)(xlen - 1, 1) ## 0.U
+      adder0    := wireDataRs1(alen - 1, 0)
+      io.jbAddr := jbaddr(alen - 1, 1) ## 0.B
     }
     is(branch) {
       when(wireData === 1.U) {
         io.jmpBch := 1.B
-        io.jbAddr := io.input.pc + wireImm
+        io.jbAddr := jbaddr
       }
     }
     is(csr) {
@@ -174,7 +177,7 @@ class ID(implicit p: Parameters) extends YQModule {
       wireNum(0) := io.csrsR.rdata(1)
 
       io.jmpBch := 1.B
-      io.jbAddr := io.csrsR.rdata(0)(xlen - 1, 2) ## 0.U(2.W)
+      io.jbAddr := io.csrsR.rdata(0)(alen - 1, 2) ## 0.U(2.W)
     }
   }
 
@@ -226,8 +229,8 @@ private class AddException(interrupt: Boolean = false, exceptionCode: Value = us
       param._4 := VecInit(csrsAddr().Mepc, csrsAddr().Mcause, csrsAddr().Mtval, csrsAddr().Mstatus)
       param._5 := VecInit(param._1.input.pc, code, param._1.input.instr, param._1.csrsR.rdata(1))
 
-      when(interrupt.B && param._1.csrsR.rdata(5)(0)) { param._1.jbAddr := param._1.csrsR.rdata(5)(xlen - 1, 2) ## 0.U(2.W) + (exceptionCode * 4).U }
-      .otherwise { param._1.jbAddr := param._1.csrsR.rdata(5)(xlen - 1, 2) ## 0.U(2.W) }
+      when(interrupt.B && param._1.csrsR.rdata(5)(0)) { param._1.jbAddr := param._1.csrsR.rdata(5)(alen - 1, 2) ## 0.U(2.W) + (exceptionCode * 4).U }
+      .otherwise { param._1.jbAddr := param._1.csrsR.rdata(5)(alen - 1, 2) ## 0.U(2.W) }
     }
   }
 }

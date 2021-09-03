@@ -40,17 +40,17 @@ class EX(implicit p: Parameters) extends YQModule {
   val csrData = RegInit(VecInit(Seq.fill(RegConf.writeCsrsPort)(0.U(xlen.W))))
   val isMem   = RegInit(0.B)
   val isLd    = RegInit(0.B)
-  val addr    = RegInit(0.U(xlen.W))
+  val addr    = RegInit(0.U(alen.W))
   val mask    = RegInit(0.U(3.W))
   val exit    = if (Debug) RegInit(0.U(3.W)) else null
-  val pc      = if (Debug) RegInit(0.U(xlen.W)) else null
+  val pc      = if (Debug) RegInit(0.U(alen.W)) else null
 
   val wireRd      = WireDefault(UInt(5.W), io.input.rd)
   val wireData    = WireDefault(UInt(xlen.W), alu.io.output.bits.asUInt)
   val wireCsrData = WireDefault(VecInit(Seq.fill(RegConf.writeCsrsPort)(0.U(xlen.W))))
   val wireIsMem   = WireDefault(Bool(), io.input.special === ld || io.input.special === st)
   val wireIsLd    = WireDefault(Bool(), io.input.special === ld)
-  val wireAddr    = WireDefault(UInt(xlen.W), io.input.num(2) + io.input.num(3))
+  val wireAddr    = WireDefault(UInt(alen.W), io.input.num(2)(alen - 1, 0) + io.input.num(3)(alen - 1, 0))
   val wireMask    = WireDefault(UInt(3.W), io.input.op1_3)
   val wireExit    = if (Debug) WireDefault(UInt(3.W), ExitReasons.non) else null
 

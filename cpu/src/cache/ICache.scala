@@ -9,7 +9,7 @@ import cpu.tools._
 
 class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   val io = IO(new YQBundle {
-    val cpuIO = new CpuIO
+    val cpuIO = new CpuIO(32)
     val memIO = new AXI_BUNDLE
   })
 
@@ -107,7 +107,7 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   when(state === passing) {
     hit := passThrough.finish
     passThrough.valid := 1.B
-    io.cpuIO.cpuResult.data := passThrough.rdata
+    io.cpuIO.cpuResult.data := passThrough.rdata(31, 0)
     when(addr(2)) {
       io.cpuIO.cpuResult.data := passThrough.rdata(63, 32)
     }

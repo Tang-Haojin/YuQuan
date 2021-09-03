@@ -24,12 +24,12 @@ class EXOutput(implicit p: Parameters) extends YQBundle {
   val csrData = Output(Vec(RegConf.writeCsrsPort, UInt(xlen.W)))
   val isMem   = Output(Bool())
   val isLd    = Output(Bool())
-  val addr    = Output(UInt(xlen.W))
+  val addr    = Output(UInt(alen.W))
   val mask    = Output(UInt(3.W))
   val debug   =
     if (Debug) new YQBundle {
       val exit  = Output(UInt(3.W))
-      val pc    = Output(UInt(xlen.W))
+      val pc    = Output(UInt(alen.W))
     } else null
 }
 
@@ -59,7 +59,7 @@ class IDOutput(implicit p: Parameters) extends YQBundle {
   val special = Output(UInt(5.W))
   val debug   =
     if (Debug) new YQBundle {
-      val pc = Output(UInt(xlen.W))
+      val pc = Output(UInt(alen.W))
     } else null
 }
 
@@ -71,14 +71,14 @@ class IDIO(implicit p: Parameters) extends YQBundle {
   val nextVR    = Flipped(new LastVR)
   val input     = Flipped(new IFOutput)
   val jmpBch    = Output(Bool())
-  val jbAddr    = Output(UInt(xlen.W))
+  val jbAddr    = Output(UInt(alen.W))
   val isWait    = Input (Bool())
 }
 
 // IF
 class IFOutput(implicit p: Parameters) extends YQBundle {
   val instr = Output(UInt(32.W))
-  val pc    = Output(UInt(xlen.W))
+  val pc    = Output(UInt(alen.W))
 }
 
 // MEM
@@ -90,7 +90,7 @@ class MEMOutput(implicit p: Parameters) extends YQBundle {
   val debug   =
     if (Debug) new YQBundle {
       val exit  = Output(UInt(3.W))
-      val pc = Output(UInt(xlen.W))
+      val pc = Output(UInt(alen.W))
     } else null
 }
 

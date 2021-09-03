@@ -16,14 +16,14 @@ class WB(implicit p: Parameters) extends YQModule {
     val lastVR = new LastVR
     val input  = Flipped(new MEMOutput)
     val debug = if (Debug) new YQBundle {
-      val pc      = Output(UInt(xlen.W))
+      val pc      = Output(UInt(alen.W))
       val exit    = Output(UInt(3.W))
       val wbvalid = Output(Bool())
       val rd      = Output(UInt(5.W))
     } else null
   })
 
-  val pc      = if (Debug) RegInit(0.U(xlen.W)) else null
+  val pc      = if (Debug) RegInit(0.U(alen.W)) else null
   val exit    = if (Debug) RegInit(0.U(3.W)) else null
   val wbvalid = if (Debug) RegInit(0.B) else null
   val rd      = if (Debug) RegInit(0.U(5.W)) else null

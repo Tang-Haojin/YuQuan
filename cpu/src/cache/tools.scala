@@ -18,15 +18,15 @@ class CpuReq(implicit p: Parameters) extends YQBundle {
 }
 
 // Cache Controller -> CPU
-class CpuResult(implicit p: Parameters) extends YQBundle {
-  val data  = Output(UInt(xlen.W))
+class CpuResult(datalen: Int = 64)(implicit p: Parameters) extends YQBundle {
+  val data  = Output(UInt(datalen.W))
   val ready = Output(Bool())
 }
 
 // CPU <-> Cache Controller
-class CpuIO(implicit p: Parameters) extends YQBundle {
+class CpuIO(datalen: Int = 64)(implicit p: Parameters) extends YQBundle {
   val cpuReq    = new CpuReq
-  val cpuResult = new CpuResult
+  val cpuResult = new CpuResult(datalen)
 }
 
 class IsPeripheral(addr: UInt)(implicit p: Parameters) {
