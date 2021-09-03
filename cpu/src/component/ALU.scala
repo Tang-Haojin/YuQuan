@@ -11,16 +11,18 @@ import cpu.function.mul._
 class ALU(implicit p: Parameters) extends YQModule {
   val io = IO(new YQBundle {
     val input = Flipped(Decoupled(new YQBundle {
-      val op  = Input (UInt(AluTypeWidth.W))
-      val a   = Input (SInt(xlen.W))
-      val b   = Input (SInt(xlen.W))
+      val op   = UInt(AluTypeWidth.W)
+      val a    = SInt(xlen.W)
+      val b    = SInt(xlen.W)
+      val word = Bool()
     }))
     val output = Decoupled(SInt(xlen.W))
   })
   private val a = io.input.bits.a
   private val b = io.input.bits.b
 
-  io.output.bits := io.input.bits.a
+  private val result = WireDefault(SInt(xlen.W), io.input.bits.a)
+  io.output.bits := result
 
   private val isMul = (io.input.bits.op === mul) || (io.input.bits.op === mulh)
 
@@ -43,39 +45,41 @@ class ALU(implicit p: Parameters) extends YQModule {
   }
     
   switch(io.input.bits.op) {
-    is(add)  { io.output.bits := a + b }
-    is(sub)  { io.output.bits := a - b }
-    is(and)  { io.output.bits := a & b }
-    is(or)   { io.output.bits := a | b }
-    is(xor)  { io.output.bits := a ^ b }
-    is(sll)  { io.output.bits := a << (if (xlen == 64) b(5, 0) else b(4, 0)).asUInt }
-    is(sra)  { io.output.bits := a >> (if (xlen == 64) b(5, 0) else b(4, 0)).asUInt }
-    is(srl)  { io.output.bits := (a.asUInt >> (if (xlen == 64) b(5, 0) else b(4, 0)).asUInt).asSInt }
-    is(lts)  { io.output.bits := Cat(Fill(xlen - 1, 0.U), a < b).asSInt }
-    is(ltu)  { io.output.bits := Cat(Fill(xlen - 1, 0.U), a.asUInt < b.asUInt).asSInt }
-    is(equ)  { io.output.bits := Cat(Fill(xlen - 1, 0.U), a === b).asSInt }
-    is(neq)  { io.output.bits := Cat(Fill(xlen - 1, 0.U), a =/= b).asSInt }
-    is(ges)  { io.output.bits := Cat(Fill(xlen - 1, 0.U), a >= b).asSInt }
-    is(geu)  { io.output.bits := Cat(Fill(xlen - 1, 0.U), a.asUInt >= b.asUInt).asSInt }
-    is(mul)  { io.output.bits := multiTop.io.output.bits.asSInt }
-    is(rem)  { io.output.bits := a - b * (a / b) }
-    is(div)  { io.output.bits := a / b }
-    is(remu) { io.output.bits := (a.asUInt % b.asUInt).asSInt }
-    is(divu) { io.output.bits := (a.asUInt / b.asUInt).asSInt }
-    is(mulh) { io.output.bits := multiTop.io.output.bits.asSInt >> xlen.U }
-    is(duw)  { io.output.bits := (a(31, 0) / b(31, 0)).asSInt }
-    is(ruw)  { io.output.bits := (a(31, 0) / b(31, 0)).asSInt }
+    is(add)  { result := a + b }
+    is(sub)  { result := a - b }
+    is(and)  { result := a & b }
+    is(or)   { result := a | b }
+    is(xor)  { result := a ^ b }
+    is(sll)  { result := a << (if (xlen == 64) b(5, 0) else b(4, 0)).asUInt }
+    is(sra)  { result := a >> (if (xlen == 64) b(5, 0) else b(4, 0)).asUInt }
+    is(srl)  { result := (a.asUInt >> (if (xlen == 64) b(5, 0) else b(4, 0)).asUInt).asSInt }
+    is(lts)  { result := Cat(Fill(xlen - 1, 0.U), a < b).asSInt }
+    is(ltu)  { result := Cat(Fill(xlen - 1, 0.U), a.asUInt < b.asUInt).asSInt }
+    is(equ)  { result := Cat(Fill(xlen - 1, 0.U), a === b).asSInt }
+    is(neq)  { result := Cat(Fill(xlen - 1, 0.U), a =/= b).asSInt }
+    is(ges)  { result := Cat(Fill(xlen - 1, 0.U), a >= b).asSInt }
+    is(geu)  { result := Cat(Fill(xlen - 1, 0.U), a.asUInt >= b.asUInt).asSInt }
+    is(mul)  { result := multiTop.io.output.bits.asSInt }
+    is(rem)  { result := a - b * (a / b) }
+    is(div)  { result := a / b }
+    is(remu) { result := (a.asUInt % b.asUInt).asSInt }
+    is(divu) { result := (a.asUInt / b.asUInt).asSInt }
+    is(mulh) { result := multiTop.io.output.bits.asSInt >> xlen.U }
+    is(duw)  { result := (a(31, 0) / b(31, 0)).asSInt }
+    is(ruw)  { result := (a(31, 0) / b(31, 0)).asSInt }
   }
 
   if (xlen == 64) {
     switch(io.input.bits.op) {
-      is(sllw) { io.output.bits := (a << b(4, 0).asUInt)(31, 0).asSInt }
-      is(srlw) { io.output.bits := (Cat(Fill(xlen - 32, 0.U), a(31, 0)) >> b(4, 0).asUInt).asSInt }
-      is(sraw) { io.output.bits := (Cat(Fill(xlen - 32, a(31)), a(31, 0)) >> b(4, 0).asUInt).asSInt }
-      is(divw) { io.output.bits := a(31, 0).asSInt / b(31, 0).asSInt }
-      is(remw) { io.output.bits := a(31, 0).asSInt - b(31, 0).asSInt * (a(31, 0).asSInt / b(31, 0).asSInt) }
+      is(sllw) { result := (a << b(4, 0).asUInt)(31, 0).asSInt }
+      is(srlw) { result := (Cat(Fill(xlen - 32, 0.U), a(31, 0)) >> b(4, 0).asUInt).asSInt }
+      is(sraw) { result := (Cat(Fill(xlen - 32, a(31)), a(31, 0)) >> b(4, 0).asUInt).asSInt }
+      is(divw) { result := a(31, 0).asSInt / b(31, 0).asSInt }
+      is(remw) { result := a(31, 0).asSInt - b(31, 0).asSInt * (a(31, 0).asSInt / b(31, 0).asSInt) }
     }
   }
+
+  when(io.input.bits.word) { io.output.bits := (Fill(32, result(31)) ## result(31, 0)).asSInt }
 }
 
 class SimpleALU(implicit p: Parameters) extends YQModule {

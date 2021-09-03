@@ -19,14 +19,17 @@ class EX(implicit p: Parameters) extends YQModule {
     val output = new EXOutput
   })
 
-  val alu    = Module(new ALU)
-  val op     = RegInit(0.U(AluTypeWidth.W))
-  val wireOp = WireDefault(UInt(AluTypeWidth.W), op)
-  alu.io.input.bits.a  := io.input.num(0).asSInt
-  alu.io.input.bits.b  := io.input.num(1).asSInt
-  alu.io.input.bits.op := wireOp
-  alu.io.input.valid   := io.lastVR.VALID
-  alu.io.output.ready  := io.nextVR.READY
+  val alu        = Module(new ALU)
+  val op         = RegInit(0.U(AluTypeWidth.W))
+  val wireOp     = WireDefault(UInt(AluTypeWidth.W), op)
+  val isWord     = RegInit(0.B)
+  val wireIsWord = WireDefault(Bool(), isWord)
+  alu.io.input.bits.a    := io.input.num(0).asSInt
+  alu.io.input.bits.b    := io.input.num(1).asSInt
+  alu.io.input.bits.op   := wireOp
+  alu.io.input.bits.word := wireIsWord
+  alu.io.input.valid     := io.lastVR.VALID
+  alu.io.output.ready    := io.nextVR.READY
 
   val NVALID = RegInit(0.B); io.nextVR.VALID := NVALID
 
@@ -58,10 +61,6 @@ class EX(implicit p: Parameters) extends YQModule {
   io.output.isLd    := isLd
   io.output.addr    := addr
   io.output.mask    := mask
-
-  when(io.input.special === word) {
-    wireData := Fill(32, alu.io.output.bits(31)) ## alu.io.output.bits(31, 0)
-  }
 
   when(io.input.special === csr) {
     switch(io.input.op1_3) {
@@ -128,16 +127,18 @@ class EX(implicit p: Parameters) extends YQModule {
 
   when(io.lastVR.VALID && io.lastVR.READY) { // let's start working
     NVALID := (io.input.op1_2 =/= mul) && (io.input.op1_2 =/= mulh)
-    rd      := wireRd
-    data    := wireData
-    wcsr    := io.input.wcsr
-    csrData := wireCsrData
-    isMem   := wireIsMem
-    isLd    := wireIsLd
-    addr    := wireAddr
-    mask    := wireMask
-    op      := wireOp
-    wireOp  := io.input.op1_2
+    rd         := wireRd
+    data       := wireData
+    wcsr       := io.input.wcsr
+    csrData    := wireCsrData
+    isMem      := wireIsMem
+    isLd       := wireIsLd
+    addr       := wireAddr
+    mask       := wireMask
+    op         := wireOp
+    isWord     := wireIsWord
+    wireOp     := io.input.op1_2
+    wireIsWord := (io.input.special === word)
     if (Debug) {
       exit   := wireExit
       pc     := io.input.debug.pc
