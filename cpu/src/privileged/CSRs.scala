@@ -66,9 +66,8 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
     val eip    = Input(Bool())
   })
 
-  val MXL   = (log2Down(xlen) - 4).U(2.W)
-  val MXLEN = WireDefault(32.U)
-  when (MXL === 2.U) { MXLEN := 64.U }
+  val MXL   = log2Down(xlen) - 4
+  val MXLEN = 64
 
   val SPPInit  = 0
   val MPPInit  = 3
@@ -92,14 +91,12 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
   val mipInit = 0x888.U
   val mieInit = 0x888.U
 
-  val Extensions = extensions.foldLeft(0)((res, x) => res | 1 << x - 'A').U
-
-  val misa      = MXL << MXLEN | Extensions
+  val misa      = MXL.U(2.W) ## 0.U((MXLEN - 28).W) ## extensions.foldLeft(0)((res, x) => res | 1 << x - 'A').U(26.W)
   val mvendorid = 0.U(32.W) // non-commercial implementation
   val marchid   = 0.U(xlen.W) // the field is not implemented
   val mimpid    = 0.U(xlen.W) // the field is not implemented
   val mhartid   = 0.U(xlen.W) // the hart that running the code
-  val mstatus   = MstatusInit(UInt(xlen.W), mstatusInit.U)
+  val mstatus   = MstatusInit(UInt(xlen.W), mstatusInit.U(xlen.W))
   val mtvec     = RegInit(0.U(xlen.W))
 
   // val medeleg // should not exist with only M-Mode
@@ -232,7 +229,7 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
     when(io.csrsR.rcsr(i) >= Mhpmevent(3.U) && io.csrsR.rcsr(i) <= Mhpmevent(31.U)) { io.csrsR.rdata(i) := 0.U }
     when(io.csrsR.rcsr(i) === Mcountinhibit) { io.csrsR.rdata(i) := mcountinhibit }
     when(io.csrsR.rcsr(i) === Mscratch) { io.csrsR.rdata(i) := mscratch }
-    when(io.csrsR.rcsr(i) === Mepc) { io.csrsR.rdata(i) := Cat(mepc(xlen - 1, 2), 0.B, 0.B) }
+    when(io.csrsR.rcsr(i) === Mepc) { io.csrsR.rdata(i) := Cat(mepc(xlen - 1, 2), 0.U(2.W)) }
     when(io.csrsR.rcsr(i) === Mcause) { io.csrsR.rdata(i) := mcause }
     when(io.csrsR.rcsr(i) === Mtval) { io.csrsR.rdata(i) := 0.U } // A simple implementation.
     when((io.csrsR.rcsr(i) === Pmpcfg0) || (io.csrsR.rcsr(i) === Pmpcfg2)) { io.csrsR.rdata(i) := 0.U }

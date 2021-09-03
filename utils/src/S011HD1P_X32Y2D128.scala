@@ -32,7 +32,7 @@ class S011HD1P_X32Y2D128(bits: Int = 128, wordDepth: Int = 64) extends BlackBox 
     |  end
     |
     |endmodule
-  """.stripMargin)
+    |""".stripMargin)
 }
 
 object S011HD1P_X32Y2D128 {

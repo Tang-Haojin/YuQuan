@@ -40,11 +40,8 @@ class AXIRMux(implicit p: Parameters) extends YQModule {
   io.axiRaIn0.ready := 0.B
   io.axiRaIn1.ready := 0.B
 
-  when(io.axiRaIn1.valid) {
-    io.axiRaIn1 <> io.axiRaOut
-  }.otherwise {
-    io.axiRaIn0 <> io.axiRaOut
-  }
+  when(io.axiRaIn1.valid) { io.axiRaIn1 <> io.axiRaOut }
+  .otherwise { io.axiRaIn0 <> io.axiRaOut }
 
   io.axiRdIn0.bits.id   := 0xf.U
   io.axiRdIn1.bits.id   := 0xf.U

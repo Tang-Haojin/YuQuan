@@ -10,9 +10,7 @@ class CSAIO(length: Int = 128) extends Bundle {
 
 class _42_CompressorIO(length: Int = 128) extends Bundle {
   val input  = Input (Vec(4, UInt(length.W)))
-  val cin    = Input (Bool())
   val output = Output(Vec(2, UInt(length.W)))
-  val cout   = Output(Bool())
 }
 
 class Wallace_ImprovedIO(length: Int = 128) extends Bundle {

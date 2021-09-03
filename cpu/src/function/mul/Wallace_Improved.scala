@@ -17,11 +17,11 @@ class Wallace_Improved(length: Int = 128)(implicit p: Parameters) extends YQRawM
         CSAs(2 * i + j).io.input(k) := io.input(3 * (2 * i + j) + k)
     }
 
-  CSAs(6).io.input(0) := _42s(0).io.output(0) ## 0.B
+  CSAs(6).io.input(0) := _42s(0).io.output(0)
   CSAs(6).io.input(1) := _42s(0).io.output(1)
-  CSAs(6).io.input(2) := _42s(1).io.output(0) ## 0.B
+  CSAs(6).io.input(2) := _42s(1).io.output(0)
   CSAs(7).io.input(0) := _42s(1).io.output(1)
-  CSAs(7).io.input(1) := _42s(2).io.output(0) ## 0.B
+  CSAs(7).io.input(1) := _42s(2).io.output(0)
   CSAs(7).io.input(2) := _42s(2).io.output(1)
 
   _42s(3).io.input(0) := CSAs(6).io.output(0)
@@ -29,8 +29,6 @@ class Wallace_Improved(length: Int = 128)(implicit p: Parameters) extends YQRawM
   _42s(3).io.input(2) := CSAs(7).io.output(0)
   _42s(3).io.input(3) := CSAs(7).io.output(1)
 
-  for (i <- _42s.indices) _42s(i).io.cin := 0.B
-
-  io.output(0) := _42s(3).io.output(0) ## 0.B
+  io.output(0) := _42s(3).io.output(0)
   io.output(1) := _42s(3).io.output(1)
 }

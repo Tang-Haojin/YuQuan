@@ -21,3 +21,4 @@ obj_dir/
 
 #ysyxcheck
 log_cpuCheck.txt
+cpu-check.log

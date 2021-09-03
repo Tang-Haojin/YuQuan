@@ -27,7 +27,7 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
   val reqData    = RegInit(0.U(xlen.W))
   val reqRw      = RegInit(0.B)
   val reqWMask   = RegInit(0.U((xlen / 8).W))
-  val addrOffset = addr(Offset - 1, 0)
+  val addrOffset = addr(Offset - 1, 3)
   val addrIndex  = WireDefault(UInt(Index.W), addr(Index + Offset - 1, Offset))
   val addrTag    = addr(alen - 1, Index + Offset)
   val memAddr    = addr(alen - 1, Offset) ## 0.U(Offset.W)
@@ -92,7 +92,7 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
   ramData .write(addrIndex, vecWdata , wen)
 
   io.cpuIO.cpuResult.ready := hit
-  io.cpuIO.cpuResult.data  := dwordData(addrOffset(Offset - 1, 3))
+  io.cpuIO.cpuResult.data  := dwordData(addrOffset)
 
   val useEmpty = WireDefault(0.B)
   val readBack = WireDefault(0.B)
@@ -121,7 +121,7 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
         vecWdirty(grp) := 1.B
         vecWdata(grp)  := byteDatas
         for (i <- 0 until xlen / 8)
-          when(reqWMask(i)) { byteData((addrOffset(Offset - 1, 3) ## 0.U(3.W)) + i.U) := reqData(i * 8 + 7, i * 8) }
+          when(reqWMask(i)) { byteData(addrOffset ## i.U(3.W)) := reqData(i * 8 + 7, i * 8) }
       }
     }.elsewhen(useEmpty || (!useEmpty && !dirty(wireWay))) { // have empty or clean cache line
       when(wbBuffer.used && (io.memIO.ar.bits.addr === wbBuffer.wbAddr)) {

@@ -19,7 +19,7 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   val received = RegInit(0.U(LogBurstLen.W))
 
   val addr       = RegInit(0.U(alen.W))
-  val addrOffset = addr(Offset - 1, 0)
+  val addrOffset = addr(Offset - 1, 2)
   val addrIndex  = WireDefault(UInt(Index.W), addr(Index + Offset - 1, Offset))
   val addrTag    = addr(alen - 1, Index + Offset)
   val memAddr    = addr(alen - 1, Offset) ## 0.U(Offset.W)
@@ -56,7 +56,7 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   ramData .write(addrIndex, vecWdata , wen)
 
   io.cpuIO.cpuResult.ready := hit
-  io.cpuIO.cpuResult.data  := wordData(addrOffset(Offset - 1, 2))
+  io.cpuIO.cpuResult.data  := wordData(addrOffset)
 
   when(io.cpuIO.cpuReq.valid) {
     addr      := io.cpuIO.cpuReq.addr
