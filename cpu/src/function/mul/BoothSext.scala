@@ -19,7 +19,7 @@ class BoothSext(entries: Int = 17, size: Int = 64)(implicit p: Parameters) exten
       "b110".U -> ~(op_sign ## io.op_0),
       "b111".U ->  Fill(size + 1, 1.B)
     ))
-    val ext_sign = ~main_num(size)
+    val ext_sign = (io.sign && ~main_num(size)) || (~io.sign && ~io.input(i)(2))
     io.output(i) := 1.B ## ext_sign ## main_num ## 0.B ## last
   }
 }
