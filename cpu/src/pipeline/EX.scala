@@ -28,6 +28,7 @@ class EX(implicit p: Parameters) extends YQModule {
   alu.io.input.bits.b    := io.input.num(1).asSInt
   alu.io.input.bits.op   := wireOp
   alu.io.input.bits.word := wireIsWord
+  alu.io.input.bits.sign := ((io.input.special =/= mu) && (io.input.special =/= msu)) ## (io.input.special =/= mu)
   alu.io.input.valid     := io.lastVR.VALID
   alu.io.output.ready    := io.nextVR.READY
 

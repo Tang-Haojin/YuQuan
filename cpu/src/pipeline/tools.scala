@@ -35,8 +35,8 @@ class EXOutput(implicit p: Parameters) extends YQBundle {
 
 // ID
 object ExecSpecials {
-  val specials = Enum(12)
-  val non::ld::st::jump::jalr::branch::trap::inv::word::csr::mret::int::Nil = specials
+  val specials = Enum(14)
+  val non::ld::st::jump::jalr::branch::trap::inv::word::csr::mret::int::mu::msu::Nil = specials
 }
 
 object InstrTypes { val i::u::s::r::j::b::c::Nil = Enum(7) }

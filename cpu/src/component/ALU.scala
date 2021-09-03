@@ -15,6 +15,7 @@ class ALU(implicit p: Parameters) extends YQModule {
       val a    = SInt(xlen.W)
       val b    = SInt(xlen.W)
       val word = Bool()
+      val sign = UInt(2.W)
     }))
     val output = Decoupled(SInt(xlen.W))
   })
@@ -29,8 +30,8 @@ class ALU(implicit p: Parameters) extends YQModule {
   private val multiTop = Module(new MultiTop)
   multiTop.io.input.bits.data(0) := a.asUInt
   multiTop.io.input.bits.data(1) := b.asUInt
-  multiTop.io.input.bits.sign(0) := 1.B
-  multiTop.io.input.bits.sign(1) := 1.B
+  multiTop.io.input.bits.sign(0) := io.input.bits.sign(0)
+  multiTop.io.input.bits.sign(1) := io.input.bits.sign(1)
   multiTop.io.input.valid  := isMul && io.input.valid
   multiTop.io.output.ready := io.output.ready
 
