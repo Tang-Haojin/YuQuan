@@ -181,9 +181,7 @@ class ID(implicit p: Parameters) extends YQModule {
     }
   }
 
-  AddException(true, mti)
-  AddException(true, mei)
-  AddException()
+  AddException(true, mti); AddException(true, mei); AddException()
 
   io.lastVR.READY := io.nextVR.READY && !io.isWait
 
