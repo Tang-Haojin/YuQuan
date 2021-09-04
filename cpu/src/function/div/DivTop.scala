@@ -28,14 +28,11 @@ class DivTop(implicit p: Parameters) extends YQModule {
   private val  n = RegInit(0.U(log2Ceil(xlen).W))
   private val dividendSign = RegInit(0.B)
   private val divisorSign  = RegInit(0.B)
-  private val rawQuotient  = lo
-  private val rawRemainder = hi(xlen, 1)
-
-  io.output.bits.quotient  := Mux(dividendSign ^ divisorSign, -rawQuotient, rawQuotient)
-  io.output.bits.remainder := Mux(dividendSign, -rawRemainder, rawRemainder)
 
   io.input.ready  := 1.B
   io.output.valid := 0.B
+  io.output.bits.quotient  := Mux(dividendSign ^ divisorSign, -lo, lo)
+  io.output.bits.remainder := Mux(dividendSign, -hi(xlen, 1), hi(xlen, 1))
   when(state === idle) {
 	  when(io.input.fire) {
       dividendSign := 0.B
@@ -52,12 +49,6 @@ class DivTop(implicit p: Parameters) extends YQModule {
         divisorSign  := io.input.bits.divisor (xlen - 1)
         when(io.input.bits.dividend(xlen - 1)) { A := -io.input.bits.dividend ## 0.B }
         when(io.input.bits.divisor (xlen - 1)) { d := -io.input.bits.divisor }
-        when((io.input.bits.dividend === (1.B ## 0.U((xlen - 1).W))) && (io.input.bits.divisor === Fill(xlen, 1.B))) {
-          dividendSign := 0.B
-          divisorSign  := 0.B
-          A := 1.B ## 0.U((xlen - 1).W)
-          state := ending
-        }
       }
     }
   }
