@@ -7,6 +7,7 @@ import Operators._
 import chipsalliance.rocketchip.config._
 import cpu.tools._
 import cpu.function.mul._
+import cpu.function.div._
 
 class ALU(implicit p: Parameters) extends YQModule {
   val io = IO(new YQBundle {
@@ -26,7 +27,6 @@ class ALU(implicit p: Parameters) extends YQModule {
   io.output.bits := result
 
   private val isMul = (io.input.bits.op === mul) || (io.input.bits.op === mulh)
-
   private val multiTop = Module(new MultiTop)
   multiTop.io.input.bits.data(0) := a.asUInt
   multiTop.io.input.bits.data(1) := b.asUInt
@@ -35,15 +35,26 @@ class ALU(implicit p: Parameters) extends YQModule {
   multiTop.io.input.valid  := isMul && io.input.valid
   multiTop.io.output.ready := io.output.ready
 
-  io.input.ready  := multiTop.io.input.ready
+  private val isDiv = (io.input.bits.op === div) || (io.input.bits.op === divw) || (io.input.bits.op === divu) || (io.input.bits.op === duw)
+  private val isRem = (io.input.bits.op === rem) || (io.input.bits.op === remw) || (io.input.bits.op === remu) || (io.input.bits.op === ruw)
+  private val isSgn = (io.input.bits.op === rem) || (io.input.bits.op === remw) || (io.input.bits.op === divw) || (io.input.bits.op === div)
+  private val divTop = Module(new DivTop)
+  divTop.io.input.bits.dividend := a.asUInt
+  divTop.io.input.bits.divisor  := b.asUInt
+  if (xlen == 64) when(io.input.bits.word) {
+    divTop.io.input.bits.dividend := Fill(xlen - 32, (a(31) & isSgn)) ## a(31, 0)
+    divTop.io.input.bits.divisor  := Fill(xlen - 32, (b(31) & isSgn)) ## b(31, 0)
+  }
+  divTop.io.input.bits.issigned := isSgn
+  divTop.io.input.valid  := (isDiv || isRem) && io.input.valid
+  divTop.io.output.ready := io.output.ready
+
+  io.input.ready  := multiTop.io.input.ready && divTop.io.input.ready
   io.output.valid := 1.B
 
-  when(multiTop.io.input.fire) {
-    io.output.valid := 0.B
-  }
-  when(!multiTop.io.input.ready) {
-    io.output.valid := multiTop.io.output.valid
-  }
+  when(multiTop.io.input.fire || divTop.io.input.fire) { io.output.valid := 0.B }
+  when(!multiTop.io.input.ready) { io.output.valid := multiTop.io.output.valid }
+  when(!divTop.io.input.ready) { io.output.valid := divTop.io.output.valid }
 
   private val shiftness = WireDefault(UInt(6.W), if (xlen == 64) b(5, 0) else b(4, 0)); when(io.input.bits.word) { shiftness := b(4, 0) }
   private val sl = WireDefault(UInt(xlen.W), VecInit(Seq.tabulate(xlen)(x => if (x == 0) a.asUInt else a(xlen - x - 1, 0) ## 0.U(x.W)))(shiftness))
@@ -64,13 +75,11 @@ class ALU(implicit p: Parameters) extends YQModule {
     is(ges)  { result := Cat(Fill(xlen - 1, 0.U), a >= b).asSInt }
     is(geu)  { result := Cat(Fill(xlen - 1, 0.U), a.asUInt >= b.asUInt).asSInt }
     is(mul)  { result := multiTop.io.output.bits(xlen - 1, 0).asSInt }
-    is(rem)  { result := a - b * (a / b) }
-    is(div)  { result := a / b }
-    is(remu) { result := (a.asUInt % b.asUInt).asSInt }
-    is(divu) { result := (a.asUInt / b.asUInt).asSInt }
+    is(rem)  { result := divTop.io.output.bits.remainder.asSInt }
+    is(div)  { result := divTop.io.output.bits.quotient.asSInt }
+    is(remu) { result := divTop.io.output.bits.remainder.asSInt }
+    is(divu) { result := divTop.io.output.bits.quotient.asSInt }
     is(mulh) { result := multiTop.io.output.bits(2 * xlen - 1, xlen).asSInt }
-    is(duw)  { result := (a(31, 0) / b(31, 0)).asSInt }
-    is(ruw)  { result := (a(31, 0) / b(31, 0)).asSInt }
   }
 
   if (xlen == 64) {
@@ -78,8 +87,10 @@ class ALU(implicit p: Parameters) extends YQModule {
       is(sllw) { result := sl(31, 0).asSInt }
       is(srlw) { result := (Cat(Fill(xlen - 32, 0.U), a(31, 0)) >> b(4, 0)).asSInt }
       is(sraw) { result := (Cat(Fill(xlen - 32, a(31)), a(31, 0)) >> b(4, 0)).asSInt }
-      is(divw) { result := a(31, 0).asSInt / b(31, 0).asSInt }
-      is(remw) { result := a(31, 0).asSInt - b(31, 0).asSInt * (a(31, 0).asSInt / b(31, 0).asSInt) }
+      is(divw) { result := divTop.io.output.bits.quotient(31, 0).asSInt }
+      is(remw) { result := divTop.io.output.bits.remainder(31, 0).asSInt }
+      is(duw)  { result := divTop.io.output.bits.quotient(31, 0).asSInt }
+      is(ruw)  { result := divTop.io.output.bits.remainder(31, 0).asSInt }
     }
   }
 
