@@ -54,7 +54,7 @@ class DivTop(implicit p: Parameters) extends YQModule {
   }
   when(state === busy) {
     io.input.ready := 0.B
-    A := Mux(hi >= d, hi - d, hi)(xlen - 1, 0) ## lo ## (hi >= d)
+    A := Mux(hi >= d, hi(xlen - 1, 0) - d(xlen - 1, 0), hi(xlen - 1, 0)) ## lo ## (hi >= d)
     n := n - 1.U
     when(n === 0.U) { state := ending }
   }
