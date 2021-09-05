@@ -1,4 +1,4 @@
-#include "VSimTop.h"
+#include "VysyxSoCFull.h"
 #include "verilated.h"
 #include "verilated_fst_c.h"
 
@@ -54,7 +54,7 @@ int main(int argc, char **argv, char **env) {
   int ret = 0;
   flash_init(argv[1]);
 
-  VSimTop *top = new VSimTop;
+  VysyxSoCFull *top = new VysyxSoCFull;
 #ifdef TRACE
   contextp->traceEverOn(true);
   top->trace(tfp, 0);

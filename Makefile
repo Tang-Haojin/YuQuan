@@ -112,23 +112,22 @@ clean:
 clean-all: clean
 	-rm -rf ./out
 
-sim:
+verilate:
+	mill -i __.sim.runMain Elaborate -td build/sim $(param)
+	@cd $(BUILD_DIR)/sim && \
+	verilator $(VFLAGS) --build $(CSRCS) -CFLAGS "$(CFLAGS)" -LDFLAGS "$(LDFLAGS)" >/dev/null
+
+sim: verilate
 ifeq ($(BIN),)
 	$(error $(nobin))
 endif
-	mill -i __.sim.runMain Elaborate -td build/sim $(param)
-	@cd $(BUILD_DIR)/sim && \
-	verilator $(VFLAGS) --build $(CSRCS) -CFLAGS "$(CFLAGS)" -LDFLAGS "$(LDFLAGS)" >/dev/null
 	@$(BUILD_DIR)/sim/obj_dir/VTestTop $(binFile) $(flashBinFile) $(storageBinFile)
 
-simall:
-	mill -i __.sim.runMain Elaborate -td build/sim $(param)
-	@cd $(BUILD_DIR)/sim && \
-	verilator $(VFLAGS) --build $(CSRCS) -CFLAGS "$(CFLAGS)" -LDFLAGS "$(LDFLAGS)" >/dev/null
+simall: verilate
 	@for x in $(SIMBIN); do \
 		$(BUILD_DIR)/sim/obj_dir/VTestTop $(pwd)/sim/bin/$$x-$(ISA)-nemu.bin >/dev/null 2>&1; \
 		if [ $$? -eq 0 ]; then printf "[$$x] \33[1;32mpass\33[0m\n"; \
 		else                   printf "[$$x] \33[1;31mfail\33[0m\n"; fi; \
 	done
 
-.PHONY: test verilog help compile bsp reformat checkformat ysyxcheck clean clean-all sim simall
+.PHONY: test verilog help compile bsp reformat checkformat ysyxcheck clean clean-all verilate sim simall
