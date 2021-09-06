@@ -11,12 +11,12 @@ private class SyncReadReg(bits: Int = 128, wordDepth: Int = 64)(implicit val p: 
     val A   = Input (UInt(log2Ceil(wordDepth).W))
     val D   = Input (UInt(bits.W))
   })
-  override val desiredName = modulePrefix + bits.toString + "_" + wordDepth.toString + "_" + this.getClass().getSimpleName()
+  override val desiredName = modulePrefix + this.getClass().getSimpleName()
 
-  private val ram = RegInit(VecInit(Seq.fill(wordDepth)(0.U(bits.W))))
-  private val Q   = RegInit(0.U(bits.W)); io.Q := Q
-  when(io.WEN) { ram(io.A) := io.D }
-  Q := ram(io.A)
+  private val sreg = RegInit(VecInit(Seq.fill(wordDepth)(0.U(bits.W))))
+  private val A    = RegNext(io.A)
+  when(io.WEN) { sreg(io.A) := io.D }
+  io.Q := sreg(A)
 }
 
 private object SyncReadReg {
@@ -24,21 +24,21 @@ private object SyncReadReg {
 }
 
 private class SyncReadRegWrapper(bits: Int = 128, wordDepth: Int = 64)(implicit p: Parameters) {
-  private val sram  = SyncReadReg(bits, wordDepth)
+  private val sregs = SyncReadReg(bits, wordDepth)
   private val rAddr = WireDefault(0.U(log2Ceil(wordDepth).W))
   private val wAddr = WireDefault(0.U(log2Ceil(wordDepth).W))
 
-  sram.io.WEN := 0.B
-  sram.io.A   := rAddr
-  sram.io.D   := 0.U
+  sregs.io.WEN := 0.B
+  sregs.io.A   := rAddr
+  sregs.io.D   := 0.U
 
-  def read(x: UInt, en: Bool = 1.B): UInt = { rAddr := x; sram.io.Q }
+  def read(x: UInt, en: Bool = 1.B): UInt = { rAddr := x; sregs.io.Q }
 
   def write(idx: UInt, data: UInt, wen: Bool): Unit = {
-    wAddr       := idx
-    sram.io.WEN := wen
-    sram.io.D   := data
-    when(!sram.io.WEN) { sram.io.A := wAddr }
+    wAddr        := idx
+    sregs.io.WEN := wen
+    sregs.io.D   := data
+    when(!sregs.io.WEN) { sregs.io.A := wAddr }
   }
 }
 
@@ -47,14 +47,14 @@ private object SyncReadRegWrapper {
 }
 
 class SyncReadRegs(bits: Int = 128, wordDepth: Int = 64, associativity: Int = 4)(implicit p: Parameters) {
-  private val SRAMs = Seq.fill(associativity)(SyncReadRegWrapper(bits, wordDepth))
+  private val Regs = Seq.fill(associativity)(SyncReadRegWrapper(bits, wordDepth))
 
   def read(x: UInt, en: Bool = 1.B): Vec[UInt] = {
-    VecInit(Seq.tabulate(associativity)(y => { SRAMs(y).read(x, en) }))
+    VecInit(Seq.tabulate(associativity)(y => { Regs(y).read(x, en) }))
   }
 
   def write(idx: UInt, data: Vec[UInt], mask: Vec[Bool]): Unit = {
-    for (i <- SRAMs.indices) { SRAMs(i).write(idx, data(i), mask(i)) }
+    for (i <- Regs.indices) { Regs(i).write(idx, data(i), mask(i)) }
   }
 }
 
