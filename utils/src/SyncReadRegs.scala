@@ -14,9 +14,8 @@ private class SyncReadReg(bits: Int = 128, wordDepth: Int = 64)(implicit val p: 
   override val desiredName = modulePrefix + this.getClass().getSimpleName()
 
   private val sreg = RegInit(VecInit(Seq.fill(wordDepth)(0.U(bits.W))))
-  private val A    = RegNext(io.A)
   when(io.WEN) { sreg(io.A) := io.D }
-  io.Q := sreg(A)
+  io.Q := RegNext(sreg(io.A))
 }
 
 private object SyncReadReg {
