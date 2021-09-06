@@ -167,7 +167,9 @@ class ID(implicit p: Parameters) extends YQModule {
       io.csrsR.rcsr(0) := wireCsr(0)
       wireCsr(0) := wireInstr(31, 20)
     }
-    is(inv) { wireExcept(2) := 1.B } // illegal instruction
+    is(inv)    { wireExcept(2)  := 1.B } // illegal instruction
+    is(ecall)  { wireExcept(11) := 1.B } // environment call from M-mode
+    is(ebreak) { wireExcept(3)  := 1.B } // breakpoint
     is(mret) {
       io.csrsR.rcsr(0) := csrsAddr().Mepc
       io.csrsR.rcsr(1) := csrsAddr().Mstatus
@@ -222,7 +224,7 @@ private class AddException(interrupt: Boolean = false, exceptionCode: Value = us
     when(fire) {
       param._1.csrsR.rcsr(5) := csrsAddr().Mtvec
       param._1.jmpBch := 1.B
-      if (interrupt) param._2 := int
+      param._2 := exception
       param._3 := 0.U
       param._4 := VecInit(csrsAddr().Mepc, csrsAddr().Mcause, csrsAddr().Mtval, csrsAddr().Mstatus)
       param._5 := VecInit(param._1.input.pc, code, param._1.input.instr, param._1.csrsR.rdata(1))

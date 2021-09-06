@@ -94,7 +94,7 @@ class EX(implicit p: Parameters) extends YQModule {
       io.input.num(0)(2, 0)
     )
   }
-  when(io.input.special === int) {
+  when(io.input.special === exception) {
     wireCsrData(0) := io.input.num(0)
     wireCsrData(1) := io.input.num(1)
     wireCsrData(2) := io.input.num(2)

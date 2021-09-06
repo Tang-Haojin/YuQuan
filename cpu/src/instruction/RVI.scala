@@ -55,8 +55,8 @@ case class RVI()(implicit val p: Parameters) extends CPUParams {
   def OR     = BitPat("b0000000_?????_?????_110_?????_0110011")
   def AND    = BitPat("b0000000_?????_?????_111_?????_0110011")
   def FENCE  = BitPat("b???????_?????_?????_000_?????_0001111")
-  def ECALL  = null
-  def EBREAK = null
+  def ECALL  = BitPat("b0000000_00000_00000_000_00000_1110011")
+  def EBREAK = BitPat("b0000000_00001_00000_000_00000_1110011")
 
   def LWU    =
   if(xlen==64) BitPat("b???????_?????_?????_110_?????_0000011")
@@ -140,7 +140,7 @@ case class RVI()(implicit val p: Parameters) extends CPUParams {
     OR    -> List(InstrTypes.r, rs1 , rs2 , non , non , or  , non , 1.U, ExecSpecials.non   ),
     AND   -> List(InstrTypes.r, rs1 , rs2 , non , non , and , non , 1.U, ExecSpecials.non   ),
     FENCE -> List(InstrTypes.i, non , non , non , non , non , non , 0.U, ExecSpecials.non   ), // do nothing
-
+    ECALL -> List(InstrTypes.i, non , non , non , non , non , non , 0.U, ExecSpecials.ecall ),
 
 
     LWU   -> List(InstrTypes.i, non , non , rs1 , imm , non , 6.U , 1.U, ExecSpecials.ld    ),

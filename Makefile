@@ -75,7 +75,7 @@ $(shell wget $(site)/$(BIN)-$(ISA)-nemu.bin -O $(binFile) || rm $(binFile))
 endif
 endif
 
-SIMBIN = $(filter-out rtthread,$(shell cd $(pwd)/sim/bin && ls *-$(ISA)-nemu.bin | grep -oP ".*(?=-$(ISA)-nemu.bin)"))
+SIMBIN = $(filter-out yield rtthread,$(shell cd $(pwd)/sim/bin && ls *-$(ISA)-nemu.bin | grep -oP ".*(?=-$(ISA)-nemu.bin)"))
 
 test:
 	mill -i __.test

@@ -63,7 +63,7 @@ object SimConfig {
   }
 
   class NEMU_UART extends MMAP {
-    override val BASE = 0xA10003F8L
+    override val BASE = 0x02010000L
     override val SIZE = 0x1L
   }
 
