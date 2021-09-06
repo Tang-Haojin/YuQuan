@@ -5,6 +5,7 @@ import chisel3.util._
 import chipsalliance.rocketchip.config._
 
 import utils._
+import utils.Convert._
 import cpu.tools._
 
 class ICache(implicit p: Parameters) extends YQModule with CacheParams {
@@ -27,8 +28,8 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   val ARVALID = RegInit(0.B); val RREADY  = RegInit(0.B)
   ICacheMemIODefault(io.memIO, ARVALID, memAddr, RREADY)
 
-  val ramValid = SyncReadMem(IndexSize, Vec(Associativity, Bool()))
-  val ramTag   = SyncReadMem(IndexSize, Vec(Associativity, UInt(Tag.W)))
+  val ramValid = SyncReadRegs(1, IndexSize, Associativity)
+  val ramTag   = SyncReadRegs(Tag, IndexSize, Associativity)
   val ramData  = SinglePortRam(clock, BlockSize * 8, IndexSize, Associativity)
 
   val hit = WireDefault(0.B)
@@ -47,7 +48,7 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   }))
 
   val wdata     = io.memIO.r.bits.data ## writeBuffer.asUInt
-  val vecWvalid = VecInit(Seq.fill(Associativity)(1.B))
+  val vecWvalid = VecInit(Seq.fill(Associativity)(1.U))
   val vecWtag   = VecInit(Seq.fill(Associativity)(addrTag))
   val vecWdata  = VecInit(Seq.fill(Associativity)(wdata))
 
