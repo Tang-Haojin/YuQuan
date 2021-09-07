@@ -64,15 +64,18 @@ class IDOutput(implicit p: Parameters) extends YQBundle {
 }
 
 class IDIO(implicit p: Parameters) extends YQBundle {
-  val output    = new IDOutput
-  val gprsR     = Flipped(new GPRsR)
-  val csrsR     = Flipped(new cpu.privileged.CSRsR)
-  val lastVR    = new LastVR
-  val nextVR    = Flipped(new LastVR)
-  val input     = Flipped(new IFOutput)
-  val jmpBch    = Output(Bool())
-  val jbAddr    = Output(UInt(alen.W))
-  val isWait    = Input (Bool())
+  val output      = new IDOutput
+  val gprsR       = Flipped(new GPRsR)
+  val csrsR       = Flipped(new cpu.privileged.CSRsR)
+  val lastVR      = new LastVR
+  val nextVR      = Flipped(new LastVR)
+  val input       = Flipped(new IFOutput)
+  val jmpBch      = Output(Bool())
+  val jbAddr      = Output(UInt(alen.W))
+  val isWait      = Input (Bool())
+  val currentPriv = Input (UInt(2.W))
+  val newPriv     = Output(UInt(2.W))
+  val changePriv  = Output(Bool())
 }
 
 // IF

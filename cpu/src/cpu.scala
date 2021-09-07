@@ -104,8 +104,11 @@ class CPU(implicit p: Parameters) extends YQModule {
   moduleIF.io.jmpBch := moduleID.io.jmpBch
   moduleIF.io.jbAddr := moduleID.io.jbAddr
 
-  moduleCSRs.io.eip    <> io.interrupt
-  moduleCSRs.io.retire <> moduleWB.io.retire
+  moduleCSRs.io.eip         <> io.interrupt
+  moduleCSRs.io.retire      <> moduleWB.io.retire
+  moduleCSRs.io.changePriv  <> moduleID.io.changePriv
+  moduleCSRs.io.newPriv     <> moduleID.io.newPriv
+  moduleCSRs.io.currentPriv <> moduleID.io.currentPriv
 
   if (Debug) {
     io.debug.exit    := moduleWB.io.debug.exit

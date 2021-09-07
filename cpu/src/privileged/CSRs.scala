@@ -69,10 +69,13 @@ trait CSRsAddr extends CPUParams {
 
 class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
   val io = IO(new YQBundle {
-    val csrsW  = new CSRsW
-    val csrsR  = new CSRsR
-    val eip    = Input(Bool())
-    val retire = Input(Bool())
+    val csrsW       = new CSRsW
+    val csrsR       = new CSRsR
+    val eip         = Input (Bool())
+    val retire      = Input (Bool())
+    val currentPriv = Output(UInt(2.W))
+    val changePriv  = Input (Bool())
+    val newPriv     = Input (UInt(2.W))
   })
 
   val MXL   = log2Down(xlen) - 4
@@ -137,6 +140,9 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
   val mtime = RegInit(0.U(64.W))
   val mtimecmp = RegInit(0.U(64.W))
 
+  val currentPriv = RegEnable(io.newPriv, 3.U(2.W), io.changePriv)
+  io.currentPriv := currentPriv
+
   mcycle := mcycle + 1.U
   mtime  := mtime + 1.U
   when(io.retire) { minstret := minstret + 1.U }
@@ -156,10 +162,11 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
         }.elsewhen(io.csrsW.wcsr(i) === Mhartid) {
           // TODO: Raise an illegal instruction exception.
         }.elsewhen(io.csrsW.wcsr(i) === Mstatus) {
-          mstatus := io.csrsW.wdata(i)
+          val wdata = MstatusInit(io.csrsW.wdata(i))
+          mstatus := wdata
 
-          mstatus.SPP  := 0.B
-          mstatus.MPP  := "b11".U
+          mstatus.SPP  := 1.B
+          mstatus.MPP  := Mux(wdata.MPP === 3.U || wdata.MPP === 1.U, wdata.MPP, mstatus(12, 11))
           mstatus.FS   := 0.U
           mstatus.XS   := 0.U
           mstatus.MPRV := 0.B
@@ -171,8 +178,8 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
           mstatus.SD   := 0.B
 
           if (xlen != 32) {
-            mstatus.UXL  := 0.B
-            mstatus.SXL  := 0.B
+            mstatus.UXL  := (if (extensions.contains('S')) log2Down(xlen) - 4 else 0).U
+            mstatus.SXL  := (if (extensions.contains('S')) log2Down(xlen) - 4 else 0).U
           }
         }
         when(io.csrsW.wcsr(i) === Mtvec) {

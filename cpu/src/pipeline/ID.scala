@@ -10,6 +10,7 @@ import InstrTypes._
 import ExceptionCode._
 import cpu.tools._
 import cpu._
+import cpu.privileged.MstatusInit
 
 private case class csrsAddr()(implicit val p: Parameters) extends CPUParams with cpu.privileged.CSRsAddr
 
@@ -19,13 +20,15 @@ class ID(implicit p: Parameters) extends YQModule {
 
   val csrsRdata0 = io.csrsR.rdata(0)
 
-  val NVALID  = RegInit(0.B)
-  val rd      = RegInit(0.U(5.W))
-  val wcsr    = RegInit(VecInit(Seq.fill(RegConf.writeCsrsPort)(0xFFF.U(12.W))))
-  val op1_2   = RegInit(0.U(AluTypeWidth.W))
-  val op1_3   = RegInit(0.U(AluTypeWidth.W))
-  val special = RegInit(0.U(5.W))
-  val instr   = RegInit(0.U(32.W))
+  val NVALID     = RegInit(0.B)
+  val rd         = RegInit(0.U(5.W))
+  val wcsr       = RegInit(VecInit(Seq.fill(RegConf.writeCsrsPort)(0xFFF.U(12.W))))
+  val op1_2      = RegInit(0.U(AluTypeWidth.W))
+  val op1_3      = RegInit(0.U(AluTypeWidth.W))
+  val special    = RegInit(0.U(5.W))
+  val instr      = RegInit(0.U(32.W))
+  val newPriv    = RegInit(3.U(2.W))
+  val changePriv = RegInit(0.B)
   val pc      = if (Debug) RegInit(0.U(alen.W)) else null
 
   val num = RegInit(VecInit(Seq.fill(4)(0.U(xlen.W))))
@@ -51,6 +54,8 @@ class ID(implicit p: Parameters) extends YQModule {
   val wireDataRs1 = WireDefault(UInt(xlen.W), io.gprsR.rdata(0))
   val wireDataRs2 = WireDefault(UInt(xlen.W), io.gprsR.rdata(1))
   val wireExcept  = WireDefault(VecInit(Seq.fill(16)(0.B)))
+  val wireNewPriv = WireDefault(3.U(2.W))
+  val wireChangeP = WireDefault(0.B)
 
   private implicit val implicitParam = (io, wireSpecial, wireRd, wireCsr, wireNum, wireExcept)
 
@@ -77,6 +82,9 @@ class ID(implicit p: Parameters) extends YQModule {
   io.csrsR.rcsr(1) := csrsAddr().Mstatus
   io.csrsR.rcsr(2) := csrsAddr().Mie
   io.csrsR.rcsr(7) := csrsAddr().Mip
+
+  io.changePriv := io.nextVR.VALID && changePriv
+  io.newPriv    := newPriv
 
   for (i <- 1 to 4) {
     when(decoded(i) === NumTypes.rs1) {
@@ -175,8 +183,10 @@ class ID(implicit p: Parameters) extends YQModule {
       io.csrsR.rcsr(1) := csrsAddr().Mstatus
 
       wireCsr(0) := csrsAddr().Mstatus
-
       wireNum(0) := io.csrsR.rdata(1)
+
+      wireChangeP := 1.B
+      wireNewPriv := MstatusInit(io.csrsR.rdata(1)).MPP
 
       io.jmpBch := 1.B
       io.jbAddr := io.csrsR.rdata(0)(alen - 1, 2) ## 0.U(2.W)
@@ -188,14 +198,16 @@ class ID(implicit p: Parameters) extends YQModule {
   io.lastVR.READY := io.nextVR.READY && !io.isWait
 
   when(io.lastVR.VALID && io.lastVR.READY) { // let's start working
-    NVALID  := 1.B
-    rd      := wireRd
-    wcsr    := wireCsr
-    num     := wireNum
-    op1_2   := wireOp1_2
-    op1_3   := wireOp1_3
-    special := wireSpecial
-    instr   := wireInstr
+    NVALID     := 1.B
+    rd         := wireRd
+    wcsr       := wireCsr
+    num        := wireNum
+    op1_2      := wireOp1_2
+    op1_3      := wireOp1_3
+    special    := wireSpecial
+    instr      := wireInstr
+    changePriv := wireChangeP
+    newPriv    := wireNewPriv
     if (Debug) pc := io.input.pc
   }.elsewhen(io.isWait && io.nextVR.READY) {
     NVALID  := 0.B
