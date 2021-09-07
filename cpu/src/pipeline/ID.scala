@@ -10,7 +10,7 @@ import InstrTypes._
 import ExceptionCode._
 import cpu.tools._
 import cpu._
-import cpu.privileged.MstatusInit
+import cpu.privileged.MstatusBundle
 
 private case class csrsAddr()(implicit val p: Parameters) extends CPUParams with cpu.privileged.CSRsAddr
 
@@ -186,7 +186,7 @@ class ID(implicit p: Parameters) extends YQModule {
       wireNum(0) := io.csrsR.rdata(1)
 
       wireChangeP := 1.B
-      wireNewPriv := MstatusInit(io.csrsR.rdata(1)).MPP
+      wireNewPriv := io.csrsR.rdata(1).asTypeOf(new MstatusBundle).MPP
 
       io.jmpBch := 1.B
       io.jbAddr := io.csrsR.rdata(0)(alen - 1, 2) ## 0.U(2.W)

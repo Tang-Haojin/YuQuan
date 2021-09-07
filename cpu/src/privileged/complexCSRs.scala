@@ -7,48 +7,31 @@ import chipsalliance.rocketchip.config._
 import cpu.tools._
 import cpu._
 
-class MSTATUS(mstatus: UInt, init: Option[UInt])(implicit val p: Parameters) extends CPUParams {
-  val reg = if (init.isEmpty) mstatus else RegInit(mstatus, init.get)
-
-  val UIE  = WireDefault(reg(0))
-  val SIE  = WireDefault(reg(1))
-  val MIE  = WireDefault(reg(3))
-  val UPIE = WireDefault(reg(4))
-  val SPIE = WireDefault(reg(5))
-  val MPIE = WireDefault(reg(7))
-  val SPP  = WireDefault(reg(8))
-  val MPP  = WireDefault(reg(12, 11))
-  val FS   = WireDefault(reg(14, 13))
-  val XS   = WireDefault(reg(16, 15))
-  val MPRV = WireDefault(reg(17))
-  val SUM  = WireDefault(reg(18))
-  val MXR  = WireDefault(reg(19))
-  val TVM  = WireDefault(reg(20))
-  val TW   = WireDefault(reg(21))
-  val TSR  = WireDefault(reg(22))
-  val UXL  = if (xlen != 32) WireDefault(reg(33, 32)) else null
-  val SXL  = if (xlen != 32) WireDefault(reg(35, 34)) else null
-  val SD   = WireDefault(reg(xlen - 1))
-
-  val upperList = List(0.U((xlen - 37).W), SXL, UXL)
-  val lowerList = List(0.U((if (xlen != 32) 9 else 8).W), 
-                       TSR, TW, TVM, MXR, SUM, MPRV, XS, FS, MPP, 0.B, SPP,
-                       MPIE, 0.B, SPIE, UPIE, MIE, 0.B, SIE, UIE)
-
-  val upper = Cat(upperList)
-  val lower = Cat(lowerList)
-
-  if (init.isDefined)
-    reg := (if (xlen != 32) Cat(SD, upper, lower) else Cat(SD, lower))
-
-  final def := (that: => MSTATUS): Unit = {
-    this.SD := that.SD
-    if (xlen != 32)
-      for (i <- this.upperList.indices)
-        if (!this.upperList(i).isLit) this.upperList(i) := that.upperList(i)
-    for (i <- this.lowerList.indices)
-      if (!this.lowerList(i).isLit) this.lowerList(i) := that.lowerList(i)
-  }
+class MstatusBundle(implicit val p: Parameters) extends Bundle with CPUParams {
+  val SD     = UInt(1.W)
+  val WPRI_0 = UInt((if (xlen == 32) 8 else xlen - 37).W)
+  val SXL    = UInt((if (xlen == 32) 0 else 2).W)
+  val UXL    = UInt((if (xlen == 32) 0 else 2).W)
+  val WPRI_1 = UInt((if (xlen == 32) 0 else 9).W)
+  val TSR    = UInt(1.W)
+  val TW     = UInt(1.W)
+  val TVM    = UInt(1.W)
+  val MXR    = UInt(1.W)
+  val SUM    = UInt(1.W)
+  val MPRV   = UInt(1.W)
+  val XS     = UInt(2.W)
+  val FS     = UInt(2.W)
+  val MPP    = UInt(2.W)
+  val WPRI_2 = UInt(2.W)
+  val SPP    = UInt(1.W)
+  val MPIE   = Bool()
+  val WPRI_3 = Bool()
+  val SPIE   = Bool()
+  val UPIE   = Bool()
+  val MIE    = Bool()
+  val WPRI_4 = Bool()
+  val SIE    = Bool()
+  val UIE    = Bool()
 }
 
 class MIP(mip: UInt, init: Option[UInt])(implicit val p: Parameters) extends CPUParams {
@@ -123,12 +106,6 @@ class MIE(mie: UInt, init: Option[UInt])(implicit val p: Parameters) extends CPU
   }
 }
 
-object MSTATUS {
-  import scala.language.implicitConversions
-  implicit def getval(x: MSTATUS): UInt = x.reg
-  implicit def wrapit(x: UInt)(implicit p: Parameters): MSTATUS = MstatusInit(x)
-}
-
 object MIP {
   import scala.language.implicitConversions
   implicit def getval(x: MIP): UInt = x.reg
@@ -139,19 +116,6 @@ object MIE {
   import scala.language.implicitConversions
   implicit def getval(x: MIE): UInt = x.reg
   implicit def wrapit(x: UInt)(implicit p: Parameters): MIE = MieInit(x)
-}
-
-object MstatusInit {
-  /** Construct a [[MSTATUS]] wrapper with [[UInt]].
-    * @param mstatus A [[UInt]] to be decoded as mstatus
-    */
-  def apply(mstatus: UInt)(implicit p: Parameters): MSTATUS = new MSTATUS(mstatus, None)
-
-  /** Construct a [[MSTATUS]] from a type template initialized to the specified value on reset
-    * @param t The type template used to construct the Mstatus
-    * @param init The value the Mstatus is initialized to on reset
-    */
-  def apply(t: UInt, init: UInt)(implicit p: Parameters): MSTATUS = new MSTATUS(t, Some(init))
 }
 
 object MipInit {
