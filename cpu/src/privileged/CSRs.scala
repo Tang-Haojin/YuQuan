@@ -57,6 +57,14 @@ trait CSRsAddr extends CPUParams {
 
   val Mtime         = 0xBFF.U // Customized
   val Mtimecmp      = 0xBFE.U // Customized
+
+  val Cycle         = 0xC00.U
+  val Time          = 0xC01.U
+  val Instret       = 0xC02.U
+
+  val Cycleh        = if (xlen == 32) 0xC80.U else null
+  val Timeh         = if (xlen == 32) 0xC81.U else null
+  val Instreth      = if (xlen == 32) 0xC82.U else null
 }
 
 class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
@@ -64,6 +72,7 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
     val csrsW  = new CSRsW
     val csrsR  = new CSRsR
     val eip    = Input(Bool())
+    val retire = Input(Bool())
   })
 
   val MXL   = log2Down(xlen) - 4
@@ -130,6 +139,7 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
 
   mcycle := mcycle + 1.U
   mtime  := mtime + 1.U
+  when(io.retire) { minstret := minstret + 1.U }
 
   for (i <- 0 until RegConf.writeCsrsPort) {
     when(io.csrsW.wen(i)) {
@@ -221,10 +231,10 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
     when(io.csrsR.rcsr(i) === Mtvec) { io.csrsR.rdata(i) := mtvec }
     when(io.csrsR.rcsr(i) === Mip) { io.csrsR.rdata(i) := Cat(mip(xlen - 1, 12), io.eip, mip(10, 8), (mtime > mtimecmp), mip(6, 0)) }
     when(io.csrsR.rcsr(i) === Mie) { io.csrsR.rdata(i) := mie }
-    when(io.csrsR.rcsr(i) === Mtime) { io.csrsR.rdata(i) := mtime }
+    when(io.csrsR.rcsr(i) === Mtime || io.csrsR.rcsr(i) === Time) { io.csrsR.rdata(i) := mtime }
     when(io.csrsR.rcsr(i) === Mtimecmp) { io.csrsR.rdata(i) := mtimecmp }
-    when(io.csrsR.rcsr(i) === Mcycle) { io.csrsR.rdata(i) := mcycle }
-    when(io.csrsR.rcsr(i) === Minstret) { io.csrsR.rdata(i) := minstret }
+    when(io.csrsR.rcsr(i) === Mcycle || io.csrsR.rcsr(i) === Cycle) { io.csrsR.rdata(i) := mcycle }
+    when(io.csrsR.rcsr(i) === Minstret || io.csrsR.rcsr(i) === Instret) { io.csrsR.rdata(i) := minstret }
     when(io.csrsR.rcsr(i) >= Mhpmcounter(3.U) && io.csrsR.rcsr(i) <= Mhpmcounter(31.U)) { io.csrsR.rdata(i) := 0.U }
     when(io.csrsR.rcsr(i) >= Mhpmevent(3.U) && io.csrsR.rcsr(i) <= Mhpmevent(31.U)) { io.csrsR.rdata(i) := 0.U }
     when(io.csrsR.rcsr(i) === Mcountinhibit) { io.csrsR.rdata(i) := mcountinhibit }
@@ -234,12 +244,13 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
     when(io.csrsR.rcsr(i) === Mtval) { io.csrsR.rdata(i) := 0.U } // A simple implementation.
     when((io.csrsR.rcsr(i) === Pmpcfg0) || (io.csrsR.rcsr(i) === Pmpcfg2)) { io.csrsR.rdata(i) := 0.U }
     when((io.csrsR.rcsr(i) >= Pmpaddr(0.U)) && (io.csrsR.rcsr(i) <= Pmpaddr(15.U))) { io.csrsR.rdata(i) := 0.U }
-    
+
     if (xlen == 32) {
       when((io.csrsR.rcsr(i) === Pmpcfg1) || (io.csrsR.rcsr(i) === Pmpcfg3)) { io.csrsR.rdata(i) := 0.U }
-      .elsewhen(io.csrsR.rcsr(i) === Mcycleh) { io.csrsR.rdata(i) := mcycle(63, 32) }
-      .elsewhen(io.csrsR.rcsr(i) === Minstreth) { io.csrsR.rdata(i) := minstret(63, 32) }
-      .elsewhen(io.csrsR.rcsr(i) >= Mhpmcounterh(3.U) && io.csrsR.rcsr(i) <= Mhpmcounterh(31.U)) { io.csrsR.rdata(i) := 0.U }
+      when(io.csrsR.rcsr(i) === Mcycleh || io.csrsR.rcsr(i) === Cycleh) { io.csrsR.rdata(i) := mcycle(63, 32) }
+      when(io.csrsR.rcsr(i) === Minstreth || io.csrsR.rcsr(i) === Instreth) { io.csrsR.rdata(i) := minstret(63, 32) }
+      when(io.csrsR.rcsr(i) >= Mhpmcounterh(3.U) && io.csrsR.rcsr(i) <= Mhpmcounterh(31.U)) { io.csrsR.rdata(i) := 0.U }
+      when(io.csrsR.rcsr(i) === Timeh) { io.csrsR.rdata(i) := mtime(63, 32) }
     }
   }
 }

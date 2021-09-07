@@ -15,17 +15,16 @@ class WB(implicit p: Parameters) extends YQModule {
     val csrsW  = Flipped(new CSRsW)
     val lastVR = new LastVR
     val input  = Flipped(new MEMOutput)
+    val retire = Output(Bool())
     val debug = if (Debug) new YQBundle {
       val pc      = Output(UInt(alen.W))
       val exit    = Output(UInt(3.W))
-      val wbvalid = Output(Bool())
       val rd      = Output(UInt(5.W))
     } else null
   })
 
   val pc      = if (Debug) RegInit(0.U(alen.W)) else null
   val exit    = if (Debug) RegInit(0.U(3.W)) else null
-  val wbvalid = if (Debug) RegInit(0.B) else null
   val rd      = if (Debug) RegInit(0.U(5.W)) else null
 
   io.gprsW.wen   := 0.B
@@ -37,6 +36,7 @@ class WB(implicit p: Parameters) extends YQModule {
   io.csrsW.wdata := io.input.csrData
 
   io.lastVR.READY := 1.B
+  io.retire       := RegNext(io.lastVR.VALID)
   
   when(io.lastVR.VALID) { // ready to start fetching instr
     io.gprsW.wen := (io.input.rd =/= 0.U)
@@ -51,8 +51,6 @@ class WB(implicit p: Parameters) extends YQModule {
   if (Debug) {
     io.debug.exit    := exit
     io.debug.pc      := pc
-    io.debug.wbvalid := wbvalid
     io.debug.rd      := rd
-    wbvalid := io.lastVR.VALID
   }
 }
