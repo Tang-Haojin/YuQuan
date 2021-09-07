@@ -78,24 +78,24 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
   val MXL   = log2Down(xlen) - 4
   val MXLEN = 64
 
-  val SPPInit  = 0
-  val MPPInit  = 3
-  val UXLInit  = if (extensions.contains('S')) log2Down(xlen) - 4 else 0
-  val SXLInit  = if (extensions.contains('S')) log2Down(xlen) - 4 else 0
-  val MPRVInit = 0
-  val MXRInit  = 0
-  val SUMInit  = 0
-  val TVMInit  = 0
-  val TWInit   = 0
-  val TSRInit  = 0
-  val FSInit   = 0
-  val XSInit   = 0
-  val SDInit   = 0
+  private val SPPInit : Long = 1
+  private val MPPInit : Long = 3
+  private val UXLInit : Long = if (extensions.contains('S')) log2Down(xlen) - 4 else 0
+  private val SXLInit : Long = if (extensions.contains('S')) log2Down(xlen) - 4 else 0
+  private val MPRVInit: Long = 0
+  private val MXRInit : Long = 0
+  private val SUMInit : Long = 0
+  private val TVMInit : Long = 0
+  private val TWInit  : Long = 0
+  private val TSRInit : Long = 0
+  private val FSInit  : Long = 0
+  private val XSInit  : Long = 0
+  private val SDInit  : Long = 0
 
-  var mstatusInit = SPPInit  << 8  | MPPInit << 11 | FSInit  << 13 | XSInit  << 15 |
-                    MPRVInit << 17 | SUMInit << 18 | MXRInit << 19 | TVMInit << 20 |
-                    TWInit   << 21 | TSRInit << 22 | SDInit  << (xlen - 1)
-  if (xlen != 32)   mstatusInit = mstatusInit | UXLInit << 32 | SXLInit << 34
+  private var mstatusInit: Long = SPPInit  << 8  | MPPInit << 11 | FSInit  << 13 | XSInit  << 15 |
+                                  MPRVInit << 17 | SUMInit << 18 | MXRInit << 19 | TVMInit << 20 |
+                                  TWInit   << 21 | TSRInit << 22 | SDInit  << (xlen - 1)
+  if (xlen != 32)                 mstatusInit = mstatusInit | UXLInit << 32 | SXLInit << 34
 
   val mipInit = 0x888.U
   val mieInit = 0x888.U
