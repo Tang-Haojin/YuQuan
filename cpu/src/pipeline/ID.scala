@@ -28,7 +28,6 @@ class ID(implicit p: Parameters) extends YQModule {
   val special    = RegInit(0.U(5.W))
   val instr      = RegInit(0.U(32.W))
   val newPriv    = RegInit(3.U(2.W))
-  val changePriv = RegInit(0.B)
   val pc      = if (Debug) RegInit(0.U(alen.W)) else null
 
   val num = RegInit(VecInit(Seq.fill(4)(0.U(xlen.W))))
@@ -55,7 +54,6 @@ class ID(implicit p: Parameters) extends YQModule {
   val wireDataRs2 = WireDefault(UInt(xlen.W), io.gprsR.rdata(1))
   val wireExcept  = WireDefault(VecInit(Seq.fill(16)(0.B)))
   val wireNewPriv = WireDefault(3.U(2.W))
-  val wireChangeP = WireDefault(0.B)
 
   private implicit val implicitParam = (io, wireSpecial, wireRd, wireCsr, wireNum, wireExcept)
 
@@ -83,7 +81,6 @@ class ID(implicit p: Parameters) extends YQModule {
   io.csrsR.rcsr(2) := csrsAddr().Mie
   io.csrsR.rcsr(7) := csrsAddr().Mip
 
-  io.changePriv := io.nextVR.VALID && changePriv
   io.newPriv    := newPriv
 
   for (i <- 1 to 4) {
@@ -179,17 +176,18 @@ class ID(implicit p: Parameters) extends YQModule {
     is(ecall)  { wireExcept(11) := 1.B } // environment call from M-mode
     is(ebreak) { wireExcept(3)  := 1.B } // breakpoint
     is(mret) {
-      io.csrsR.rcsr(0) := csrsAddr().Mepc
-      io.csrsR.rcsr(1) := csrsAddr().Mstatus
+      when(io.currentPriv =/= 3.U) { wireExcept(2) := 1.B } // illegal instruction
+      .otherwise {
+        io.csrsR.rcsr(0) := csrsAddr().Mepc
 
-      wireCsr(0) := csrsAddr().Mstatus
-      wireNum(0) := io.csrsR.rdata(1)
+        wireCsr(0) := csrsAddr().Mstatus
+        wireNum(0) := io.csrsR.rdata(1)
 
-      wireChangeP := 1.B
-      wireNewPriv := io.csrsR.rdata(1).asTypeOf(new MstatusBundle).MPP
+        wireNewPriv := io.csrsR.rdata(1).asTypeOf(new MstatusBundle).MPP
 
-      io.jmpBch := 1.B
-      io.jbAddr := io.csrsR.rdata(0)(alen - 1, 2) ## 0.U(2.W)
+        io.jmpBch := 1.B
+        io.jbAddr := io.csrsR.rdata(0)(alen - 1, 2) ## 0.U(2.W)
+      }
     }
   }
 
@@ -206,7 +204,6 @@ class ID(implicit p: Parameters) extends YQModule {
     op1_3      := wireOp1_3
     special    := wireSpecial
     instr      := wireInstr
-    changePriv := wireChangeP
     newPriv    := wireNewPriv
     if (Debug) pc := io.input.pc
   }.elsewhen(io.isWait && io.nextVR.READY) {
