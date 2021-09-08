@@ -105,7 +105,7 @@ ysyxcheck: verilog
 	@sed -i '/stuNum = /c\stuNum = int(153)' $(pwd)/.cpu-check.py
 	@python3 $(pwd)/.cpu-check.py
 	@rm $(pwd)/.cpu-check.py $(pwd)/ysyx_21*.v
-	@verilator --lint-only --top-module ysyx_210153 -Wall -Wno-DECLFILENAME build/cpu/ysyx_210153.v build/cpu/S011HD1P_X32Y2D128.v
+	@verilator --lint-only --top-module ysyx_210153 -Wall -Wno-DECLFILENAME $(shell find $(BUILD_DIR)/cpu/*.v)
 
 clean:
 	-rm -rf $(BUILD_DIR)

@@ -33,6 +33,7 @@ object YQConfig {
     case ILEN          => 32 // base instruction set supported only
     case REG_CONF      => new RegConf
     case IS_YSYX       => true
+    case NO_CACHE      => false
   }
 
   class CLINT extends MMAP {
@@ -66,3 +67,4 @@ case object IALIGN       extends Field[Int]
 case object ILEN         extends Field[Int]
 case object REG_CONF     extends Field[YQConfig.RegConf]
 case object IS_YSYX      extends Field[Boolean]
+case object NO_CACHE     extends Field[Boolean]

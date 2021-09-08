@@ -2,7 +2,6 @@ package utils
 
 import chisel3._
 import chisel3.util._
-import chipsalliance.rocketchip.config._
 
 class S011HD1P_X32Y2D128(bits: Int = 128, wordDepth: Int = 64) extends BlackBox with HasBlackBoxInline {
   val io = IO(new Bundle {
@@ -64,7 +63,7 @@ object SramWrapper {
   def apply(clock: Clock, bits: Int = 128, wordDepth: Int = 64): SramWrapper = new SramWrapper(clock, bits, wordDepth)
 }
 
-class SinglePortRam(clock: Clock, bits: Int = 128, wordDepth: Int = 64, associativity: Int = 4) {
+class SinglePortRam(clock: Clock, bits: Int = 128, wordDepth: Int = 64, associativity: Int = 4) extends ReadWriteInterface {
   private val SRAMs = Seq.fill(associativity)(SramWrapper(clock, bits, wordDepth))
 
   def read(x: UInt, en: Bool = 1.B): Vec[UInt] = {
@@ -78,4 +77,18 @@ class SinglePortRam(clock: Clock, bits: Int = 128, wordDepth: Int = 64, associat
 
 object SinglePortRam {
   def apply(clock: Clock, bits: Int = 128, wordDepth: Int = 64, associativity: Int = 4): SinglePortRam = new SinglePortRam(clock, bits, wordDepth, associativity)
+}
+
+class NoCacheRam(associativity: Int = 4) extends ReadWriteInterface {
+  def read(x: UInt, en: Bool = 1.B): Vec[UInt] = VecInit(Seq.fill(associativity)(0.U))
+  def write(idx: UInt, data: Vec[UInt], mask: Seq[Bool]): Unit = {}
+}
+
+object NoCacheRam {
+  def apply(associativity: Int = 4): NoCacheRam = new NoCacheRam(associativity)
+}
+
+abstract private[utils] class ReadWriteInterface {
+  def read(x: UInt, en: Bool = 1.B): Vec[UInt]
+  def write(idx: UInt, data: Vec[UInt], mask: Seq[Bool]): Unit
 }

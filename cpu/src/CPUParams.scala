@@ -17,4 +17,5 @@ abstract trait CPUParams extends UtilsParams {
   val RegConf      = p(REG_CONF)
   val Debug        = p(ENABLE_DEBUG)
   val IsYsyx       = p(IS_YSYX)
+  val noCache      = p(NO_CACHE)
 }

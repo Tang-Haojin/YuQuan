@@ -116,7 +116,7 @@ object WbBuffer {
   def apply(memIO: AXI_BUNDLE, sendData: UInt, sendAddr: UInt)(implicit p: Parameters): WbBuffer = new WbBuffer(memIO, sendData, sendAddr)
 }
 
-class PassThrough(readonly: Boolean)(var memIO: AXI_BUNDLE, wbFree: Bool, addr: UInt, wdata: UInt, wstrb: UInt, var rw: Bool)(implicit val p: Parameters) extends CPUParams {
+class PassThrough(readonly: Boolean)(var memIO: AXI_BUNDLE, wbFree: Bool, addr: UInt, wdata: UInt, wstrb: UInt, var rw: Bool, axsize: UInt = log2Ceil(32 / 8).U)(implicit val p: Parameters) extends CPUParams {
   val ready  = RegInit(1.B)
   val valid  = WireDefault(0.B)
   val finish = WireDefault(0.B)
@@ -139,7 +139,7 @@ class PassThrough(readonly: Boolean)(var memIO: AXI_BUNDLE, wbFree: Bool, addr: 
         when(wbFree) {
           memIO.aw.valid     := AWVALID
           memIO.aw.bits.len  := 0.U
-          memIO.aw.bits.size := axSize.U
+          memIO.aw.bits.size := axsize
           memIO.aw.bits.addr := addr
 
           memIO.w.valid     := WVALID
@@ -170,7 +170,7 @@ class PassThrough(readonly: Boolean)(var memIO: AXI_BUNDLE, wbFree: Bool, addr: 
     when(!rw) {
       memIO.ar.valid     := ARVALID
       memIO.ar.bits.len  := 0.U
-      memIO.ar.bits.size := axSize.U
+      memIO.ar.bits.size := axsize
       memIO.ar.bits.addr := addr
 
       memIO.r.ready := RREADY
@@ -201,7 +201,7 @@ object PassThrough {
    * @param wstrb Write data byte mask
    * @param rw Read or Write request
    */
-  def apply(readonly: Boolean)(memIO: AXI_BUNDLE, wbFree: Bool, addr: UInt, wdata: UInt, wstrb: UInt, rw: Bool)(implicit p: Parameters): PassThrough = new PassThrough(readonly)(memIO, wbFree, addr, wdata, wstrb, rw)
+  def apply(readonly: Boolean)(memIO: AXI_BUNDLE, wbFree: Bool, addr: UInt, wdata: UInt, wstrb: UInt, rw: Bool, axsize: UInt = log2Ceil(32 / 8).U)(implicit p: Parameters): PassThrough = new PassThrough(readonly)(memIO, wbFree, addr, wdata, wstrb, rw, axsize)
 }
 
 class ICacheMemIODefault(memIO: AXI_BUNDLE, arValid: Bool, arAddr: UInt, rReady: Bool)(implicit val p: Parameters) extends CPUParams with CacheParams {
