@@ -55,12 +55,9 @@ class ID(implicit p: Parameters) extends YQModule {
   val wireExcept  = WireDefault(VecInit(Seq.fill(16)(0.B)))
   val wireNewPriv = WireDefault(3.U(2.W))
 
-  private implicit val implicitParam = (io, wireSpecial, wireRd, wireCsr, wireNum, wireExcept)
 
-  val wireData    = Wire(UInt(xlen.W))
-
-  val alu1_2 = Module(new SimpleALU)
-  wireData  := alu1_2.io.res.asUInt
+  val alu1_2   = Module(new SimpleALU)
+  val wireData = WireDefault(UInt(xlen.W), alu1_2.io.res.asUInt)
   alu1_2.io.a  := wireNum(0).asSInt
   alu1_2.io.b  := wireNum(1).asSInt
   alu1_2.io.op := wireOp1_2
@@ -219,31 +216,30 @@ class ID(implicit p: Parameters) extends YQModule {
   }
 
   if (Debug) io.output.debug.pc := pc
-}
 
-private class AddException(interrupt: Boolean = false, exceptionCode: Value = usi)
-  (implicit param: (IDIO, UInt, UInt, Vec[UInt], Vec[UInt], Vec[Bool]), val p: Parameters) extends CPUParams {
-  private val fire = WireDefault(0.B)
-  private val code = WireDefault(0.U(xlen.W))
-  if (interrupt) {
-    fire := param._1.csrsR.rdata(1)(3) && param._1.csrsR.rdata(2)(exceptionCode) && param._1.csrsR.rdata(7)(exceptionCode)
-    code := interrupt.B ## exceptionCode.U((xlen - 1).W)
-  } else for (i <- param._6.indices) when(param._6(i)) { fire := 1.B; code := i.U }
-  when(param._1.lastVR.VALID) {
-    when(fire) {
-      param._1.csrsR.rcsr(5) := csrsAddr().Mtvec
-      param._1.jmpBch := 1.B
-      param._2 := exception
-      param._3 := 0.U
-      param._4 := VecInit(csrsAddr().Mepc, csrsAddr().Mcause, csrsAddr().Mtval, csrsAddr().Mstatus)
-      param._5 := VecInit(param._1.input.pc, code, param._1.input.instr, param._1.csrsR.rdata(1))
+  private class AddException(interrupt: Boolean = false, exceptionCode: Value = usi) {
+    private val fire = WireDefault(0.B)
+    private val code = WireDefault(0.U(xlen.W))
+    if (interrupt) {
+      fire := io.csrsR.rdata(1)(3) && io.csrsR.rdata(2)(exceptionCode) && io.csrsR.rdata(7)(exceptionCode)
+      code := interrupt.B ## exceptionCode.U((xlen - 1).W)
+    } else for (i <- wireExcept.indices) when(wireExcept(i)) { fire := 1.B; code := i.U }
+    when(io.lastVR.VALID) {
+      when(fire) {
+        io.csrsR.rcsr(5) := csrsAddr().Mtvec
+        io.jmpBch := 1.B
+        wireSpecial := exception
+        wireRd := 0.U
+        wireCsr := VecInit(csrsAddr().Mepc, csrsAddr().Mcause, csrsAddr().Mtval, csrsAddr().Mstatus)
+        wireNum := VecInit(io.input.pc, code, io.input.instr, io.csrsR.rdata(1))
 
-      when(interrupt.B && param._1.csrsR.rdata(5)(0)) { param._1.jbAddr := param._1.csrsR.rdata(5)(alen - 1, 2) ## 0.U(2.W) + (exceptionCode * 4).U }
-      .otherwise { param._1.jbAddr := param._1.csrsR.rdata(5)(alen - 1, 2) ## 0.U(2.W) }
+        when(interrupt.B && io.csrsR.rdata(5)(0)) { io.jbAddr := io.csrsR.rdata(5)(alen - 1, 2) ## 0.U(2.W) + (exceptionCode * 4).U }
+        .otherwise { io.jbAddr := io.csrsR.rdata(5)(alen - 1, 2) ## 0.U(2.W) }
+      }
     }
   }
-}
 
-private object AddException {
-  def apply(interrupt: Boolean = false, exceptionCode: Value = usi)(implicit param: (IDIO, UInt, UInt, Vec[UInt], Vec[UInt], Vec[Bool]), p: Parameters): AddException = new AddException(interrupt, exceptionCode)
+  private object AddException {
+    def apply(interrupt: Boolean = false, exceptionCode: Value = usi): AddException = new AddException(interrupt, exceptionCode)
+  }
 }
