@@ -65,6 +65,8 @@ trait CSRsAddr extends CPUParams {
   val Cycleh        = if (xlen == 32) 0xC80.U else null
   val Timeh         = if (xlen == 32) 0xC81.U else null
   val Instreth      = if (xlen == 32) 0xC82.U else null
+
+  val Sstatus       = 0x100.U
 }
 
 class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
@@ -91,8 +93,6 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
   val mhartid   = 0.U(xlen.W) // the hart that running the code
   val mtvec     = RegInit(0.U(xlen.W))
   val mstatus   = RegInit({ val init = WireDefault(0.U.asTypeOf(new MstatusBundle))
-    init.SPP  := 1.U
-    init.MPP  := 3.U
     init.UXL  := (if (extensions.contains('S')) log2Down(xlen) - 4 else 0).U
     init.SXL  := (if (extensions.contains('S')) log2Down(xlen) - 4 else 0).U
     init.MPRV := 0.U
@@ -100,7 +100,7 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
     init.SUM  := 0.U
     init.TVM  := 0.U
     init.TW   := 0.U
-    init.TSR  := 0.U
+    init.TSR  := 0.B
     init.FS   := 0.U
     init.XS   := 0.U
     init.SD   := 0.U
@@ -136,6 +136,8 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
   val mtime = RegInit(0.U(64.W))
   val mtimecmp = RegInit(0.U(64.W))
 
+  val sstatus = RegInit(0.U.asTypeOf(new SstatusBundle))
+
   val currentPriv = RegEnable(io.newPriv, 3.U(2.W), io.changePriv)
   io.currentPriv := currentPriv
 
@@ -161,8 +163,7 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
           val wdata = io.csrsW.wdata(i).asTypeOf(new MstatusBundle)
           mstatus := wdata
 
-          mstatus.SPP  := 1.B
-          mstatus.MPP  := Mux(wdata.MPP === 3.U || wdata.MPP === 1.U, wdata.MPP, mstatus.MPP)
+          mstatus.MPP  := Mux(wdata.MPP =/= 2.U, wdata.MPP, mstatus.MPP)
           mstatus.FS   := 0.U
           mstatus.XS   := 0.U
           mstatus.MPRV := 0.B
@@ -170,7 +171,6 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
           mstatus.MXR  := 0.B
           mstatus.TVM  := 0.B
           mstatus.TW   := 0.B
-          mstatus.TSR  := 0.B
           mstatus.SD   := 0.B
 
           if (xlen != 32) {
@@ -212,6 +212,25 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
         when(io.csrsW.wcsr(i) === Mtval) {} // Do nothing. A simple implementation.
         when((io.csrsW.wcsr(i) === Pmpcfg0) || (io.csrsW.wcsr(i) === Pmpcfg2)) {} // Currently do nothing.
         when((io.csrsW.wcsr(i) >= Pmpaddr(0.U)) && (io.csrsW.wcsr(i) <= Pmpaddr(15.U))) {} // Currently do nothing.
+        when(io.csrsW.wcsr(i) === Sstatus) {
+          val smstatus = WireDefault(new MstatusBundle, io.csrsW.wdata(i).asTypeOf(new MstatusBundle))
+          val ssstatus = io.csrsW.wdata(i).asTypeOf(new SstatusBundle)
+          smstatus.MIE    := mstatus.MIE
+          smstatus.MPIE   := mstatus.MPIE
+          smstatus.MPP    := mstatus.MPP
+          smstatus.MPRV   := mstatus.MPRV
+          smstatus.TVM    := mstatus.TVM
+          smstatus.TW     := mstatus.TW
+          smstatus.TSR    := mstatus.TSR
+          smstatus.SXL    := mstatus.SXL
+          smstatus.WPRI_0 := mstatus.WPRI_0
+          smstatus.WPRI_1 := mstatus.WPRI_1
+          smstatus.WPRI_2 := mstatus.WPRI_2
+          smstatus.WPRI_3 := mstatus.WPRI_3
+          smstatus.WPRI_4 := mstatus.WPRI_4
+          mstatus := smstatus
+          sstatus := ssstatus
+        }
 
         if (xlen == 32) {
           when((io.csrsW.wcsr(i) === Pmpcfg1) || (io.csrsW.wcsr(i) === Pmpcfg3)) {} // Currently do nothing.
@@ -247,6 +266,21 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
     when(io.csrsR.rcsr(i) === Mtval) { io.csrsR.rdata(i) := 0.U } // A simple implementation.
     when((io.csrsR.rcsr(i) === Pmpcfg0) || (io.csrsR.rcsr(i) === Pmpcfg2)) { io.csrsR.rdata(i) := 0.U }
     when((io.csrsR.rcsr(i) >= Pmpaddr(0.U)) && (io.csrsR.rcsr(i) <= Pmpaddr(15.U))) { io.csrsR.rdata(i) := 0.U }
+    when(io.csrsR.rcsr(i) === Sstatus) { io.csrsR.rdata(i) := {
+      val ssstatus = WireDefault(new SstatusBundle, sstatus)
+      ssstatus.SD   := mstatus.SD
+      ssstatus.UXL  := mstatus.UXL
+      ssstatus.MXR  := mstatus.MXR
+      ssstatus.SUM  := mstatus.SUM
+      ssstatus.XS   := mstatus.XS
+      ssstatus.FS   := mstatus.FS
+      ssstatus.SPP  := mstatus.SPP
+      ssstatus.SPIE := mstatus.SPIE
+      ssstatus.UPIE := mstatus.UPIE
+      ssstatus.SIE  := mstatus.SIE
+      ssstatus.UIE  := mstatus.UIE
+      ssstatus.asUInt
+    }}
 
     if (xlen == 32) {
       when((io.csrsR.rcsr(i) === Pmpcfg1) || (io.csrsR.rcsr(i) === Pmpcfg3)) { io.csrsR.rdata(i) := 0.U }

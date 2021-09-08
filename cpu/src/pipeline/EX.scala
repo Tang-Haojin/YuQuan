@@ -87,7 +87,9 @@ class EX(implicit p: Parameters) extends YQModule {
   }
   when(io.input.special === mret) {
     wireCsrData(0) := Cat(
-      io.input.num(0)(xlen - 1, 8),
+      io.input.num(0)(xlen - 1, 13),
+      0.U(2.W),
+      io.input.num(0)(10, 8),
       1.B,
       io.input.num(0)(6, 4),
       io.input.num(0)(7), // MPIE
