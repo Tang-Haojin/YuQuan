@@ -32,134 +32,99 @@ class MstatusBundle(implicit val p: Parameters) extends Bundle with CPUParams {
   val WPRI_4 = Bool()
   val SIE    = Bool()
   val UIE    = Bool()
-}
 
-class SstatusBundle(implicit val p: Parameters) extends Bundle with CPUParams {
-  val SD     = UInt(1.W)
-  val WPRI_0 = UInt((if (xlen == 32) 11 else xlen - 35).W)
-  val UXL    = UInt((if (xlen == 32) 0 else 2).W)
-  val WPRI_1 = UInt((if (xlen == 32) 0 else 12).W)
-  val MXR    = UInt(1.W)
-  val SUM    = UInt(1.W)
-  val WPRI_2 = UInt(1.W)
-  val XS     = UInt(2.W)
-  val FS     = UInt(2.W)
-  val WPRI_3 = UInt(4.W)
-  val SPP    = UInt(1.W)
-  val WPRI_4 = UInt(2.W)
-  val SPIE   = Bool()
-  val UPIE   = Bool()
-  val WPRI_5 = UInt(2.W)
-  val SIE    = Bool()
-  val UIE    = Bool()
-}
-
-class MIP(mip: UInt, init: Option[UInt])(implicit val p: Parameters) extends CPUParams {
-  val reg = if (init.isEmpty) mip else RegInit(mip, init.get)
-
-  val USIP = WireDefault(reg(0))
-  val SSIP = WireDefault(reg(1))
-  val MSIP = WireDefault(reg(3))
-  val UTIP = WireDefault(reg(4))
-  val STIP = WireDefault(reg(5))
-  val MTIP = WireDefault(reg(7))
-  val UEIP = WireDefault(reg(8))
-  val SEIP = WireDefault(reg(9))
-  val MEIP = WireDefault(reg(11))
-
-  if (init.isDefined)
-    reg := Cat(0.U((xlen - 12).W),
-               MEIP, 0.B, SEIP, UEIP,
-               MTIP, 0.B, STIP, UTIP,
-               MSIP, 0.B, SSIP, USIP)
-
-  final def := (that: => MIP): Unit = {
-    this.MSIP := that.MSIP
-    this.MTIP := that.MTIP
-    this.MEIP := that.MEIP
-    if (extensions.contains('S')) {
-      this.SSIP := that.SSIP
-      this.STIP := that.STIP
-      this.SEIP := that.SEIP
-    }
-    if (extensions.contains('U')) {
-      this.USIP := that.USIP
-      this.UTIP := that.UTIP
-      this.UEIP := that.UEIP
-    }
+  def := (that: => Data): Unit = {
+    val mstatus = WireDefault(new MstatusBundle, that.asTypeOf(new MstatusBundle))
+    MPP := Mux(mstatus.MPP =/= 2.U, mstatus.MPP, MPP)
+    SPP := mstatus.SPP; MPIE := mstatus.MPIE; SPIE := mstatus.SPIE; UPIE := mstatus.UPIE
+    MIE := mstatus.MIE; SIE := mstatus.SIE; UIE := mstatus.UIE
+    TSR := mstatus.TSR
   }
 }
 
-class MIE(mie: UInt, init: Option[UInt])(implicit val p: Parameters) extends CPUParams {
-  val reg = if (init.isEmpty) mie else RegInit(mie, init.get)
+class MipBundle(implicit val p: Parameters) extends Bundle with CPUParams {
+  val WPRI_0 = UInt((xlen - 12).W)
+  val MEIP   = Bool()
+  val WPRI_1 = Bool()
+  val SEIP   = Bool()
+  val UEIP   = Bool()
+  val MTIP   = Bool()
+  val WPRI_2 = Bool()
+  val STIP   = Bool()
+  val UTIP   = Bool()
+  val MSIP   = Bool()
+  val WPRI_3 = Bool()
+  val SSIP   = Bool()
+  val USIP   = Bool()
+}
 
-  val USIE = WireDefault(reg(0))
-  val SSIE = WireDefault(reg(1))
-  val MSIE = WireDefault(reg(3))
-  val UTIE = WireDefault(reg(4))
-  val STIE = WireDefault(reg(5))
-  val MTIE = WireDefault(reg(7))
-  val UEIE = WireDefault(reg(8))
-  val SEIE = WireDefault(reg(9))
-  val MEIE = WireDefault(reg(11))
+class MieBundle(implicit val p: Parameters) extends Bundle with CPUParams {
+  val WPRI_0 = UInt((xlen - 12).W)
+  val MEIE   = Bool()
+  val WPRI_1 = Bool()
+  val SEIE   = Bool()
+  val UEIE   = Bool()
+  val MTIE   = Bool()
+  val WPRI_2 = Bool()
+  val STIE   = Bool()
+  val UTIE   = Bool()
+  val MSIE   = Bool()
+  val WPRI_3 = Bool()
+  val SSIE   = Bool()
+  val USIE   = Bool()
 
-  if (init.isDefined)
-    reg := Cat(0.U((xlen - 12).W),
-               MEIE, 0.B, SEIE, UEIE,
-               MTIE, 0.B, STIE, UTIE,
-               MSIE, 0.B, SSIE, USIE)
-
-  final def := (that: => MIE): Unit = {
-    this.MSIE := that.MSIE
-    this.MTIE := that.MTIE
-    this.MEIE := that.MEIE
-    if (extensions.contains('S')) {
-      this.SSIE := that.SSIE
-      this.STIE := that.STIE
-      this.SEIE := that.SEIE
-    }
-    if (extensions.contains('U')) {
-      this.USIE := that.USIE
-      this.UTIE := that.UTIE
-      this.UEIE := that.UEIE
-    }
+  def := (that: => Data): Unit = {
+    val mie = WireDefault(new MieBundle, that.asTypeOf(new MieBundle))
+    MEIE := mie.MEIE; MSIE := mie.MSIE; MTIE := mie.MTIE
+    if (extensions.contains('S')) { SEIE := mie.SEIE; SSIE := mie.SSIE; STIE := mie.STIE }
+    if (extensions.contains('U')) { UEIE := mie.UEIE; USIE := mie.USIE; UTIE := mie.UTIE }
   }
 }
 
-object MIP {
+class Sstatus(val mstatus: MstatusBundle)(implicit val p: Parameters) extends CPUParams {
+  def := (that: => Data): Unit = {
+    val smstatus = WireDefault(new MstatusBundle, that.asTypeOf(new MstatusBundle))
+    smstatus.MPP := mstatus.MPP; smstatus.MPIE := mstatus.MPIE; smstatus.MIE := mstatus.MIE
+    smstatus.TSR := mstatus.TSR
+    mstatus := smstatus
+  }
+}
+
+object Sstatus {
   import scala.language.implicitConversions
-  implicit def getval(x: MIP): UInt = x.reg
-  implicit def wrapit(x: UInt)(implicit p: Parameters): MIP = MipInit(x)
+  implicit def getVal(x: Sstatus): UInt = {
+    x.mstatus.SD ## (if (x.xlen == 32) 0.U(11.W) else (0.U((x.xlen - 35).W) ##
+    x.mstatus.UXL ## 0.U(12.W))) ## x.mstatus.MXR ## x.mstatus.SUM ## 0.B ## x.mstatus.XS ##
+    x.mstatus.FS ## 0.U(4.W) ## x.mstatus.SPP ## 0.U(2.W) ## x.mstatus.SPIE ## x.mstatus.UPIE ##
+    0.U(2.W) ## x.mstatus.SIE ## x.mstatus.UIE
+  }
 }
 
-object MIE {
+class Sip(val mip: MipBundle)(implicit val p: Parameters) extends CPUParams {
+  def := (that: => Data): Unit = {
+    val smip = WireDefault(new MipBundle, that.asTypeOf(new MipBundle))
+    mip.SSIP := smip.SSIP; mip.USIP := smip.USIP; mip.UEIP := smip.UEIP
+  }
+}
+
+object Sip {
   import scala.language.implicitConversions
-  implicit def getval(x: MIE): UInt = x.reg
-  implicit def wrapit(x: UInt)(implicit p: Parameters): MIE = MieInit(x)
+  implicit def getVal(x: Sip): UInt = {
+    0.U((x.xlen - 10).W) ## x.mip.SEIP ## x.mip.UEIP ## 0.U(2.W) ## x.mip.STIP ## x.mip.UTIP ## 0.U(2.W) ## x.mip.SSIP ## x.mip.USIP
+  }
 }
 
-object MipInit {
-  /** Construct a [[MIP]] wrapper with [[UInt]].
-    * @param mip A [[UInt]] to be decoded as mip
-    */
-  def apply(mip: UInt)(implicit p: Parameters): MIP = new MIP(mip, None)
-
-  /** Construct a [[MIP]] from a type template initialized to the specified value on reset
-    * @param t The type template used to construct the Mip
-    * @param init The value the Mip is initialized to on reset
-    */
-  def apply(t: UInt, init: UInt)(implicit p: Parameters): MIP = new MIP(t, Some(init))
+class Sie(val mie: MieBundle)(implicit val p: Parameters) extends CPUParams {
+  def := (that: => Data): Unit = {
+    val smie = WireDefault(new MieBundle, that.asTypeOf(new MieBundle))
+    smie.MEIE := mie.MEIE; smie.MSIE := mie.MSIE; smie.MTIE := mie.MTIE
+    mie := smie
+  }
 }
 
-object MieInit {
-  /** Construct a [[MIE]] wrapper with [[UInt]].
-    * @param mie A [[UInt]] to be decoded as mie
-    */
-  def apply(mie: UInt)(implicit p: Parameters): MIE = new MIE(mie, None)
-
-  /** Construct a [[MIE]] from a type template initialized to the specified value on reset
-    * @param t The type template used to construct the Mie
-    * @param init The value the Mie is initialized to on reset
-    */
-  def apply(t: UInt, init: UInt)(implicit p: Parameters): MIE = new MIE(t, Some(init))
+object Sie {
+  import scala.language.implicitConversions
+  implicit def getVal(x: Sie): UInt = {
+    0.U((x.xlen - 10).W) ## x.mie.SEIE ## x.mie.UEIE ## 0.U(2.W) ## x.mie.STIE ## x.mie.UTIE ## 0.U(2.W) ## x.mie.SSIE ## x.mie.USIE
+  }
 }
