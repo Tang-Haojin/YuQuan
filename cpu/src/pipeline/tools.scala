@@ -75,7 +75,6 @@ class IDIO(implicit p: Parameters) extends YQBundle {
   val isWait      = Input (Bool())
   val currentPriv = Input (UInt(2.W))
   val newPriv     = Output(UInt(2.W))
-  val changePriv  = Output(Bool())
 }
 
 // IF
