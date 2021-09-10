@@ -14,43 +14,43 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
     val memIO = new AXI_BUNDLE
   })
 
-  val rand = MaximalPeriodGaloisLFSR(2)
-  val idle::compare::allocate::passing::Nil = Enum(4)
-  val state = RegInit(UInt(2.W), idle)
-  val received = RegInit(0.U(LogBurstLen.W))
+  private val rand = MaximalPeriodGaloisLFSR(2)
+  private val idle::compare::allocate::passing::Nil = Enum(4)
+  private val state = RegInit(UInt(2.W), idle)
+  private val received = RegInit(0.U(LogBurstLen.W))
 
-  val addr       = RegInit(0.U(alen.W))
-  val addrOffset = addr(Offset - 1, 2)
-  val addrIndex  = WireDefault(UInt(Index.W), addr(Index + Offset - 1, Offset))
-  val addrTag    = addr(alen - 1, Index + Offset)
-  val memAddr    = addr(alen - 1, Offset) ## 0.U(Offset.W)
+  private val addr       = RegInit(0.U(alen.W))
+  private val addrOffset = addr(Offset - 1, 2)
+  private val addrIndex  = WireDefault(UInt(Index.W), addr(Index + Offset - 1, Offset))
+  private val addrTag    = addr(alen - 1, Index + Offset)
+  private val memAddr    = addr(alen - 1, Offset) ## 0.U(Offset.W)
 
-  val ARVALID = RegInit(0.B); val RREADY  = RegInit(0.B)
+  private val ARVALID = RegInit(0.B); private val RREADY  = RegInit(0.B)
   ICacheMemIODefault(io.memIO, ARVALID, memAddr, RREADY)
 
-  val ramValid = SyncReadRegs(1, IndexSize, Associativity)
-  val ramTag   = SyncReadRegs(Tag, IndexSize, Associativity)
-  val ramData  = if (noCache) NoCacheRam(Associativity) else SinglePortRam(clock, BlockSize * 8, IndexSize, Associativity)
+  private val ramValid = SyncReadRegs(1, IndexSize, Associativity)
+  private val ramTag   = SyncReadRegs(Tag, IndexSize, Associativity)
+  private val ramData  = if (noCache) NoCacheRam(Associativity) else SinglePortRam(clock, BlockSize * 8, IndexSize, Associativity)
 
-  val hit = WireDefault(0.B)
-  val grp = WireDefault(0.U(log2Ceil(Associativity).W))
-  val wen = WireDefault(VecInit(Seq.fill(Associativity)(0.B)))
-  val ren = { var x = 1.B; for (i <- wen.indices) { x = x | ~wen(i) }; x }
+  private val hit = WireDefault(0.B)
+  private val grp = WireDefault(0.U(log2Ceil(Associativity).W))
+  private val wen = WireDefault(VecInit(Seq.fill(Associativity)(0.B)))
+  private val ren = { var x = 1.B; for (i <- wen.indices) { x = x | ~wen(i) }; x }
 
-  val valid = ramValid.read(addrIndex, ren)
-  val tag   = ramTag  .read(addrIndex, ren)
-  val data  = ramData .read(addrIndex, ren)
+  private val valid = ramValid.read(addrIndex, ren)
+  private val tag   = ramTag  .read(addrIndex, ren)
+  private val data  = ramData .read(addrIndex, ren)
 
-  val way = RegInit(0.U(log2Ceil(Associativity).W))
-  val writeBuffer = RegInit(VecInit(Seq.fill(BurstLen - 1)(0.U(xlen.W))))
-  val wordData = WireDefault(VecInit((0 until BlockSize / 4).map { i =>
+  private val way = RegInit(0.U(log2Ceil(Associativity).W))
+  private val writeBuffer = RegInit(VecInit(Seq.fill(BurstLen - 1)(0.U(xlen.W))))
+  private val wordData = WireDefault(VecInit((0 until BlockSize / 4).map { i =>
     if (noCache) 0.U else data(grp)(i * 32 + 31, i * 32)
   }))
 
-  val wdata     = io.memIO.r.bits.data ## writeBuffer.asUInt
-  val vecWvalid = VecInit(Seq.fill(Associativity)(1.U))
-  val vecWtag   = VecInit(Seq.fill(Associativity)(addrTag))
-  val vecWdata  = VecInit(Seq.fill(Associativity)(wdata))
+  private val wdata     = io.memIO.r.bits.data ## writeBuffer.asUInt
+  private val vecWvalid = VecInit(Seq.fill(Associativity)(1.U))
+  private val vecWtag   = VecInit(Seq.fill(Associativity)(addrTag))
+  private val vecWdata  = VecInit(Seq.fill(Associativity)(wdata))
 
   ramValid.write(addrIndex, vecWvalid, wen)
   ramTag  .write(addrIndex, vecWtag  , wen)
@@ -64,8 +64,8 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
     addrIndex := io.cpuIO.cpuReq.addr(Index + Offset - 1, Offset)
   }
 
-  val isPeripheral = IsPeripheral(io.cpuIO.cpuReq.addr)
-  val passThrough  = PassThrough(true)(io.memIO, 0.B, addr, 0.U, 0.U, 0.B)
+  private val isPeripheral = IsPeripheral(io.cpuIO.cpuReq.addr)
+  private val passThrough  = PassThrough(true)(io.memIO, 0.B, addr, 0.U, 0.U, 0.B)
 
   when(state === idle && io.cpuIO.cpuReq.valid) {
     state := (if (noCache) passing else compare)

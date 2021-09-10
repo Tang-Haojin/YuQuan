@@ -14,24 +14,24 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
     val memIO = new AXI_BUNDLE
   })
 
-  val rand = MaximalPeriodGaloisLFSR(2)
+  private val rand = MaximalPeriodGaloisLFSR(2)
 
-  val idle::compare::writeback::allocate::passing::Nil = Enum(5)
-  val state = RegInit(UInt(3.W), idle)
-  val received = RegInit(0.U(LogBurstLen.W))
+  private val idle::compare::writeback::allocate::passing::Nil = Enum(5)
+  private val state = RegInit(UInt(3.W), idle)
+  private val received = RegInit(0.U(LogBurstLen.W))
 
-  val ARVALID = RegInit(0.B)
-  val AWVALID = RegInit(0.B)
-  val RREADY  = RegInit(0.B)
+  private val ARVALID = RegInit(0.B)
+  private val AWVALID = RegInit(0.B)
+  private val RREADY  = RegInit(0.B)
 
-  val addr       = RegInit(0.U(alen.W))
-  val reqData    = RegInit(0.U(xlen.W))
-  val reqRw      = RegInit(0.B)
-  val reqWMask   = RegInit(0.U((xlen / 8).W))
-  val addrOffset = addr(Offset - 1, 3)
-  val addrIndex  = WireDefault(UInt(Index.W), addr(Index + Offset - 1, Offset))
-  val addrTag    = addr(alen - 1, Index + Offset)
-  val memAddr    = addr(alen - 1, Offset) ## 0.U(Offset.W)
+  private val addr       = RegInit(0.U(alen.W))
+  private val reqData    = RegInit(0.U(xlen.W))
+  private val reqRw      = RegInit(0.B)
+  private val reqWMask   = RegInit(0.U((xlen / 8).W))
+  private val addrOffset = addr(Offset - 1, 3)
+  private val addrIndex  = WireDefault(UInt(Index.W), addr(Index + Offset - 1, Offset))
+  private val addrTag    = addr(alen - 1, Index + Offset)
+  private val memAddr    = addr(alen - 1, Offset) ## 0.U(Offset.W)
 
   io.memIO.ar.bits.id     := 1.U // 1 for MEM
   io.memIO.ar.bits.len    := (BurstLen - 1).U // (ARLEN + 1) AXI Burst per AXI Transfer (a.k.a. AXI Beat)
@@ -48,45 +48,45 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
 
   io.memIO.r.ready := RREADY
 
-  val ramValid = SyncReadRegs(1, IndexSize, Associativity)
-  val ramDirty = SyncReadRegs(1, IndexSize, Associativity)
-  val ramTag   = SyncReadRegs(Tag, IndexSize, Associativity)
-  val ramData  = if (noCache) NoCacheRam(Associativity) else SinglePortRam(clock, BlockSize * 8, IndexSize, Associativity)
+  private val ramValid = SyncReadRegs(1, IndexSize, Associativity)
+  private val ramDirty = SyncReadRegs(1, IndexSize, Associativity)
+  private val ramTag   = SyncReadRegs(Tag, IndexSize, Associativity)
+  private val ramData  = if (noCache) NoCacheRam(Associativity) else SinglePortRam(clock, BlockSize * 8, IndexSize, Associativity)
 
-  val hit = WireDefault(0.B)
-  val grp = WireDefault(0.U(log2Ceil(Associativity).W))
-  val wen = WireDefault(VecInit(Seq.fill(Associativity)(0.B)))
-  val ren = { var x = 1.B; for (i <- wen.indices) { x = x | ~wen(i) }; x }
+  private val hit = WireDefault(0.B)
+  private val grp = WireDefault(0.U(log2Ceil(Associativity).W))
+  private val wen = WireDefault(VecInit(Seq.fill(Associativity)(0.B)))
+  private val ren = { var x = 1.B; for (i <- wen.indices) { x = x | ~wen(i) }; x }
 
-  val valid = ramValid.read(addrIndex, 1.B)
-  val dirty = ramDirty.read(addrIndex, 1.B)
-  val tag   = ramTag  .read(addrIndex, 1.B)
-  val data  = ramData .read(addrIndex, 1.B)
+  private val valid = ramValid.read(addrIndex, 1.B)
+  private val dirty = ramDirty.read(addrIndex, 1.B)
+  private val tag   = ramTag  .read(addrIndex, 1.B)
+  private val data  = ramData .read(addrIndex, 1.B)
 
-  val way = RegInit(0.U(log2Ceil(Associativity).W))
-  val wireWay = WireDefault(UInt(log2Ceil(Associativity).W), way)
+  private val way = RegInit(0.U(log2Ceil(Associativity).W))
+  private val wireWay = WireDefault(UInt(log2Ceil(Associativity).W), way)
 
-  val isPeripheral = IsPeripheral(io.cpuIO.cpuReq.addr)
+  private val isPeripheral = IsPeripheral(io.cpuIO.cpuReq.addr)
   private val passThroughAxsize = RegInit(log2Ceil(32 / 8).U(3.W))
 
-  val wbBuffer    = WbBuffer(io.memIO, data(wireWay), tag(way) ## addrIndex ## 0.U(Offset.W))
-  val passThrough = PassThrough(false)(io.memIO, wbBuffer.ready, addr, reqData, reqWMask, reqRw, passThroughAxsize)
+  private val wbBuffer    = WbBuffer(io.memIO, data(wireWay), tag(way) ## addrIndex ## 0.U(Offset.W))
+  private val passThrough = PassThrough(false)(io.memIO, wbBuffer.ready, addr, reqData, reqWMask, reqRw, passThroughAxsize)
 
-  val inBuffer = RegInit(VecInit(Seq.fill(BurstLen - 1)(0.U(xlen.W))))
+  private val inBuffer = RegInit(VecInit(Seq.fill(BurstLen - 1)(0.U(xlen.W))))
 
-  val dwordData = WireDefault(VecInit((0 until BlockSize / 8).map { i =>
+  private val dwordData = WireDefault(VecInit((0 until BlockSize / 8).map { i =>
     if (noCache) 0.U else data(grp)(i * 64 + 63, i * 64)
   }))
 
-  val byteData = WireDefault(VecInit((0 until BlockSize).map { i =>
+  private val byteData = WireDefault(VecInit((0 until BlockSize).map { i =>
     if (noCache) 0.U else data(grp)(i * 8 + 7, i * 8)
   })); val byteDatas = byteData.asUInt()
 
-  val wdata     = io.memIO.r.bits.data ## inBuffer.asUInt
-  val vecWvalid = VecInit(Seq.fill(Associativity)(1.U))
-  val vecWdirty = VecInit(Seq.fill(Associativity)(0.U))
-  val vecWtag   = VecInit(Seq.fill(Associativity)(addrTag))
-  val vecWdata  = WireDefault(VecInit(Seq.fill(Associativity)(wdata)))
+  private val wdata     = io.memIO.r.bits.data ## inBuffer.asUInt
+  private val vecWvalid = VecInit(Seq.fill(Associativity)(1.U))
+  private val vecWdirty = VecInit(Seq.fill(Associativity)(0.U))
+  private val vecWtag   = VecInit(Seq.fill(Associativity)(addrTag))
+  private val vecWdata  = WireDefault(VecInit(Seq.fill(Associativity)(wdata)))
 
   ramValid.write(addrIndex, vecWvalid, wen)
   ramDirty.write(addrIndex, vecWdirty, wen)
