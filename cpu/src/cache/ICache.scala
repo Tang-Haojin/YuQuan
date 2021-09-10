@@ -12,6 +12,7 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   val io = IO(new YQBundle {
     val cpuIO = new CpuIO(32)
     val memIO = new AXI_BUNDLE
+    val inv   = Flipped(Irrevocable(Bool()))
   })
 
   private val rand = MaximalPeriodGaloisLFSR(2)
@@ -67,9 +68,12 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   private val isPeripheral = IsPeripheral(io.cpuIO.cpuReq.addr)
   private val passThrough  = PassThrough(true)(io.memIO, 0.B, addr, 0.U, 0.U, 0.B)
 
-  when(state === idle && io.cpuIO.cpuReq.valid) {
-    state := (if (noCache) passing else compare)
-    when(isPeripheral) { state := passing }
+  io.inv.ready := 0.B
+  when(state === idle) {
+    when(io.cpuIO.cpuReq.valid) {
+      state := (if (noCache) passing else compare)
+      when(isPeripheral) { state := passing }
+    }.elsewhen(io.inv.valid) { ramValid.reset; io.inv.ready := 1.B }
   }
   if (!noCache) when(state === compare) {
     ARVALID := 1.B

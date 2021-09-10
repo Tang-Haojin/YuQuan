@@ -17,7 +17,12 @@ class EX(implicit p: Parameters) extends YQModule {
     val lastVR = new LastVR
     val nextVR = Flipped(new LastVR)
     val output = new EXOutput
+    val invIch = Irrevocable(Bool())
+    val wbDch  = Irrevocable(Bool())
   })
+
+  io.invIch.bits := DontCare
+  io.wbDch.bits  := DontCare
 
   val alu        = Module(new ALU)
   val op         = RegInit(0.U(AluTypeWidth.W))
@@ -33,6 +38,9 @@ class EX(implicit p: Parameters) extends YQModule {
   alu.io.output.ready    := io.nextVR.READY
 
   val NVALID = RegInit(0.B); io.nextVR.VALID := NVALID
+
+  val invalidateICache = RegInit(0.B)
+  val writebackDCache  = RegInit(0.B)
 
   val rd      = RegInit(0.U(5.W))
   val data    = RegInit(0.U(xlen.W))
@@ -62,6 +70,11 @@ class EX(implicit p: Parameters) extends YQModule {
   io.output.isLd    := isLd
   io.output.addr    := addr
   io.output.mask    := mask
+
+  io.invIch.valid   := invalidateICache
+  io.wbDch.valid    := writebackDCache
+  when(io.invIch.fire) { invalidateICache := 0.B }
+  when(io.wbDch.fire)  { writebackDCache  := 0.B }
 
   when(io.input.special === csr) {
     switch(io.input.op1_3) {
@@ -126,7 +139,7 @@ class EX(implicit p: Parameters) extends YQModule {
     is(inv)  { wireExit := ExitReasons.inv  }
   }
 
-  io.lastVR.READY := io.nextVR.READY && alu.io.input.ready
+  io.lastVR.READY := io.nextVR.READY && alu.io.input.ready && !invalidateICache && !writebackDCache
 
   import cpu.component.Operators.{mul, ruw}
   when(alu.io.output.fire && ((op >= mul) && (op <= ruw))) {
@@ -138,7 +151,7 @@ class EX(implicit p: Parameters) extends YQModule {
   }
 
   when(io.lastVR.VALID && io.lastVR.READY) { // let's start working
-    NVALID := (io.input.op1_2 < mul) || (io.input.op1_2 > ruw)
+    NVALID     := (io.input.op1_2 < mul) || (io.input.op1_2 > ruw)
     rd         := wireRd
     data       := wireData
     wcsr       := io.input.wcsr
@@ -149,6 +162,10 @@ class EX(implicit p: Parameters) extends YQModule {
     mask       := wireMask
     op         := wireOp
     isWord     := wireIsWord
+
+    invalidateICache := io.input.special === fencei
+    writebackDCache  := io.input.special === fencei
+
     wireOp     := io.input.op1_2
     wireIsWord := (io.input.special === word)
     if (Debug) {

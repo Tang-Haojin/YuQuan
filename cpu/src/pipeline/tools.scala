@@ -35,8 +35,8 @@ class EXOutput(implicit p: Parameters) extends YQBundle {
 
 // ID
 object ExecSpecials {
-  val specials = Enum(17)
-  val non::ld::st::jump::jalr::branch::trap::inv::word::csr::mret::exception::mu::msu::ecall::ebreak::sret::Nil = specials
+  val specials = Enum(18)
+  val non::ld::st::jump::jalr::branch::trap::inv::word::csr::mret::exception::mu::msu::ecall::ebreak::sret::fencei::Nil = specials
 }
 
 object InstrTypes { val i::u::s::r::j::b::c::Nil = Enum(7) }
@@ -47,7 +47,8 @@ object NumTypes {
 }
 
 case class RVInstr()(implicit val p: Parameters) extends CPUParams {
-  val table = RVI().table ++ Zicsr().table ++ Privileged().table ++ (if (extensions.contains('M')) RVM().table else Nil)
+  val table = RVI().table ++ Zicsr().table ++ Privileged().table ++ (if (extensions.contains('M')) RVM().table else Nil) ++
+              Zifencei().table
 }
 
 class IDOutput(implicit p: Parameters) extends YQBundle {

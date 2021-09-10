@@ -79,6 +79,8 @@ class CPU(implicit p: Parameters) extends YQModule {
 
   moduleIF.io.icache  <> moduleICache.io.cpuIO
   moduleMEM.io.dcache <> moduleDCache.io.cpuIO
+  moduleEX.io.invIch  <> moduleICache.io.inv
+  moduleEX.io.wbDch   <> moduleDCache.io.wb
 
   moduleBypass.io.request <> moduleGPRs.io.gprsR
   moduleBypass.io.idOut.index  := moduleID.io.output.rd & Fill(5, moduleID.io.nextVR.VALID)

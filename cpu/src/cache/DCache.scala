@@ -12,13 +12,16 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
   val io = IO(new YQBundle {
     val cpuIO = new CpuIO
     val memIO = new AXI_BUNDLE
+    val wb    = Flipped(Irrevocable(Bool()))
   })
 
   private val rand = MaximalPeriodGaloisLFSR(2)
 
-  private val idle::compare::writeback::allocate::passing::Nil = Enum(5)
+  private val idle::compare::writeback::allocate::passing::backall::Nil = Enum(6)
   private val state = RegInit(UInt(3.W), idle)
   private val received = RegInit(0.U(LogBurstLen.W))
+  private val backAllInnerState = RegInit(0.U(1.W))
+  private val writingBackAll = RegInit(0.B)
 
   private val ARVALID = RegInit(0.B)
   private val AWVALID = RegInit(0.B)
@@ -96,9 +99,10 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
   io.cpuIO.cpuResult.ready := hit
   io.cpuIO.cpuResult.data  := dwordData(addrOffset)
 
-  val useEmpty = WireDefault(0.B)
-  val readBack = WireDefault(0.B)
+  private val useEmpty = WireDefault(0.B)
+  private val readBack = WireDefault(0.B)
 
+  io.wb.ready := 0.B
   when(state === idle) {
     when(io.cpuIO.cpuReq.valid) {
       state     := (if (noCache) passing else compare)
@@ -111,6 +115,7 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
       when(isPeripheral) { state := passing; passThroughAxsize := log2Ceil(32 / 8).U }
       if (noCache) when(!isPeripheral) { passThroughAxsize := log2Ceil(64 / 8).U }
     }
+    .elsewhen(io.wb.valid) { if (!noCache) { state := backall; addr := 0.U; way := 0.U; writingBackAll := 1.B } else io.wb.ready := 1.B }
   }
   if (!noCache) when(state === compare) {
     for (i <- 0 until Associativity)
@@ -136,7 +141,12 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
   }
   if (!noCache) when(state === writeback) {
     wbBuffer.valid := 1.B
-    when(wbBuffer.ready && wbBuffer.valid) { ARVALID := 1.B; state := allocate }
+    when(wbBuffer.ready && wbBuffer.valid) {
+      ARVALID := !writingBackAll
+      state := Mux(writingBackAll, backall, allocate)
+      way   := Mux(writingBackAll, Mux(way === (Associativity - 1).U, 0.U, way + 1.U), way)
+      addr  := Mux(writingBackAll && (way === (Associativity - 1).U), addrTag ## (addrIndex + 1.U) ## addrOffset ## 0.U(3.W), addr)
+    }
   }
   if (!noCache) when(state === allocate) {
     when(io.memIO.r.fire) {
@@ -159,6 +169,24 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
     passThrough.valid := 1.B
     io.cpuIO.cpuResult.data := passThrough.rdata
     when(hit) { state := idle }
+  }
+  if (!noCache) when(state === backall) {
+    val running::ending::Nil = Enum(2)
+    when(backAllInnerState === running) {
+      when(ramValid.preRead(way) && ramDirty.preRead(way)) { state := writeback }
+      .otherwise {
+        way  := Mux(way === (Associativity - 1).U, 0.U, way + 1.U)
+        addr := Mux(way === (Associativity - 1).U, addrTag ## (addrIndex + 1.U) ## addrOffset ## 0.U(3.W), addr)
+      }
+      when(way === (Associativity - 1).U && addrIndex === (IndexSize - 1).U) { backAllInnerState := ending }
+    }
+    when(backAllInnerState === ending && wbBuffer.ready) {
+      state             := idle
+      backAllInnerState := running
+      io.wb.ready       := 1.B
+      writingBackAll    := 0.B
+      ramDirty.reset
+    }
   }
 
   when(readBack) {

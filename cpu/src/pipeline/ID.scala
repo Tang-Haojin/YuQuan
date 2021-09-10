@@ -28,6 +28,7 @@ class ID(implicit p: Parameters) extends YQModule {
   val special    = RegInit(0.U(5.W))
   val instr      = RegInit(0.U(32.W))
   val newPriv    = RegInit(3.U(2.W))
+  val blocked    = RegInit(0.B)
   val pc      = if (Debug) RegInit(0.U(alen.W)) else null
 
   val num = RegInit(VecInit(Seq.fill(4)(0.U(xlen.W))))
@@ -54,6 +55,7 @@ class ID(implicit p: Parameters) extends YQModule {
   val wireDataRs2 = WireDefault(UInt(xlen.W), io.gprsR.rdata(1))
   val wireExcept  = WireDefault(VecInit(Seq.fill(16)(0.B)))
   val wireNewPriv = WireDefault(3.U(2.W))
+  val wireBlocked = WireDefault(Bool(), blocked)
 
 
   val alu1_2   = Module(new SimpleALU)
@@ -194,22 +196,24 @@ class ID(implicit p: Parameters) extends YQModule {
         io.jbAddr   := io.csrsR.rdata(0)(alen - 1, 2) ## 0.U(2.W)
       }
     }
+    is(fencei) { wireBlocked := 1.B }
   }
 
   AddException(true, mti); AddException(true, mei); AddException()
 
-  io.lastVR.READY := io.nextVR.READY && !io.isWait
+  io.lastVR.READY := io.nextVR.READY && !io.isWait && !blocked
 
   when(io.lastVR.VALID && io.lastVR.READY) { // let's start working
-    NVALID     := 1.B
-    rd         := wireRd
-    wcsr       := wireCsr
-    num        := wireNum
-    op1_2      := wireOp1_2
-    op1_3      := wireOp1_3
-    special    := wireSpecial
-    instr      := wireInstr
-    newPriv    := wireNewPriv
+    NVALID  := 1.B
+    rd      := wireRd
+    wcsr    := wireCsr
+    num     := wireNum
+    op1_2   := wireOp1_2
+    op1_3   := wireOp1_3
+    special := wireSpecial
+    instr   := wireInstr
+    newPriv := wireNewPriv
+    blocked := wireBlocked
     if (Debug) pc := io.input.pc
   }.elsewhen(io.isWait && io.nextVR.READY) {
     NVALID  := 0.B
@@ -220,7 +224,8 @@ class ID(implicit p: Parameters) extends YQModule {
     op1_3   := 0.U
     special := 0.U
   }.elsewhen(io.nextVR.READY && io.nextVR.VALID) {
-    NVALID := 0.B
+    NVALID  := 0.B
+    blocked := 0.B
   }
 
   if (Debug) io.output.debug.pc := pc
