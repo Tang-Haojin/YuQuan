@@ -96,6 +96,15 @@ class EX(implicit p: Parameters) extends YQModule {
       io.input.num(0)(2, 0)
     )
   }
+  if (extensions.contains('S')) when(io.input.special === sret) {
+    wireCsrData(0) := Cat(
+      io.input.num(0)(xlen - 1, 9),
+      1.B,
+      io.input.num(0)(7, 3),
+      io.input.num(0)(5), // SPIE
+      io.input.num(0)(1, 0)
+    )
+  }
   when(io.input.special === exception) {
     wireCsrData(0) := io.input.num(0)
     wireCsrData(1) := io.input.num(1)

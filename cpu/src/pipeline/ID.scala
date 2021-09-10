@@ -176,14 +176,22 @@ class ID(implicit p: Parameters) extends YQModule {
       when(io.currentPriv =/= 3.U) { wireExcept(2) := 1.B } // illegal instruction
       .otherwise {
         io.csrsR.rcsr(0) := csrsAddr().Mepc
-
-        wireCsr(0) := csrsAddr().Mstatus
-        wireNum(0) := io.csrsR.rdata(1)
-
+        wireCsr(0)  := csrsAddr().Mstatus
+        wireNum(0)  := io.csrsR.rdata(1)
         wireNewPriv := io.csrsR.rdata(1).asTypeOf(new MstatusBundle).MPP
-
         io.jmpBch := 1.B
         io.jbAddr := io.csrsR.rdata(0)(alen - 1, 2) ## 0.U(2.W)
+      }
+    }
+    is(sret) { // FIXME: consistency between mstatus and sstatus read & write
+      when((io.currentPriv =/= 3.U && io.currentPriv =/= 1.U) || io.csrsR.rdata(1).asTypeOf(new MstatusBundle).TSR) { wireExcept(2) := 1.B } // illegal instruction
+      .otherwise {
+        io.csrsR.rcsr(0) := csrsAddr().Sepc
+        wireCsr(0)  := csrsAddr().Mstatus
+        wireNum(0)  := io.csrsR.rdata(1)
+        wireNewPriv := io.csrsR.rdata(1).asTypeOf(new MstatusBundle).SPP
+        io.jmpBch   := 1.B
+        io.jbAddr   := io.csrsR.rdata(0)(alen - 1, 2) ## 0.U(2.W)
       }
     }
   }
