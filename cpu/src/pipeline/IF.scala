@@ -17,9 +17,9 @@ class IF(implicit p: Parameters) extends YQModule {
   })
 
   private val MEMBase = if (UseFlash) SPIFLASH.BASE else DRAM.BASE
-  private val instr  = RegInit(0x00000013.U(32.W))
-  private val pc     = RegInit(MEMBase.U(alen.W))
-  private val NVALID = RegInit(0.B)
+  private val instr   = RegInit(0x00000013.U(32.W))
+  private val pc      = RegInit(MEMBase.U(alen.W))
+  private val NVALID  = RegInit(0.B)
 
   private val wireInstr  = WireDefault(UInt(32.W), instr);      io.output.instr := wireInstr
   private val wirePC     = WireDefault(UInt(alen.W), pc - 4.U); io.output.pc    := wirePC

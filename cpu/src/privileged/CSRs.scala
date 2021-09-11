@@ -160,7 +160,7 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
         }.elsewhen(io.csrsW.wcsr(i) === Mhartid) {
           // TODO: Raise an illegal instruction exception.
         }.elsewhen(io.csrsW.wcsr(i) === Mstatus) { mstatus := io.csrsW.wdata(i) }
-        when(io.csrsW.wcsr(i) === Mtvec) { mtvec := io.csrsW.wdata(i)(xlen - 1, 2) ## Mux(io.csrsW.wdata(i)(1, 0) >= 2.U, mtvec(1, 0), io.csrsW.wdata(i)(1, 0)) }
+        when(io.csrsW.wcsr(i) === Mtvec) { mtvec := io.csrsW.wdata(i)(xlen - 1, 2) ## Mux(io.csrsW.wdata(i)(1), mtvec(1, 0), io.csrsW.wdata(i)(1, 0)) }
         when(io.csrsW.wcsr(i) === Mip) {} // TODO: Currently do nothing.
         when(io.csrsW.wcsr(i) === Mie) { mie := io.csrsW.wdata(i)}
         when(io.csrsW.wcsr(i) === Mtime) { mtime := io.csrsW.wdata(i) }

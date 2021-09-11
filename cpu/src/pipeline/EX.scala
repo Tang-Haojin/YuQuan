@@ -77,11 +77,11 @@ class EX(implicit p: Parameters) extends YQModule {
   when(io.wbDch.fire)  { writebackDCache  := 0.B }
 
   when(io.input.special === csr) {
-    switch(io.input.op1_3) {
-      is(0.U) { wireCsrData(0) := io.input.num(1) }
-      is(1.U) { wireCsrData(0) := io.input.num(0) | io.input.num(1) }
-      is(2.U) { wireCsrData(0) := io.input.num(0) & (~io.input.num(1)) }
-    }
+    wireCsrData(0) := MuxLookup(io.input.op1_3, 0.U, Seq(
+      0.U -> (io.input.num(1)),
+      1.U -> (io.input.num(0) | io.input.num(1)),
+      2.U -> (io.input.num(0) & ~io.input.num(1))
+    ))
   }
   when(io.input.special === inv) {
     wireCsrData(0) := io.input.num(0)

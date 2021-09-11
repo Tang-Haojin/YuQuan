@@ -22,7 +22,7 @@ CSRCS  += $(peripheral_path)/spiFlash/spiFlash.cpp $(pwd)/sim_main.cpp
 VFLAGS += --timescale "1ns/1ns" -Wno-WIDTH --top ysyxSoCFull --exe -j $(cpuNum)
 VFLAGS += --threads $(cpuNum) -cc $(VSRCS)
 
-sim:
+build:
 	@cp $(ysyx_path)/soc/ysyxSoCFull.v $(pwd)
 	@sed -i '/  ysyx_000000 cpu (/c\  ysyx_210153 cpu (' $(pwd)/ysyxSoCFull.v
 	verilator $(VFLAGS) --build $(CSRCS) -CFLAGS "$(CFLAGS)"
@@ -31,4 +31,4 @@ sim:
 clean:
 	-rm -rf $(pwd)/obj_dir
 
-.PHONY: sim clean
+.PHONY: build clean

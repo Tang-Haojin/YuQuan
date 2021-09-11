@@ -44,7 +44,7 @@ class MEM(implicit p: Parameters) extends YQModule {
   private val wireAddr = WireDefault(UInt(alen.W), addr)
   private val wireMask = WireDefault(UInt((xlen / 8).W), mask)
 
-  private val shiftRdata = VecInit((0 until 8).map { i => io.dcache.cpuResult.data >> (8 * i) })(offset)
+  private val shiftRdata = VecInit((0 until 8).map(i => io.dcache.cpuResult.data >> (8 * i)))(offset)
   private val extRdata   = VecInit((0 until 7).map {
     case 0 => Fill(xlen - 8 , shiftRdata(7 )) ## shiftRdata(7 , 0)
     case 1 => Fill(xlen - 16, shiftRdata(15)) ## shiftRdata(15, 0)
@@ -74,7 +74,7 @@ class MEM(implicit p: Parameters) extends YQModule {
     rd       := io.input.rd
     wireAddr := io.input.addr
     wireData := io.input.data
-    wireMask := VecInit((0 until xlen / 8).map { i => if (i == 0) rawStrb else rawStrb(xlen / 8 - 1 - i, 0) ## 0.U(i.W) })(wireOff)
+    wireMask := VecInit((0 until xlen / 8).map(i => if (i == 0) rawStrb else rawStrb(xlen / 8 - 1 - i, 0) ## 0.U(i.W)))(wireOff)
     addr     := wireAddr
     data     := wireData
     mask     := wireMask
@@ -91,9 +91,8 @@ class MEM(implicit p: Parameters) extends YQModule {
       wireIsMem := 1.B
       isMem     := 1.B
       rw        := wireRw
-      wireData  := VecInit((0 until xlen / 8).map { i => if (i == 0) io.input.data else io.input.data(xlen - 1 - (8 * i), 0) ## 0.U((8 * i).W) })(wireOff)
-      when(io.input.isLd) { wireRw := 0.B }
-      .otherwise          { wireRw := 1.B }
+      wireData  := VecInit((0 until xlen / 8).map(i => if (i == 0) io.input.data else io.input.data(xlen - 1 - (8 * i), 0) ## 0.U((8 * i).W)))(wireOff)
+      wireRw    := Mux(io.input.isLd, 0.B, 1.B)
     }.otherwise {
       NVALID := 1.B
       LREADY := 1.B

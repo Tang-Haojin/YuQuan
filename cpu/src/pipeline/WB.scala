@@ -39,8 +39,8 @@ class WB(implicit p: Parameters) extends YQModule {
   io.retire       := RegNext(io.lastVR.VALID)
   
   when(io.lastVR.VALID) { // ready to start fetching instr
-    io.gprsW.wen := (io.input.rd =/= 0.U)
-    for (i <- 0 until RegConf.writeCsrsPort) io.csrsW.wen(i) := (io.input.wcsr(i) =/= 0xFFF.U)
+    io.gprsW.wen := io.input.rd =/= 0.U
+    for (i <- io.csrsW.wen.indices) io.csrsW.wen(i) := (io.input.wcsr(i) =/= 0xFFF.U)
     if (Debug) {
       exit  := io.input.debug.exit
       pc    := io.input.debug.pc

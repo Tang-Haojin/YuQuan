@@ -20,15 +20,15 @@ class ID(implicit p: Parameters) extends YQModule {
 
   private val csrsRdata0 = io.csrsR.rdata(0)
 
-  private val NVALID     = RegInit(0.B)
-  private val rd         = RegInit(0.U(5.W))
-  private val wcsr       = RegInit(VecInit(Seq.fill(RegConf.writeCsrsPort)(0xFFF.U(12.W))))
-  private val op1_2      = RegInit(0.U(AluTypeWidth.W))
-  private val op1_3      = RegInit(0.U(AluTypeWidth.W))
-  private val special    = RegInit(0.U(5.W))
-  private val instr      = RegInit(0.U(32.W))
-  private val newPriv    = RegInit(3.U(2.W))
-  private val blocked    = RegInit(0.B)
+  private val NVALID  = RegInit(0.B)
+  private val rd      = RegInit(0.U(5.W))
+  private val wcsr    = RegInit(VecInit(Seq.fill(RegConf.writeCsrsPort)(0xFFF.U(12.W))))
+  private val op1_2   = RegInit(0.U(AluTypeWidth.W))
+  private val op1_3   = RegInit(0.U(AluTypeWidth.W))
+  private val special = RegInit(0.U(5.W))
+  private val instr   = RegInit(0.U(32.W))
+  private val newPriv = RegInit(3.U(2.W))
+  private val blocked = RegInit(0.B)
   private val pc      = if (Debug) RegInit(0.U(alen.W)) else null
 
   private val num = RegInit(VecInit(Seq.fill(4)(0.U(xlen.W))))
@@ -57,7 +57,6 @@ class ID(implicit p: Parameters) extends YQModule {
   private val wireNewPriv = WireDefault(3.U(2.W))
   private val wireBlocked = WireDefault(Bool(), blocked)
 
-
   private val alu1_2   = Module(new SimpleALU)
   private val wireData = WireDefault(UInt(xlen.W), alu1_2.io.res.asUInt)
   alu1_2.io.a  := wireNum(0).asSInt
@@ -71,132 +70,110 @@ class ID(implicit p: Parameters) extends YQModule {
   io.output.op1_2   := op1_2
   io.output.op1_3   := op1_3
   io.output.special := special
-  io.gprsR.raddr(0) := 0.U
-  io.gprsR.raddr(1) := 0.U
-  io.gprsR.raddr(2) := 10.U
+  io.gprsR.raddr    := VecInit(10.U, 0.U, 0.U)
   io.csrsR.rcsr     := VecInit(Seq.fill(RegConf.readCsrsPort)(0xFFF.U(12.W)))
 
   io.csrsR.rcsr(1) := csrsAddr().Mstatus
   io.csrsR.rcsr(2) := csrsAddr().Mie
   io.csrsR.rcsr(7) := csrsAddr().Mip
 
-  io.newPriv    := newPriv
+  io.newPriv := newPriv
+  for (i <- 1 to 4) when(decoded(i) === NumTypes.rs1) { io.gprsR.raddr(0) := wireRs1 }
+  .elsewhen(decoded(i) === NumTypes.rs2) { io.gprsR.raddr(1) := wireRs2 }
 
-  for (i <- 1 to 4) {
-    when(decoded(i) === NumTypes.rs1) {
-      io.gprsR.raddr(0) := wireRs1
-    }.elsewhen(decoded(i) === NumTypes.rs2) {
-      io.gprsR.raddr(1) := wireRs2
-    }
-  }
+  for (i <- wireNum.indices) wireNum(i) := MuxLookup(decoded(i + 1), 0.U, Seq(
+    NumTypes.rs1  -> wireDataRs1,
+    NumTypes.rs2  -> wireDataRs2,
+    NumTypes.imm  -> wireImm,
+    NumTypes.four -> 4.U,
+    NumTypes.pc   -> io.input.pc,
+    NumTypes.non  -> 0.U,
+    NumTypes.fun3 -> wireFunt3,
+    NumTypes.csr  -> io.csrsR.rdata(0)
+  ))
 
-  for (i <- 0 until 4)
-    switch(decoded(i + 1)) {
-      is(NumTypes.rs1 ) { wireNum(i) := wireDataRs1 }
-      is(NumTypes.rs2 ) { wireNum(i) := wireDataRs2 }
-      is(NumTypes.imm ) { wireNum(i) := wireImm }
-      is(NumTypes.four) { wireNum(i) := 4.U }
-      is(NumTypes.pc  ) { wireNum(i) := io.input.pc }
-      is(NumTypes.non ) { wireNum(i) := 0.U }
-      is(NumTypes.fun3) { wireNum(i) := wireFunt3 }
-      is(NumTypes.csr ) { wireNum(i) := io.csrsR.rdata(0) }
-    }
+  wireImm := MuxLookup(decoded.head, 0.U, Seq(
+    i -> Fill(xlen - 12, wireInstr(31)) ## wireInstr(31, 20),
+    u -> Fill(xlen - 32, wireInstr(31)) ## wireInstr(31, 12) ## 0.U(12.W),
+    j -> Cat(Fill(xlen - 20, wireInstr(31)), wireInstr(19, 12), wireInstr(20), wireInstr(30, 21), 0.B),
+    s -> Fill(xlen - 12, wireInstr(31)) ## wireInstr(31, 25) ## wireInstr(11, 7),
+    b -> Cat(Fill(xlen - 12, wireInstr(31)), wireInstr(7), wireInstr(30, 25), wireInstr(11, 8), 0.B),
+    c -> 0.U((xlen - 5).W) ## wireInstr(19, 15)
+  ))
 
-  switch(decoded.head) {
-    is(i) { wireImm := Fill(xlen - 12, wireInstr(31)) ## wireInstr(31, 20) }
-    is(u) { wireImm := Fill(xlen - 32, wireInstr(31)) ## wireInstr(31, 12) ## 0.U(12.W) }
-    is(j) { wireImm := Cat(Fill(xlen - 20, wireInstr(31)), wireInstr(19, 12), wireInstr(20), wireInstr(30, 21), 0.B) }
-    is(s) { wireImm := Fill(xlen - 12, wireInstr(31)) ## wireInstr(31, 25) ## wireInstr(11, 7) }
-    is(b) { wireImm := Cat(Fill(xlen - 12, wireInstr(31)), wireInstr(7), wireInstr(30, 25), wireInstr(11, 8), 0.B) }
-    is(c) { wireImm := 0.U((xlen - 5).W) ## wireInstr(19, 15) }
-  }
-
-  when(decoded(7) === 1.U) { wireRd := wireInstr(11, 7) }
-  .otherwise { wireRd := 0.U }
+  wireRd := Mux(decoded(7) === 1.U, wireInstr(11, 7), 0.U)
 
   private val isClint = Module(new IsCLINT)
   isClint.io.addr_in := wireDataRs1 + wireImm
 
-  io.jmpBch := 0.B
-  io.jbAddr := 0.U
+  io.jmpBch := 0.B; io.jbAddr := 0.U
   private val adder0 = WireDefault(UInt(32.W), io.input.pc)
   private val jbaddr = adder0 + wireImm(alen - 1, 0)
-  switch(decoded(8)) {
-    is(ld) {
-      when(isClint.io.addr_out =/= 0xFFF.U) {
-        io.csrsR.rcsr(0) := isClint.io.addr_out
-        switch(decoded(6)) {
-          is(0.U) { wireNum(0) := Fill(xlen - 8 , csrsRdata0( 7)) ## csrsRdata0( 7, 0) }
-          is(1.U) { wireNum(0) := Fill(xlen - 16, csrsRdata0(15)) ## csrsRdata0(15, 0) }
-          is(2.U) { wireNum(0) := Fill(xlen - 32, csrsRdata0(31)) ## csrsRdata0(31, 0) }
-          is(3.U) { wireNum(0) :=                                    csrsRdata0        }
-          is(4.U) { wireNum(0) := Fill(xlen - 8 ,           0.B) ##  csrsRdata0( 7, 0) }
-          is(5.U) { wireNum(0) := Fill(xlen - 16,           0.B) ##  csrsRdata0(15, 0) }
-          is(6.U) { wireNum(0) := Fill(xlen - 32,           0.B) ##  csrsRdata0(31, 0) }
-        }
-        wireNum(1) := non; wireNum(2) := non; wireNum(3)  := non
-        wireOp1_2  := non; wireOp1_3  := non; wireSpecial := non
-      }
-    }
-    is(st) {
-      when(isClint.io.addr_out =/= 0xFFF.U) {
-        io.csrsR.rcsr(0) := isClint.io.addr_out
-        wireCsr(0) := isClint.io.addr_out
-        switch(decoded(6)) {
-          is(0.U) { wireNum(1) := csrsRdata0(xlen - 1,  8) ## wireDataRs2( 7, 0) }
-          is(1.U) { wireNum(1) := csrsRdata0(xlen - 1, 16) ## wireDataRs2(15, 0) }
-          is(2.U) { wireNum(1) := csrsRdata0(xlen - 1, 32) ## wireDataRs2(31, 0) }
-          is(3.U) { wireNum(1) :=                             wireDataRs2        }
-        }
-        wireNum(0) := non; wireNum(2) := non; wireNum(3)  := non
-        wireOp1_2  := non; wireOp1_3  := 0.U; wireSpecial := csr
-      }
-    }
-    is(jump) {
+
+  when(decoded(8) === ld && isClint.io.addr_out =/= 0xFFF.U) {
+    io.csrsR.rcsr(0) := isClint.io.addr_out
+    wireNum(0) := MuxLookup(decoded(6), 0.U, Seq(
+      0.U -> Fill(xlen - 8 , csrsRdata0( 7)) ## csrsRdata0( 7, 0),
+      1.U -> Fill(xlen - 16, csrsRdata0(15)) ## csrsRdata0(15, 0),
+      2.U -> Fill(xlen - 32, csrsRdata0(31)) ## csrsRdata0(31, 0),
+      3.U ->                                    csrsRdata0       ,
+      4.U -> Fill(xlen - 8 ,            0.B) ## csrsRdata0( 7, 0),
+      5.U -> Fill(xlen - 16,            0.B) ## csrsRdata0(15, 0),
+      6.U -> Fill(xlen - 32,            0.B) ## csrsRdata0(31, 0)
+    ))
+    wireNum(1) := non; wireNum(2) := non; wireNum(3)  := non
+    wireOp1_2  := non; wireOp1_3  := non; wireSpecial := non
+  }
+  when(decoded(8) === st && isClint.io.addr_out =/= 0xFFF.U) {
+    io.csrsR.rcsr(0) := isClint.io.addr_out
+    wireCsr(0) := isClint.io.addr_out
+    wireNum(1) := MuxLookup(decoded(6), 0.U, Seq(
+      0.U -> csrsRdata0(xlen - 1,  8) ## wireDataRs2( 7, 0),
+      1.U -> csrsRdata0(xlen - 1, 16) ## wireDataRs2(15, 0),
+      2.U -> csrsRdata0(xlen - 1, 32) ## wireDataRs2(31, 0),
+      3.U ->                             wireDataRs2
+    ))
+    wireNum(0) := non; wireNum(2) := non; wireNum(3)  := non
+    wireOp1_2  := non; wireOp1_3  := 0.U; wireSpecial := csr
+  }
+  when(decoded(8) === jump || (decoded(8) === branch && wireData === 1.U)) {
+    io.jmpBch := 1.B
+    io.jbAddr := jbaddr
+  }
+  when(decoded(8) === jalr) {
+    io.jmpBch := 1.B
+    adder0    := wireDataRs1(alen - 1, 0)
+    io.jbAddr := jbaddr(alen - 1, 1) ## 0.B
+  }
+  when(decoded(8) === csr) {
+    io.csrsR.rcsr(0) := wireCsr(0)
+    wireCsr(0) := wireInstr(31, 20)
+  }
+  when(decoded(8) === inv)    { wireExcept(2)  := 1.B } // illegal instruction
+  when(decoded(8) === ecall)  { wireExcept(11) := 1.B } // environment call from M-mode
+  when(decoded(8) === ebreak) { wireExcept(3)  := 1.B } // breakpoint
+  when(decoded(8) === fencei) { wireBlocked    := 1.B }
+  when(decoded(8) === mret) {
+    when(io.currentPriv =/= 3.U) { wireExcept(2) := 1.B } // illegal instruction
+    .otherwise {
+      io.csrsR.rcsr(0) := csrsAddr().Mepc
+      wireCsr(0)  := csrsAddr().Mstatus
+      wireNum(0)  := io.csrsR.rdata(1)
+      wireNewPriv := io.csrsR.rdata(1).asTypeOf(new MstatusBundle).MPP
       io.jmpBch := 1.B
-      io.jbAddr := jbaddr
+      io.jbAddr := io.csrsR.rdata(0)(alen - 1, 2) ## 0.U(2.W)
     }
-    is(jalr) {
-      io.jmpBch := 1.B
-      adder0    := wireDataRs1(alen - 1, 0)
-      io.jbAddr := jbaddr(alen - 1, 1) ## 0.B
+  }
+  when(decoded(8) === sret) { // FIXME: consistency between mstatus and sstatus read & write
+    when((io.currentPriv =/= 3.U && io.currentPriv =/= 1.U) || io.csrsR.rdata(1).asTypeOf(new MstatusBundle).TSR) { wireExcept(2) := 1.B } // illegal instruction
+    .otherwise {
+      io.csrsR.rcsr(0) := csrsAddr().Sepc
+      wireCsr(0)  := csrsAddr().Mstatus
+      wireNum(0)  := io.csrsR.rdata(1)
+      wireNewPriv := io.csrsR.rdata(1).asTypeOf(new MstatusBundle).SPP
+      io.jmpBch   := 1.B
+      io.jbAddr   := io.csrsR.rdata(0)(alen - 1, 2) ## 0.U(2.W)
     }
-    is(branch) {
-      when(wireData === 1.U) {
-        io.jmpBch := 1.B
-        io.jbAddr := jbaddr
-      }
-    }
-    is(csr) {
-      io.csrsR.rcsr(0) := wireCsr(0)
-      wireCsr(0) := wireInstr(31, 20)
-    }
-    is(inv)    { wireExcept(2)  := 1.B } // illegal instruction
-    is(ecall)  { wireExcept(11) := 1.B } // environment call from M-mode
-    is(ebreak) { wireExcept(3)  := 1.B } // breakpoint
-    is(mret) {
-      when(io.currentPriv =/= 3.U) { wireExcept(2) := 1.B } // illegal instruction
-      .otherwise {
-        io.csrsR.rcsr(0) := csrsAddr().Mepc
-        wireCsr(0)  := csrsAddr().Mstatus
-        wireNum(0)  := io.csrsR.rdata(1)
-        wireNewPriv := io.csrsR.rdata(1).asTypeOf(new MstatusBundle).MPP
-        io.jmpBch := 1.B
-        io.jbAddr := io.csrsR.rdata(0)(alen - 1, 2) ## 0.U(2.W)
-      }
-    }
-    is(sret) { // FIXME: consistency between mstatus and sstatus read & write
-      when((io.currentPriv =/= 3.U && io.currentPriv =/= 1.U) || io.csrsR.rdata(1).asTypeOf(new MstatusBundle).TSR) { wireExcept(2) := 1.B } // illegal instruction
-      .otherwise {
-        io.csrsR.rcsr(0) := csrsAddr().Sepc
-        wireCsr(0)  := csrsAddr().Mstatus
-        wireNum(0)  := io.csrsR.rdata(1)
-        wireNewPriv := io.csrsR.rdata(1).asTypeOf(new MstatusBundle).SPP
-        io.jmpBch   := 1.B
-        io.jbAddr   := io.csrsR.rdata(0)(alen - 1, 2) ## 0.U(2.W)
-      }
-    }
-    is(fencei) { wireBlocked := 1.B }
   }
 
   AddException(true, mti); AddException(true, mei); AddException()
@@ -237,18 +214,14 @@ class ID(implicit p: Parameters) extends YQModule {
       fire := io.csrsR.rdata(1)(3) && io.csrsR.rdata(2)(exceptionCode) && io.csrsR.rdata(7)(exceptionCode)
       code := interrupt.B ## exceptionCode.U((xlen - 1).W)
     } else for (i <- wireExcept.indices) when(wireExcept(i)) { fire := 1.B; code := i.U }
-    when(io.lastVR.VALID) {
-      when(fire) {
-        io.csrsR.rcsr(5) := csrsAddr().Mtvec
-        io.jmpBch := 1.B
-        wireSpecial := exception
-        wireRd := 0.U
-        wireCsr := VecInit(csrsAddr().Mepc, csrsAddr().Mcause, csrsAddr().Mtval, csrsAddr().Mstatus)
-        wireNum := VecInit(io.input.pc, code, io.input.instr, io.csrsR.rdata(1))
-
-        when(interrupt.B && io.csrsR.rdata(5)(0)) { io.jbAddr := io.csrsR.rdata(5)(alen - 1, 2) ## 0.U(2.W) + (exceptionCode * 4).U }
-        .otherwise { io.jbAddr := io.csrsR.rdata(5)(alen - 1, 2) ## 0.U(2.W) }
-      }
+    when(io.lastVR.VALID && fire) {
+      io.csrsR.rcsr(5) := csrsAddr().Mtvec
+      io.jmpBch := 1.B
+      wireSpecial := exception
+      wireRd := 0.U
+      wireCsr := VecInit(csrsAddr().Mepc, csrsAddr().Mcause, csrsAddr().Mtval, csrsAddr().Mstatus)
+      wireNum := VecInit(io.input.pc, code, io.input.instr, io.csrsR.rdata(1))
+      io.jbAddr := io.csrsR.rdata(5)(alen - 1, 2) ## 0.U(2.W) + Mux(interrupt.B && io.csrsR.rdata(5)(0), (exceptionCode * 4).U, 0.U)
     }
   }
 

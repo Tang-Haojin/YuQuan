@@ -58,41 +58,38 @@ class ALU(implicit p: Parameters) extends YQModule {
 
   private val shiftness = WireDefault(UInt(6.W), if (xlen == 64) b(5, 0) else b(4, 0)); when(io.input.bits.word) { shiftness := b(4, 0) }
   private val sl = WireDefault(UInt(xlen.W), VecInit(Seq.tabulate(xlen)(x => if (x == 0) a.asUInt else a(xlen - x - 1, 0) ## 0.U(x.W)))(shiftness))
-
-  switch(io.input.bits.op) {
-    is(add)  { result := a + b }
-    is(sub)  { result := a - b }
-    is(and)  { result := a & b }
-    is(or)   { result := a | b }
-    is(xor)  { result := a ^ b }
-    is(sll)  { result := sl.asSInt }
-    is(sra)  { result := a >> (if (xlen == 64) b(5, 0) else b(4, 0)) }
-    is(srl)  { result := (a.asUInt >> (if (xlen == 64) b(5, 0) else b(4, 0))).asSInt }
-    is(lts)  { result := Cat(Fill(xlen - 1, 0.U), a < b).asSInt }
-    is(ltu)  { result := Cat(Fill(xlen - 1, 0.U), a.asUInt < b.asUInt).asSInt }
-    is(equ)  { result := Cat(Fill(xlen - 1, 0.U), a === b).asSInt }
-    is(neq)  { result := Cat(Fill(xlen - 1, 0.U), a =/= b).asSInt }
-    is(ges)  { result := Cat(Fill(xlen - 1, 0.U), a >= b).asSInt }
-    is(geu)  { result := Cat(Fill(xlen - 1, 0.U), a.asUInt >= b.asUInt).asSInt }
-    is(mul)  { result := multiTop.io.output.bits(xlen - 1, 0).asSInt }
-    is(rem)  { result := divTop.io.output.bits.remainder.asSInt }
-    is(div)  { result := divTop.io.output.bits.quotient.asSInt }
-    is(remu) { result := divTop.io.output.bits.remainder.asSInt }
-    is(divu) { result := divTop.io.output.bits.quotient.asSInt }
-    is(mulh) { result := multiTop.io.output.bits(2 * xlen - 1, xlen).asSInt }
-  }
-
-  if (xlen == 64) {
-    switch(io.input.bits.op) {
-      is(sllw) { result := sl(31, 0).asSInt }
-      is(srlw) { result := (Cat(Fill(xlen - 32, 0.U), a(31, 0)) >> b(4, 0)).asSInt }
-      is(sraw) { result := (Cat(Fill(xlen - 32, a(31)), a(31, 0)) >> b(4, 0)).asSInt }
-      is(divw) { result := divTop.io.output.bits.quotient(31, 0).asSInt }
-      is(remw) { result := divTop.io.output.bits.remainder(31, 0).asSInt }
-      is(duw)  { result := divTop.io.output.bits.quotient(31, 0).asSInt }
-      is(ruw)  { result := divTop.io.output.bits.remainder(31, 0).asSInt }
-    }
-  }
+  private var operates = Seq(
+    add  -> (a + b),
+    sub  -> (a - b),
+    and  -> (a & b),
+    or   -> (a | b),
+    xor  -> (a ^ b),
+    sll  -> (sl.asSInt),
+    sra  -> (a >> (if (xlen == 64) b(5, 0) else b(4, 0))),
+    srl  -> ((a.asUInt >> (if (xlen == 64) b(5, 0) else b(4, 0))).asSInt),
+    lts  -> (Cat(Fill(xlen - 1, 0.U), a < b).asSInt),
+    ltu  -> (Cat(Fill(xlen - 1, 0.U), a.asUInt < b.asUInt).asSInt),
+    equ  -> (Cat(Fill(xlen - 1, 0.U), a === b).asSInt),
+    neq  -> (Cat(Fill(xlen - 1, 0.U), a =/= b).asSInt),
+    ges  -> (Cat(Fill(xlen - 1, 0.U), a >= b).asSInt),
+    geu  -> (Cat(Fill(xlen - 1, 0.U), a.asUInt >= b.asUInt).asSInt),
+    mul  -> (multiTop.io.output.bits(xlen - 1, 0).asSInt),
+    rem  -> (divTop.io.output.bits.remainder.asSInt),
+    div  -> (divTop.io.output.bits.quotient.asSInt),
+    remu -> (divTop.io.output.bits.remainder.asSInt),
+    divu -> (divTop.io.output.bits.quotient.asSInt),
+    mulh -> (multiTop.io.output.bits(2 * xlen - 1, xlen).asSInt)
+  )
+  if (xlen == 64) operates ++= Seq(
+    sllw -> (sl(31, 0).asSInt),
+    srlw -> ((Cat(Fill(xlen - 32, 0.U), a(31, 0)) >> b(4, 0)).asSInt),
+    sraw -> ((Cat(Fill(xlen - 32, a(31)), a(31, 0)) >> b(4, 0)).asSInt),
+    divw -> (divTop.io.output.bits.quotient(31, 0).asSInt),
+    remw -> (divTop.io.output.bits.remainder(31, 0).asSInt),
+    duw  -> (divTop.io.output.bits.quotient(31, 0).asSInt),
+    ruw  -> (divTop.io.output.bits.remainder(31, 0).asSInt)
+  )
+  result := MuxLookup(io.input.bits.op, io.input.bits.a, operates)
 
   when(io.input.bits.word) { io.output.bits := (Fill(32, result(31)) ## result(31, 0)).asSInt }
 }
@@ -104,15 +101,14 @@ class SimpleALU(implicit p: Parameters) extends YQModule {
     val b   = Input (SInt(xlen.W))
     val res = Output(SInt(xlen.W))
   })
-  io.res := io.a
-  switch(io.op) {
-    is(lts)  { io.res := Cat(Fill(xlen - 1, 0.U), io.a < io.b).asSInt }
-    is(ltu)  { io.res := Cat(Fill(xlen - 1, 0.U), io.a.asUInt < io.b.asUInt).asSInt }
-    is(equ)  { io.res := Cat(Fill(xlen - 1, 0.U), io.a === io.b).asSInt }
-    is(neq)  { io.res := Cat(Fill(xlen - 1, 0.U), io.a =/= io.b).asSInt }
-    is(ges)  { io.res := Cat(Fill(xlen - 1, 0.U), io.a >= io.b).asSInt }
-    is(geu)  { io.res := Cat(Fill(xlen - 1, 0.U), io.a.asUInt >= io.b.asUInt).asSInt }
-  }
+  io.res := MuxLookup(io.op, io.a, Seq(
+    lts -> Cat(Fill(xlen - 1, 0.U), io.a < io.b).asSInt,
+    ltu -> Cat(Fill(xlen - 1, 0.U), io.a.asUInt < io.b.asUInt).asSInt,
+    equ -> Cat(Fill(xlen - 1, 0.U), io.a === io.b).asSInt,
+    neq -> Cat(Fill(xlen - 1, 0.U), io.a =/= io.b).asSInt,
+    ges -> Cat(Fill(xlen - 1, 0.U), io.a >= io.b).asSInt,
+    geu -> Cat(Fill(xlen - 1, 0.U), io.a.asUInt >= io.b.asUInt).asSInt
+  ))
 }
 
 object Operators {

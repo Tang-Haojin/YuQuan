@@ -1,6 +1,7 @@
 package cpu.pipeline
 
 import chisel3._
+import chisel3.util._
 import chipsalliance.rocketchip.config._
 
 import cpu.tools._
@@ -17,26 +18,12 @@ class Bypass(implicit p: Parameters) extends YQModule {
   })
 
   io.isWait := 0.B
-
-  for (i <- 0 until RegConf.readPortsNum) {
-    io.request.raddr(i) := io.receive.raddr(i)
-    io.receive.rdata(i) := 0.U
-    when(io.receive.raddr(i) === 0.U) {
-      io.receive.rdata(i) := 0.U
-    }.otherwise {
-      when(io.receive.raddr(i) === io.idOut.index) {
-        io.isWait := 1.B
-      }.elsewhen(io.receive.raddr(i) === io.exOut.index) {
-        when(io.isLd) {
-          io.isWait := 1.B
-        }.otherwise {
-          io.receive.rdata(i) := io.exOut.value
-        }
-      }.elsewhen(io.receive.raddr(i) === io.memOut.index) {
-        io.receive.rdata(i) := io.memOut.value
-      }.otherwise {
-        io.receive.rdata(i) := io.request.rdata(i)
-      }
-    }
-  }
+  io.request.raddr := io.receive.raddr
+  io.receive.raddr.foreach(x => when(x =/= 0.U && (x === io.idOut.index || (x === io.exOut.index && io.isLd))) { io.isWait := 1.B })
+  for (i <- 0 until RegConf.readPortsNum)
+    io.receive.rdata(i) := MuxLookup(io.receive.raddr(i), io.request.rdata(i), Seq(
+      io.memOut.index -> io.memOut.value,
+      io.exOut.index -> io.exOut.value,
+      0.U -> 0.U
+    ))
 }
