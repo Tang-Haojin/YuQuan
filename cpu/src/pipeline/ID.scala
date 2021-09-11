@@ -16,50 +16,50 @@ private case class csrsAddr()(implicit val p: Parameters) extends CPUParams with
 
 // instruction decoding module
 class ID(implicit p: Parameters) extends YQModule {
-  implicit val io = IO(new IDIO)
+  val io = IO(new IDIO)
 
-  val csrsRdata0 = io.csrsR.rdata(0)
+  private val csrsRdata0 = io.csrsR.rdata(0)
 
-  val NVALID     = RegInit(0.B)
-  val rd         = RegInit(0.U(5.W))
-  val wcsr       = RegInit(VecInit(Seq.fill(RegConf.writeCsrsPort)(0xFFF.U(12.W))))
-  val op1_2      = RegInit(0.U(AluTypeWidth.W))
-  val op1_3      = RegInit(0.U(AluTypeWidth.W))
-  val special    = RegInit(0.U(5.W))
-  val instr      = RegInit(0.U(32.W))
-  val newPriv    = RegInit(3.U(2.W))
-  val blocked    = RegInit(0.B)
-  val pc      = if (Debug) RegInit(0.U(alen.W)) else null
+  private val NVALID     = RegInit(0.B)
+  private val rd         = RegInit(0.U(5.W))
+  private val wcsr       = RegInit(VecInit(Seq.fill(RegConf.writeCsrsPort)(0xFFF.U(12.W))))
+  private val op1_2      = RegInit(0.U(AluTypeWidth.W))
+  private val op1_3      = RegInit(0.U(AluTypeWidth.W))
+  private val special    = RegInit(0.U(5.W))
+  private val instr      = RegInit(0.U(32.W))
+  private val newPriv    = RegInit(3.U(2.W))
+  private val blocked    = RegInit(0.B)
+  private val pc      = if (Debug) RegInit(0.U(alen.W)) else null
 
-  val num = RegInit(VecInit(Seq.fill(4)(0.U(xlen.W))))
+  private val num = RegInit(VecInit(Seq.fill(4)(0.U(xlen.W))))
 
-  val decoded = ListLookup(
+  private val decoded = ListLookup(
     io.input.instr,
     List(7.U, 0.U, 0.U, 0.U, 0.U, 0.U, 0.U, 0.U, inv),
     RVInstr().table
   )
 
-  val wireInstr   = WireDefault(UInt(32.W), io.input.instr)
-  val wireSpecial = WireDefault(UInt(5.W), decoded(8))
-  val wireType    = WireDefault(7.U(3.W))
-  val wireRd      = Wire(UInt(5.W))
-  val wireCsr     = WireDefault(VecInit(Seq.fill(RegConf.writeCsrsPort)(0xFFF.U(12.W))))
-  val wireOp1_2   = WireDefault(UInt(AluTypeWidth.W), decoded(5))
-  val wireOp1_3   = WireDefault(UInt(AluTypeWidth.W), decoded(6))
-  val wireFunt3   = WireDefault(UInt(3.W), wireInstr(14, 12))
-  val wireNum     = WireDefault(VecInit(Seq.fill(4)(0.U(xlen.W))))
-  val wireImm     = WireDefault(0.U(xlen.W))
-  val wireRs1     = WireDefault(UInt(5.W), wireInstr(19, 15))
-  val wireRs2     = WireDefault(UInt(5.W), wireInstr(24, 20))
-  val wireDataRs1 = WireDefault(UInt(xlen.W), io.gprsR.rdata(0))
-  val wireDataRs2 = WireDefault(UInt(xlen.W), io.gprsR.rdata(1))
-  val wireExcept  = WireDefault(VecInit(Seq.fill(16)(0.B)))
-  val wireNewPriv = WireDefault(3.U(2.W))
-  val wireBlocked = WireDefault(Bool(), blocked)
+  private val wireInstr   = WireDefault(UInt(32.W), io.input.instr)
+  private val wireSpecial = WireDefault(UInt(5.W), decoded(8))
+  private val wireType    = WireDefault(7.U(3.W))
+  private val wireRd      = Wire(UInt(5.W))
+  private val wireCsr     = WireDefault(VecInit(Seq.fill(RegConf.writeCsrsPort)(0xFFF.U(12.W))))
+  private val wireOp1_2   = WireDefault(UInt(AluTypeWidth.W), decoded(5))
+  private val wireOp1_3   = WireDefault(UInt(AluTypeWidth.W), decoded(6))
+  private val wireFunt3   = WireDefault(UInt(3.W), wireInstr(14, 12))
+  private val wireNum     = WireDefault(VecInit(Seq.fill(4)(0.U(xlen.W))))
+  private val wireImm     = WireDefault(0.U(xlen.W))
+  private val wireRs1     = WireDefault(UInt(5.W), wireInstr(19, 15))
+  private val wireRs2     = WireDefault(UInt(5.W), wireInstr(24, 20))
+  private val wireDataRs1 = WireDefault(UInt(xlen.W), io.gprsR.rdata(0))
+  private val wireDataRs2 = WireDefault(UInt(xlen.W), io.gprsR.rdata(1))
+  private val wireExcept  = WireDefault(VecInit(Seq.fill(16)(0.B)))
+  private val wireNewPriv = WireDefault(3.U(2.W))
+  private val wireBlocked = WireDefault(Bool(), blocked)
 
 
-  val alu1_2   = Module(new SimpleALU)
-  val wireData = WireDefault(UInt(xlen.W), alu1_2.io.res.asUInt)
+  private val alu1_2   = Module(new SimpleALU)
+  private val wireData = WireDefault(UInt(xlen.W), alu1_2.io.res.asUInt)
   alu1_2.io.a  := wireNum(0).asSInt
   alu1_2.io.b  := wireNum(1).asSInt
   alu1_2.io.op := wireOp1_2
@@ -114,7 +114,7 @@ class ID(implicit p: Parameters) extends YQModule {
   when(decoded(7) === 1.U) { wireRd := wireInstr(11, 7) }
   .otherwise { wireRd := 0.U }
 
-  val isClint = Module(new IsCLINT)
+  private val isClint = Module(new IsCLINT)
   isClint.io.addr_in := wireDataRs1 + wireImm
 
   io.jmpBch := 0.B

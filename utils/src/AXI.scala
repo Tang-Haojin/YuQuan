@@ -101,8 +101,3 @@ class AXI_BUNDLE(implicit val p: Parameters, valName: ValName) extends Bundle wi
     forceName(x.valid, "io_" + valName.name + x.computeName(None, None).get.drop(2) + "valid")
   })
 }
-
-abstract trait AXI_RENAME extends Bundle {
-  protected def rename: Unit = 
-    println(this.getElements(0).computeName(None, None))
-}

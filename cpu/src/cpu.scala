@@ -24,21 +24,21 @@ class CPU(implicit p: Parameters) extends YQModule {
 
   dontTouch(io)
 
-  val moduleGPRs      = Module(new GPRs)
-  val moduleCSRs      = Module(new cpu.privileged.M_CSRs)
-  val moduleBypass    = Module(new Bypass)
-  val moduleBypassCsr = Module(new BypassCsr)
-  val moduleAXIRMux   = Module(new AXIRMux)
-  val moduleAXIWMux   = Module(new AXIWMux)
+  private val moduleGPRs      = Module(new GPRs)
+  private val moduleCSRs      = Module(new cpu.privileged.M_CSRs)
+  private val moduleBypass    = Module(new Bypass)
+  private val moduleBypassCsr = Module(new BypassCsr)
+  private val moduleAXIRMux   = Module(new AXIRMux)
+  private val moduleAXIWMux   = Module(new AXIWMux)
 
-  val moduleICache = ICache(p.alter(cache.CacheConfig.f))
-  val moduleDCache = DCache(p.alter(cache.CacheConfig.f))
+  private val moduleICache = ICache(p.alter(cache.CacheConfig.f))
+  private val moduleDCache = DCache(p.alter(cache.CacheConfig.f))
 
-  val moduleIF  = Module(new IF)
-  val moduleID  = Module(new ID)
-  val moduleEX  = Module(new EX)
-  val moduleMEM = Module(new MEM)
-  val moduleWB  = Module(new WB)
+  private val moduleIF  = Module(new IF)
+  private val moduleID  = Module(new ID)
+  private val moduleEX  = Module(new EX)
+  private val moduleMEM = Module(new MEM)
+  private val moduleWB  = Module(new WB)
 
   moduleAXIRMux.io.axiRaIn0 <> moduleICache.io.memIO.ar
   moduleAXIRMux.io.axiRaIn1 <> moduleDCache.io.memIO.ar

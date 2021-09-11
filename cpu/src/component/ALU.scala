@@ -104,18 +104,14 @@ class SimpleALU(implicit p: Parameters) extends YQModule {
     val b   = Input (SInt(xlen.W))
     val res = Output(SInt(xlen.W))
   })
-  val a = io.a
-  val b = io.b
-
   io.res := io.a
-    
   switch(io.op) {
-    is(lts)  { io.res := Cat(Fill(xlen - 1, 0.U), a < b).asSInt }
-    is(ltu)  { io.res := Cat(Fill(xlen - 1, 0.U), a.asUInt < b.asUInt).asSInt }
-    is(equ)  { io.res := Cat(Fill(xlen - 1, 0.U), a === b).asSInt }
-    is(neq)  { io.res := Cat(Fill(xlen - 1, 0.U), a =/= b).asSInt }
-    is(ges)  { io.res := Cat(Fill(xlen - 1, 0.U), a >= b).asSInt }
-    is(geu)  { io.res := Cat(Fill(xlen - 1, 0.U), a.asUInt >= b.asUInt).asSInt }
+    is(lts)  { io.res := Cat(Fill(xlen - 1, 0.U), io.a < io.b).asSInt }
+    is(ltu)  { io.res := Cat(Fill(xlen - 1, 0.U), io.a.asUInt < io.b.asUInt).asSInt }
+    is(equ)  { io.res := Cat(Fill(xlen - 1, 0.U), io.a === io.b).asSInt }
+    is(neq)  { io.res := Cat(Fill(xlen - 1, 0.U), io.a =/= io.b).asSInt }
+    is(ges)  { io.res := Cat(Fill(xlen - 1, 0.U), io.a >= io.b).asSInt }
+    is(geu)  { io.res := Cat(Fill(xlen - 1, 0.U), io.a.asUInt >= io.b.asUInt).asSInt }
   }
 }
 

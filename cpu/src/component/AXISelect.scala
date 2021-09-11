@@ -10,7 +10,7 @@ import cpu.tools._
 class AXISelect(implicit p: Parameters) extends YQModule {
   val io = IO(new AxiSelectIO)
 
-  val mem::mmio::Nil = Enum(2)
+  private val mem::mmio::Nil = Enum(2)
 
   io.input <> io.RamIO
   io.RamIO.ar.valid := 0.B
@@ -32,16 +32,16 @@ class AXISelect(implicit p: Parameters) extends YQModule {
   io.input.w .valid := 0.B
   io.input.b .ready := 0.B
 
-  val AWREADY = RegInit(1.B)
-  val WREADY  = RegInit(1.B)
-  val BVALID  = RegInit(0.B)
-  val ARREADY = RegInit(1.B)
-  val RVALID  = RegInit(0.B)
+  private val AWREADY = RegInit(1.B)
+  private val WREADY  = RegInit(1.B)
+  private val BVALID  = RegInit(0.B)
+  private val ARREADY = RegInit(1.B)
+  private val RVALID  = RegInit(0.B)
 
-  val rdevice = RegInit(0.U(1.W))
-  val wdevice = RegInit(0.U(1.W))
-  val wireRdevice = WireDefault(UInt(1.W), rdevice)
-  val wireWdevice = WireDefault(UInt(1.W), wdevice)
+  private val rdevice = RegInit(0.U(1.W))
+  private val wdevice = RegInit(0.U(1.W))
+  private val wireRdevice = WireDefault(UInt(1.W), rdevice)
+  private val wireWdevice = WireDefault(UInt(1.W), wdevice)
 
   when(
     (io.input.ar.bits.addr >= DRAM.BASE.U) &&

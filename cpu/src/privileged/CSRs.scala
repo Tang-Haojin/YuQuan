@@ -89,13 +89,13 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
     val newPriv     = Input (UInt(2.W))
   })
 
-  val misa      = (log2Down(xlen) - 4).U(2.W) ## 0.U((xlen - 28).W) ## extensions.foldLeft(0)((res, x) => res | 1 << x - 'A').U(26.W)
-  val mvendorid = 0.U(32.W) // non-commercial implementation
-  val marchid   = 0.U(xlen.W) // the field is not implemented
-  val mimpid    = 0.U(xlen.W) // the field is not implemented
-  val mhartid   = 0.U(xlen.W) // the hart that running the code
-  val mtvec     = RegInit(0.U(xlen.W))
-  val mstatus   = RegInit({ val init = WireDefault(0.U.asTypeOf(new MstatusBundle))
+  private val misa      = (log2Down(xlen) - 4).U(2.W) ## 0.U((xlen - 28).W) ## extensions.foldLeft(0)((res, x) => res | 1 << x - 'A').U(26.W)
+  private val mvendorid = 0.U(32.W) // non-commercial implementation
+  private val marchid   = 0.U(xlen.W) // the field is not implemented
+  private val mimpid    = 0.U(xlen.W) // the field is not implemented
+  private val mhartid   = 0.U(xlen.W) // the hart that running the code
+  private val mtvec     = RegInit(0.U(xlen.W))
+  private val mstatus   = RegInit({ val init = WireDefault(0.U.asTypeOf(new MstatusBundle))
     init.UXL  := (if (extensions.contains('S')) log2Down(xlen) - 4 else 0).U
     init.SXL  := (if (extensions.contains('S')) log2Down(xlen) - 4 else 0).U
     init
@@ -104,41 +104,41 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
   // val medeleg // should not exist with only M-Mode
   // val mideleg // should not exist with only M-Mode
 
-  val mcycle       = RegInit(0.U(64.W)) // the number of clock cycles
-  val minstret     = RegInit(0.U(64.W)) // the number of instructions retired
+  private val mcycle       = RegInit(0.U(64.W)) // the number of clock cycles
+  private val minstret     = RegInit(0.U(64.W)) // the number of instructions retired
 
-  val mhpmcounters = 0.U(64.W) // a simple legal implementation
-  val mhpmevents   = 0.U(xlen.W) // a simple legal implementation
+  private val mhpmcounters = 0.U(64.W) // a simple legal implementation
+  private val mhpmevents   = 0.U(xlen.W) // a simple legal implementation
 
-  val mcycleh       = if (xlen == 32) WireDefault(0.U(32.W)) else null
-  val minstreth     = if (xlen == 32) WireDefault(0.U(32.W)) else null
-  val mhpmcounterhs = if (xlen == 32) Vec(29, WireDefault(0.U(32.W))) else null
-  val mcounteren    = 0.U(32.W) // a simple legal implementation
-  val mcountinhibit = 0.U(32.W) // a simple legal implementation
+  private val mcycleh       = if (xlen == 32) WireDefault(0.U(32.W)) else null
+  private val minstreth     = if (xlen == 32) WireDefault(0.U(32.W)) else null
+  private val mhpmcounterhs = if (xlen == 32) Vec(29, WireDefault(0.U(32.W))) else null
+  private val mcounteren    = 0.U(32.W) // a simple legal implementation
+  private val mcountinhibit = 0.U(32.W) // a simple legal implementation
 
-  val mscratch = RegInit(0.U(xlen.W))
-  val mepc = RegInit(0.U(xlen.W))
+  private val mscratch = RegInit(0.U(xlen.W))
+  private val mepc = RegInit(0.U(xlen.W))
 
-  val mcause = RegInit(0.U(5.W))
-  val mtval = RegInit(0.U(xlen.W))
+  private val mcause = RegInit(0.U(5.W))
+  private val mtval = RegInit(0.U(xlen.W))
 
-  val mip = RegInit(new MipBundle, 0.U.asTypeOf(new MipBundle))
-  val mie = RegInit(new MieBundle, 0.U.asTypeOf(new MieBundle))
-  val mtime = RegInit(0.U(64.W))
-  val mtimecmp = RegInit(0.U(64.W))
+  private val mip = RegInit(new MipBundle, 0.U.asTypeOf(new MipBundle))
+  private val mie = RegInit(new MieBundle, 0.U.asTypeOf(new MieBundle))
+  private val mtime = RegInit(0.U(64.W))
+  private val mtimecmp = RegInit(0.U(64.W))
 
-  val sstatus    = new Sstatus(mstatus)
-  val sie        = new Sie(mie)
-  val stvec      = RegInit(0.U(xlen.W))
-  val scounteren = 0.U(32.W) // a simple legal implementation
-  val sscratch   = RegInit(0.U(xlen.W))
-  val sepc       = RegInit(0.U(xlen.W))
-  val scause     = RegInit(0.U(5.W))
-  val stval      = RegInit(0.U(xlen.W))
-  val sip        = new Sip(mip)
-  val satp       = 0.U(xlen.W)
+  private val sstatus    = new Sstatus(mstatus)
+  private val sie        = new Sie(mie)
+  private val stvec      = RegInit(0.U(xlen.W))
+  private val scounteren = 0.U(32.W) // a simple legal implementation
+  private val sscratch   = RegInit(0.U(xlen.W))
+  private val sepc       = RegInit(0.U(xlen.W))
+  private val scause     = RegInit(0.U(5.W))
+  private val stval      = RegInit(0.U(xlen.W))
+  private val sip        = new Sip(mip)
+  private val satp       = 0.U(xlen.W)
 
-  val currentPriv = RegEnable(io.newPriv, 3.U(2.W), io.changePriv)
+  private val currentPriv = RegEnable(io.newPriv, 3.U(2.W), io.changePriv)
   io.currentPriv := currentPriv
 
   mcycle := mcycle + 1.U

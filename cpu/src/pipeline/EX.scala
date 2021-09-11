@@ -24,11 +24,11 @@ class EX(implicit p: Parameters) extends YQModule {
   io.invIch.bits := DontCare
   io.wbDch.bits  := DontCare
 
-  val alu        = Module(new ALU)
-  val op         = RegInit(0.U(AluTypeWidth.W))
-  val wireOp     = WireDefault(UInt(AluTypeWidth.W), op)
-  val isWord     = RegInit(0.B)
-  val wireIsWord = WireDefault(Bool(), isWord)
+  private val alu        = Module(new ALU)
+  private val op         = RegInit(0.U(AluTypeWidth.W))
+  private val wireOp     = WireDefault(UInt(AluTypeWidth.W), op)
+  private val isWord     = RegInit(0.B)
+  private val wireIsWord = WireDefault(Bool(), isWord)
   alu.io.input.bits.a    := io.input.num(0).asSInt
   alu.io.input.bits.b    := io.input.num(1).asSInt
   alu.io.input.bits.op   := wireOp
@@ -37,30 +37,30 @@ class EX(implicit p: Parameters) extends YQModule {
   alu.io.input.valid     := io.lastVR.VALID
   alu.io.output.ready    := io.nextVR.READY
 
-  val NVALID = RegInit(0.B); io.nextVR.VALID := NVALID
+  private val NVALID = RegInit(0.B); io.nextVR.VALID := NVALID
 
-  val invalidateICache = RegInit(0.B)
-  val writebackDCache  = RegInit(0.B)
+  private val invalidateICache = RegInit(0.B)
+  private val writebackDCache  = RegInit(0.B)
 
-  val rd      = RegInit(0.U(5.W))
-  val data    = RegInit(0.U(xlen.W))
-  val wcsr    = RegInit(VecInit(Seq.fill(RegConf.writeCsrsPort)(0xFFF.U(12.W))))
-  val csrData = RegInit(VecInit(Seq.fill(RegConf.writeCsrsPort)(0.U(xlen.W))))
-  val isMem   = RegInit(0.B)
-  val isLd    = RegInit(0.B)
-  val addr    = RegInit(0.U(alen.W))
-  val mask    = RegInit(0.U(3.W))
-  val exit    = if (Debug) RegInit(0.U(3.W)) else null
-  val pc      = if (Debug) RegInit(0.U(alen.W)) else null
+  private val rd      = RegInit(0.U(5.W))
+  private val data    = RegInit(0.U(xlen.W))
+  private val wcsr    = RegInit(VecInit(Seq.fill(RegConf.writeCsrsPort)(0xFFF.U(12.W))))
+  private val csrData = RegInit(VecInit(Seq.fill(RegConf.writeCsrsPort)(0.U(xlen.W))))
+  private val isMem   = RegInit(0.B)
+  private val isLd    = RegInit(0.B)
+  private val addr    = RegInit(0.U(alen.W))
+  private val mask    = RegInit(0.U(3.W))
+  private val exit    = if (Debug) RegInit(0.U(3.W)) else null
+  private val pc      = if (Debug) RegInit(0.U(alen.W)) else null
 
-  val wireRd      = WireDefault(UInt(5.W), io.input.rd)
-  val wireData    = WireDefault(UInt(xlen.W), alu.io.output.bits.asUInt)
-  val wireCsrData = WireDefault(VecInit(Seq.fill(RegConf.writeCsrsPort)(0.U(xlen.W))))
-  val wireIsMem   = WireDefault(Bool(), io.input.special === ld || io.input.special === st)
-  val wireIsLd    = WireDefault(Bool(), io.input.special === ld)
-  val wireAddr    = WireDefault(UInt(alen.W), io.input.num(2)(alen - 1, 0) + io.input.num(3)(alen - 1, 0))
-  val wireMask    = WireDefault(UInt(3.W), io.input.op1_3)
-  val wireExit    = if (Debug) WireDefault(UInt(3.W), ExitReasons.non) else null
+  private val wireRd      = WireDefault(UInt(5.W), io.input.rd)
+  private val wireData    = WireDefault(UInt(xlen.W), alu.io.output.bits.asUInt)
+  private val wireCsrData = WireDefault(VecInit(Seq.fill(RegConf.writeCsrsPort)(0.U(xlen.W))))
+  private val wireIsMem   = WireDefault(Bool(), io.input.special === ld || io.input.special === st)
+  private val wireIsLd    = WireDefault(Bool(), io.input.special === ld)
+  private val wireAddr    = WireDefault(UInt(alen.W), io.input.num(2)(alen - 1, 0) + io.input.num(3)(alen - 1, 0))
+  private val wireMask    = WireDefault(UInt(3.W), io.input.op1_3)
+  private val wireExit    = if (Debug) WireDefault(UInt(3.W), ExitReasons.non) else null
 
   io.output.rd      := rd
   io.output.data    := data

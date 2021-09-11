@@ -23,9 +23,9 @@ class WB(implicit p: Parameters) extends YQModule {
     } else null
   })
 
-  val pc      = if (Debug) RegInit(0.U(alen.W)) else null
-  val exit    = if (Debug) RegInit(0.U(3.W)) else null
-  val rd      = if (Debug) RegInit(0.U(5.W)) else null
+  private val pc   = if (Debug) RegInit(0.U(alen.W)) else null
+  private val exit = if (Debug) RegInit(0.U(3.W)) else null
+  private val rd   = if (Debug) RegInit(0.U(5.W)) else null
 
   io.gprsW.wen   := 0.B
   io.gprsW.waddr := io.input.rd
