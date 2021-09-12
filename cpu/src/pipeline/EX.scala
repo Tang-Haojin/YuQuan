@@ -17,13 +17,13 @@ class EX(implicit p: Parameters) extends YQModule {
     val lastVR = new LastVR
     val nextVR = Flipped(new LastVR)
     val output = new EXOutput
-    val invIch = Irrevocable(Bool())
-    val wbDch  = Irrevocable(Bool())
+    val invIch = Irrevocable(UInt(0.W))
+    val wbDch  = Irrevocable(UInt(0.W))
   })
 
-  io.invIch.bits := DontCare
-  io.wbDch.bits  := DontCare
+  io.invIch.bits := DontCare; io.wbDch.bits := DontCare
 
+  private val idle::storing::Nil = Enum(2)
   private val alu        = Module(new ALU)
   private val op         = RegInit(0.U(AluTypeWidth.W))
   private val wireOp     = WireDefault(UInt(AluTypeWidth.W), op)
@@ -51,6 +51,10 @@ class EX(implicit p: Parameters) extends YQModule {
   private val addr    = RegInit(0.U(alen.W))
   private val mask    = RegInit(0.U(3.W))
   private val retire  = RegInit(0.B)
+  private val lraddr  = RegInit(0.U(alen.W))
+  private val lrvalid = RegInit(0.B)
+  private val scState = RegInit(UInt(1.W), idle)
+  private val tmpRd   = RegInit(0.U(5.W))
   private val exit    = if (Debug) RegInit(0.U(3.W)) else null
   private val pc      = if (Debug) RegInit(0.U(alen.W)) else null
 
@@ -62,6 +66,10 @@ class EX(implicit p: Parameters) extends YQModule {
   private val wireAddr    = WireDefault(UInt(alen.W), io.input.num(2)(alen - 1, 0) + io.input.num(3)(alen - 1, 0))
   private val wireMask    = WireDefault(UInt(3.W), io.input.op1_3)
   private val wireRetire  = WireDefault(Bool(), io.input.retire)
+  private val wireLraddr  = WireDefault(UInt(alen.W), lraddr)
+  private val wireLrvalid = WireDefault(Bool(), lrvalid)
+  private val wireScState = WireDefault(UInt(1.W), scState)
+  private val wireTmpRd   = WireDefault(UInt(5.W), tmpRd)
   private val wireExit    = if (Debug) WireDefault(UInt(3.W), ExitReasons.non) else null
 
   io.output.rd      := rd
@@ -136,13 +144,31 @@ class EX(implicit p: Parameters) extends YQModule {
     )
     wireRd := 0.U
   }
+  if (extensions.contains('A')) when(io.input.special === amo) {
+    when(io.input.op1_2 === Operators.lr) {
+      wireIsMem   := 1.B
+      wireIsLd    := 1.B
+      wireLraddr  := wireAddr
+      wireLrvalid := 1.B
+    }
+    when(io.input.op1_2 === Operators.sc) {
+      when(wireAddr =/= lraddr || !lrvalid) { wireData := 1.U }
+      .otherwise {
+        wireScState := storing
+        wireRetire  := 0.B
+        wireRd      := 0.U
+        wireIsMem   := 1.B
+        wireTmpRd   := io.input.rd
+      }
+    }
+  }
 
   if (Debug) switch(io.input.special) {
     is(trap) { wireExit := ExitReasons.trap }
     is(inv)  { wireExit := ExitReasons.inv  }
   }
 
-  io.lastVR.READY := io.nextVR.READY && alu.io.input.ready && !invalidateICache && !writebackDCache
+  io.lastVR.READY := io.nextVR.READY && alu.io.input.ready && !invalidateICache && !writebackDCache && scState === idle
 
   import Operators.{mul, ruw}
   when(alu.io.output.fire && ((op >= mul) && (op <= ruw))) {
@@ -164,6 +190,10 @@ class EX(implicit p: Parameters) extends YQModule {
     addr    := wireAddr
     mask    := wireMask
     retire  := wireRetire
+    lraddr  := wireLraddr
+    lrvalid := wireLrvalid
+    scState := wireScState
+    tmpRd   := wireTmpRd
 
     op      := wireOp
     isWord  := wireIsWord
@@ -179,6 +209,15 @@ class EX(implicit p: Parameters) extends YQModule {
     }
   }.elsewhen(io.nextVR.READY && io.nextVR.VALID) {
     NVALID := 0.B
+  }
+
+  if (extensions.contains('A')) when(scState === storing) {
+    scState := idle
+    rd      := tmpRd
+    data    := 0.U
+    isMem   := 0.B
+    retire  := 1.B
+    NVALID  := 1.B
   }
 
   if (Debug) {

@@ -49,7 +49,7 @@ case class RVA()(implicit val p: Parameters) extends CPUParams {
     AMOMAX_W  -> List(0.U , rs2 , tmp , rs1 , non , max , 2.U , 1.U,  amo  ),
     AMOMINU_W -> List(0.U , rs2 , tmp , rs1 , non , minu, 2.U , 1.U,  amo  ),
     AMOMAXU_W -> List(0.U , rs2 , tmp , rs1 , non , maxu, 2.U , 1.U,  amo  ),
-    
+
     LR_D      -> List(0.U , non , non , rs1 , non , lr  , 3.U , 1.U,  amo  ),
     SC_D      -> List(0.U , rs2 , non , rs1 , non , sc  , 3.U , 1.U,  amo  ),
     AMOSWAP_D -> List(0.U , rs2 , tmp , rs1 , non , non , 3.U , 1.U,  amo  ),
