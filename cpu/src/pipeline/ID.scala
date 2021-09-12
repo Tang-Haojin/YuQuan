@@ -46,7 +46,6 @@ class ID(implicit p: Parameters) extends YQModule {
   private val wireCsr     = WireDefault(VecInit(Seq.fill(RegConf.writeCsrsPort)(0xFFF.U(12.W))))
   private val wireOp1_2   = WireDefault(UInt(AluTypeWidth.W), decoded(5))
   private val wireOp1_3   = WireDefault(UInt(AluTypeWidth.W), decoded(6))
-  private val wireFunt3   = WireDefault(UInt(3.W), wireInstr(14, 12))
   private val wireNum     = WireDefault(VecInit(Seq.fill(4)(0.U(xlen.W))))
   private val wireImm     = WireDefault(0.U(xlen.W))
   private val wireRs1     = WireDefault(UInt(5.W), wireInstr(19, 15))
@@ -88,7 +87,6 @@ class ID(implicit p: Parameters) extends YQModule {
     NumTypes.four -> 4.U,
     NumTypes.pc   -> io.input.pc,
     NumTypes.non  -> 0.U,
-    NumTypes.fun3 -> wireFunt3,
     NumTypes.csr  -> io.csrsR.rdata(0)
   ))
 
