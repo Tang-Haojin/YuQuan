@@ -36,7 +36,7 @@ class WB(implicit p: Parameters) extends YQModule {
   io.csrsW.wdata := io.input.csrData
 
   io.lastVR.READY := 1.B
-  io.retire       := RegNext(io.lastVR.VALID)
+  io.retire       := RegNext(io.lastVR.VALID && io.input.retire)
   
   when(io.lastVR.VALID) { // ready to start fetching instr
     io.gprsW.wen := io.input.rd =/= 0.U

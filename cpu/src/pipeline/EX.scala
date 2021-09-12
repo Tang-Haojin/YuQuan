@@ -50,6 +50,7 @@ class EX(implicit p: Parameters) extends YQModule {
   private val isLd    = RegInit(0.B)
   private val addr    = RegInit(0.U(alen.W))
   private val mask    = RegInit(0.U(3.W))
+  private val retire  = RegInit(0.B)
   private val exit    = if (Debug) RegInit(0.U(3.W)) else null
   private val pc      = if (Debug) RegInit(0.U(alen.W)) else null
 
@@ -60,6 +61,7 @@ class EX(implicit p: Parameters) extends YQModule {
   private val wireIsLd    = WireDefault(Bool(), io.input.special === ld)
   private val wireAddr    = WireDefault(UInt(alen.W), io.input.num(2)(alen - 1, 0) + io.input.num(3)(alen - 1, 0))
   private val wireMask    = WireDefault(UInt(3.W), io.input.op1_3)
+  private val wireRetire  = WireDefault(Bool(), io.input.retire)
   private val wireExit    = if (Debug) WireDefault(UInt(3.W), ExitReasons.non) else null
 
   io.output.rd      := rd
@@ -70,6 +72,7 @@ class EX(implicit p: Parameters) extends YQModule {
   io.output.isLd    := isLd
   io.output.addr    := addr
   io.output.mask    := mask
+  io.output.retire  := retire
 
   io.invIch.valid   := invalidateICache
   io.wbDch.valid    := writebackDCache
@@ -141,7 +144,7 @@ class EX(implicit p: Parameters) extends YQModule {
 
   io.lastVR.READY := io.nextVR.READY && alu.io.input.ready && !invalidateICache && !writebackDCache
 
-  import cpu.component.Operators.{mul, ruw}
+  import Operators.{mul, ruw}
   when(alu.io.output.fire && ((op >= mul) && (op <= ruw))) {
     io.output.data  := alu.io.output.bits.asUInt
     data            := alu.io.output.bits.asUInt
@@ -151,17 +154,19 @@ class EX(implicit p: Parameters) extends YQModule {
   }
 
   when(io.lastVR.VALID && io.lastVR.READY) { // let's start working
-    NVALID     := (io.input.op1_2 < mul) || (io.input.op1_2 > ruw)
-    rd         := wireRd
-    data       := wireData
-    wcsr       := io.input.wcsr
-    csrData    := wireCsrData
-    isMem      := wireIsMem
-    isLd       := wireIsLd
-    addr       := wireAddr
-    mask       := wireMask
-    op         := wireOp
-    isWord     := wireIsWord
+    NVALID  := (io.input.op1_2 < mul) || (io.input.op1_2 > ruw)
+    rd      := wireRd
+    data    := wireData
+    wcsr    := io.input.wcsr
+    csrData := wireCsrData
+    isMem   := wireIsMem
+    isLd    := wireIsLd
+    addr    := wireAddr
+    mask    := wireMask
+    retire  := wireRetire
+
+    op      := wireOp
+    isWord  := wireIsWord
 
     invalidateICache := io.input.special === fencei
     writebackDCache  := io.input.special === fencei

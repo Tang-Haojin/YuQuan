@@ -27,6 +27,7 @@ class MEM(implicit p: Parameters) extends YQModule {
   private val data    = RegInit(0.U(xlen.W)); io.output.data := data
   private val wcsr    = RegInit(VecInit(Seq.fill(RegConf.writeCsrsPort)(0xFFF.U(12.W)))); io.output.wcsr    := wcsr
   private val csrData = RegInit(VecInit(Seq.fill(RegConf.writeCsrsPort)(0.U(xlen.W))));   io.output.csrData := csrData
+  private val retire  = RegInit(0.B)
   private val exit    = if (Debug) RegInit(0.U(3.W)) else null
   private val pc      = if (Debug) RegInit(0.U(alen.W)) else null
 
@@ -43,6 +44,7 @@ class MEM(implicit p: Parameters) extends YQModule {
   private val wireData = WireDefault(UInt(xlen.W), data)
   private val wireAddr = WireDefault(UInt(alen.W), addr)
   private val wireMask = WireDefault(UInt((xlen / 8).W), mask)
+  private val wireRetr = WireDefault(Bool(), io.input.retire)
 
   private val shiftRdata = VecInit((0 until 8).map(i => io.dcache.cpuResult.data >> (8 * i)))(offset)
   private val extRdata   = VecInit((0 until 7).map {
@@ -63,6 +65,7 @@ class MEM(implicit p: Parameters) extends YQModule {
   io.dcache.cpuReq.wmask := wireMask
   io.dcache.cpuReq.valid := wireIsMem
   io.dcache.cpuReq.addr  := wireAddr
+  io.output.retire       := retire
 
   when(io.dcache.cpuResult.ready) {
     LREADY := 1.B
@@ -79,6 +82,7 @@ class MEM(implicit p: Parameters) extends YQModule {
     data     := wireData
     mask     := wireMask
     wcsr     := io.input.wcsr
+    retire   := wireRetr
     csrData  := io.input.csrData
     extType  := io.input.mask
     if (Debug) {

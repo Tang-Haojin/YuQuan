@@ -26,6 +26,7 @@ class EXOutput(implicit p: Parameters) extends YQBundle {
   val isLd    = Output(Bool())
   val addr    = Output(UInt(alen.W))
   val mask    = Output(UInt(3.W))
+  val retire  = Output(Bool())
   val debug   =
     if (Debug) new YQBundle {
       val exit  = Output(UInt(3.W))
@@ -48,7 +49,7 @@ object NumTypes {
 
 case class RVInstr()(implicit val p: Parameters) extends CPUParams {
   val table = RVI().table ++ Zicsr().table ++ Privileged().table ++ (if (extensions.contains('M')) RVM().table else Nil) ++
-              Zifencei().table
+              Zifencei().table ++ (if (extensions.contains('A')) RVA().table else Nil)
 }
 
 class IDOutput(implicit p: Parameters) extends YQBundle {
@@ -58,6 +59,7 @@ class IDOutput(implicit p: Parameters) extends YQBundle {
   val op1_2   = Output(UInt(AluTypeWidth.W))
   val op1_3   = Output(UInt(AluTypeWidth.W))
   val special = Output(UInt(5.W))
+  val retire  = Output(Bool())
   val debug   =
     if (Debug) new YQBundle {
       val pc = Output(UInt(alen.W))
@@ -90,6 +92,7 @@ class MEMOutput(implicit p: Parameters) extends YQBundle {
   val data    = Output(UInt(xlen.W))
   val wcsr    = Output(Vec(RegConf.writeCsrsPort, UInt(12.W)))
   val csrData = Output(Vec(RegConf.writeCsrsPort, UInt(xlen.W)))
+  val retire  = Output(Bool())
   val debug   =
     if (Debug) new YQBundle {
       val exit  = Output(UInt(3.W))

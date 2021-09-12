@@ -22,7 +22,7 @@ object SimConfig {
     case USECACHE       => 0
     case USELOCK        => 0
     case USEREGION      => 0
-    case EXTENSIONS     => List('I', 'M', 'S')
+    case EXTENSIONS     => List('I', 'M', 'S', 'A')
     case DMAC_MMAP      => new DMAC
     case UART_MMAP      => new PeripheralConfig.UART
     case PLIC_MMAP      => new PeripheralConfig.PLIC

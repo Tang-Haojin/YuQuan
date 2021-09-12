@@ -18,6 +18,7 @@ private case class csrsAddr()(implicit val p: Parameters) extends CPUParams with
 class ID(implicit p: Parameters) extends YQModule {
   val io = IO(new IDIO)
 
+  private val idle::loading::Nil = Enum(2)
   private val csrsRdata0 = io.csrsR.rdata(0)
 
   private val NVALID  = RegInit(0.B)
@@ -29,6 +30,8 @@ class ID(implicit p: Parameters) extends YQModule {
   private val instr   = RegInit(0.U(32.W))
   private val newPriv = RegInit(3.U(2.W))
   private val blocked = RegInit(0.B)
+  private val amoStat = RegInit(UInt(1.W), idle)
+  private val retire  = RegInit(0.B)
   private val pc      = if (Debug) RegInit(0.U(alen.W)) else null
 
   private val num = RegInit(VecInit(Seq.fill(4)(0.U(xlen.W))))
@@ -54,6 +57,8 @@ class ID(implicit p: Parameters) extends YQModule {
   private val wireDataRs2 = WireDefault(UInt(xlen.W), io.gprsR.rdata(1))
   private val wireExcept  = WireDefault(VecInit(Seq.fill(16)(0.B)))
   private val wireNewPriv = WireDefault(3.U(2.W))
+  private val wireAmoStat = WireDefault(UInt(1.W), amoStat)
+  private val wireRetire  = WireDefault(Bool(), 1.B)
   private val wireBlocked = WireDefault(Bool(), blocked)
 
   private val alu1_2   = Module(new SimpleALU)
@@ -69,6 +74,7 @@ class ID(implicit p: Parameters) extends YQModule {
   io.output.op1_2   := op1_2
   io.output.op1_3   := op1_3
   io.output.special := special
+  io.output.retire  := retire
   io.gprsR.raddr    := VecInit(10.U, 0.U, 0.U)
   io.csrsR.rcsr     := VecInit(Seq.fill(RegConf.readCsrsPort)(0xFFF.U(12.W)))
 
@@ -150,7 +156,7 @@ class ID(implicit p: Parameters) extends YQModule {
   when(decoded(8) === inv)    { wireExcept(2)  := 1.B } // illegal instruction
   when(decoded(8) === ecall)  { wireExcept(11) := 1.B } // environment call from M-mode
   when(decoded(8) === ebreak) { wireExcept(3)  := 1.B } // breakpoint
-  when(decoded(8) === fencei) { wireBlocked    := 1.B }
+  when(decoded(8) === fencei || decoded(8) === amo) { wireBlocked := 1.B }
   when(decoded(8) === mret) {
     when(io.currentPriv =/= 3.U) { wireExcept(2) := 1.B } // illegal instruction
     .otherwise {
@@ -173,10 +179,26 @@ class ID(implicit p: Parameters) extends YQModule {
       io.jbAddr   := io.csrsR.rdata(0)(alen - 1, 2) ## 0.U(2.W)
     }
   }
+  when(decoded(8) === amo && amoStat === idle && wireOp1_2 =/= Operators.lr && wireOp1_2 =/= Operators.sc) {
+    wireAmoStat := loading
+    wireSpecial := ld
+    wireRetire  := 0.B
+  }
+
+  when(amoStat === loading) {
+    io.gprsR.raddr(0) := rd
+    when(!io.isWait) {
+      num(1)  := io.gprsR.rdata(0)
+      special := st
+      NVALID  := 1.B
+      amoStat := idle
+      retire  := 1.B
+    }
+  }
 
   AddException(true, mti); AddException(true, mei); AddException()
 
-  io.lastVR.READY := io.nextVR.READY && !io.isWait && !blocked
+  io.lastVR.READY := io.nextVR.READY && !io.isWait && !blocked && amoStat === idle
 
   when(io.lastVR.VALID && io.lastVR.READY) { // let's start working
     NVALID  := 1.B
@@ -189,8 +211,10 @@ class ID(implicit p: Parameters) extends YQModule {
     instr   := wireInstr
     newPriv := wireNewPriv
     blocked := wireBlocked
+    amoStat := wireAmoStat
+    retire  := wireRetire
     if (Debug) pc := io.input.pc
-  }.elsewhen(io.isWait && io.nextVR.READY) {
+  }.elsewhen(io.isWait && io.nextVR.READY && amoStat === idle) {
     NVALID  := 0.B
     rd      := 0.U
     wcsr    := VecInit(Seq.fill(RegConf.writeCsrsPort)(0xFFF.U(12.W)))
