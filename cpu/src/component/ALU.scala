@@ -79,7 +79,11 @@ class ALU(implicit p: Parameters) extends YQModule {
     div  -> (divTop.io.output.bits.quotient.asSInt),
     remu -> (divTop.io.output.bits.remainder.asSInt),
     divu -> (divTop.io.output.bits.quotient.asSInt),
-    mulh -> (multiTop.io.output.bits(2 * xlen - 1, xlen).asSInt)
+    mulh -> (multiTop.io.output.bits(2 * xlen - 1, xlen).asSInt),
+    max  -> Mux(lessthan, b, a),
+    min  -> Mux(lessthan, a, b),
+    maxu -> Mux(ulessthan, b, a),
+    minu -> Mux(ulessthan, a, b)
   )
   if (xlen == 64) operates ++= Seq(
     sllw -> (sl(31, 0).asSInt),
@@ -114,12 +118,13 @@ class SimpleALU(implicit p: Parameters) extends YQModule {
 }
 
 object Operators {
-  var operators = Enum(28)
+  var operators = Enum(32)
   val err::add::sub::and::or::xor::sll::sra::Nil = operators.take(8)
   operators = operators.drop(8)
   val srl::lts::ltu::equ::neq::sllw::srlw::sraw::Nil = operators.take(8)
   operators = operators.drop(8)
   val ges::geu::mul::divw::remw::rem::div::remu::Nil = operators.take(8)
   operators = operators.drop(8)
-  val divu::mulh::duw::ruw::Nil = operators
+  val divu::mulh::duw::ruw::max::min::maxu::minu::Nil = operators
+  val (lr, sc) = (sll, sra)
 }
