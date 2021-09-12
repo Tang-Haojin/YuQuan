@@ -156,7 +156,7 @@ class ID(implicit p: Parameters) extends YQModule {
   when(decoded(8) === inv)    { wireExcept(2)  := 1.B } // illegal instruction
   when(decoded(8) === ecall)  { wireExcept(11) := 1.B } // environment call from M-mode
   when(decoded(8) === ebreak) { wireExcept(3)  := 1.B } // breakpoint
-  when(decoded(8) === fencei || decoded(8) === amo) { wireBlocked := 1.B }
+  when(decoded(8) === fencei) { wireBlocked := 1.B }
   when(decoded(8) === mret) {
     when(io.currentPriv =/= 3.U) { wireExcept(2) := 1.B } // illegal instruction
     .otherwise {
@@ -179,21 +179,10 @@ class ID(implicit p: Parameters) extends YQModule {
       io.jbAddr   := io.csrsR.rdata(0)(alen - 1, 2) ## 0.U(2.W)
     }
   }
-  when(decoded(8) === amo && amoStat === idle && wireOp1_2 =/= Operators.lr && wireOp1_2 =/= Operators.sc) {
+  if (extensions.contains('A')) when(decoded(8) === amo && amoStat === idle && wireOp1_2 =/= Operators.lr && wireOp1_2 =/= Operators.sc) {
     wireAmoStat := loading
     wireSpecial := ld
     wireRetire  := 0.B
-  }
-
-  when(amoStat === loading) {
-    io.gprsR.raddr(0) := rd
-    when(!io.isWait) {
-      num(1)  := io.gprsR.rdata(0)
-      special := st
-      NVALID  := 1.B
-      amoStat := idle
-      retire  := 1.B
-    }
   }
 
   AddException(true, mti); AddException(true, mei); AddException()
@@ -211,7 +200,7 @@ class ID(implicit p: Parameters) extends YQModule {
     instr   := wireInstr
     newPriv := wireNewPriv
     blocked := wireBlocked
-    amoStat := wireAmoStat
+    if (extensions.contains('A')) amoStat := wireAmoStat
     retire  := wireRetire
     if (Debug) pc := io.input.pc
   }.elsewhen(io.isWait && io.nextVR.READY && amoStat === idle) {
@@ -225,6 +214,18 @@ class ID(implicit p: Parameters) extends YQModule {
   }.elsewhen(io.nextVR.READY && io.nextVR.VALID) {
     NVALID  := 0.B
     blocked := 0.B
+  }
+
+  if (extensions.contains('A')) when(amoStat === loading) {
+    io.gprsR.raddr(0) := rd // FIXME: it will break when rd = 0
+    when(!io.isWait) {
+      num(1)  := io.gprsR.rdata(0)
+      special := st
+      NVALID  := 1.B
+      amoStat := idle
+      retire  := 1.B
+      rd      := 0.U
+    }
   }
 
   if (Debug) io.output.debug.pc := pc
