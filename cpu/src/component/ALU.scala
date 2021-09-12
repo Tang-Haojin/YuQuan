@@ -58,6 +58,7 @@ class ALU(implicit p: Parameters) extends YQModule {
 
   private val shiftness = WireDefault(UInt(6.W), if (xlen == 64) b(5, 0) else b(4, 0)); when(io.input.bits.word) { shiftness := b(4, 0) }
   private val sl = WireDefault(UInt(xlen.W), VecInit(Seq.tabulate(xlen)(x => if (x == 0) a.asUInt else a(xlen - x - 1, 0) ## 0.U(x.W)))(shiftness))
+  private val (lessthan, ulessthan, equal) = (a < b, a.asUInt < b.asUInt, a === b)
   private var operates = Seq(
     add  -> (a + b),
     sub  -> (a - b),
@@ -67,12 +68,12 @@ class ALU(implicit p: Parameters) extends YQModule {
     sll  -> (sl.asSInt),
     sra  -> (a >> (if (xlen == 64) b(5, 0) else b(4, 0))),
     srl  -> ((a.asUInt >> (if (xlen == 64) b(5, 0) else b(4, 0))).asSInt),
-    lts  -> (Cat(Fill(xlen - 1, 0.U), a < b).asSInt),
-    ltu  -> (Cat(Fill(xlen - 1, 0.U), a.asUInt < b.asUInt).asSInt),
-    equ  -> (Cat(Fill(xlen - 1, 0.U), a === b).asSInt),
-    neq  -> (Cat(Fill(xlen - 1, 0.U), a =/= b).asSInt),
-    ges  -> (Cat(Fill(xlen - 1, 0.U), a >= b).asSInt),
-    geu  -> (Cat(Fill(xlen - 1, 0.U), a.asUInt >= b.asUInt).asSInt),
+    lts  -> (0.U((xlen - 1).W) ## lessthan).asSInt,
+    ltu  -> (0.U((xlen - 1).W) ## ulessthan).asSInt,
+    equ  -> (0.U((xlen - 1).W) ## equal).asSInt,
+    neq  -> (0.U((xlen - 1).W) ## !equal).asSInt,
+    ges  -> (0.U((xlen - 1).W) ## !lessthan).asSInt,
+    geu  -> (0.U((xlen - 1).W) ## !ulessthan).asSInt,
     mul  -> (multiTop.io.output.bits(xlen - 1, 0).asSInt),
     rem  -> (divTop.io.output.bits.remainder.asSInt),
     div  -> (divTop.io.output.bits.quotient.asSInt),
@@ -82,7 +83,7 @@ class ALU(implicit p: Parameters) extends YQModule {
   )
   if (xlen == 64) operates ++= Seq(
     sllw -> (sl(31, 0).asSInt),
-    srlw -> ((Cat(Fill(xlen - 32, 0.U), a(31, 0)) >> b(4, 0)).asSInt),
+    srlw -> ((Cat(0.U((xlen - 32).W), a(31, 0)) >> b(4, 0)).asSInt),
     sraw -> ((Cat(Fill(xlen - 32, a(31)), a(31, 0)) >> b(4, 0)).asSInt),
     divw -> (divTop.io.output.bits.quotient(31, 0).asSInt),
     remw -> (divTop.io.output.bits.remainder(31, 0).asSInt),
@@ -101,13 +102,14 @@ class SimpleALU(implicit p: Parameters) extends YQModule {
     val b   = Input (SInt(xlen.W))
     val res = Output(SInt(xlen.W))
   })
+  val (lessthan, ulessthan, equal) = (io.a < io.b, io.a.asUInt < io.b.asUInt, io.a === io.b)
   io.res := MuxLookup(io.op, io.a, Seq(
-    lts -> Cat(Fill(xlen - 1, 0.U), io.a < io.b).asSInt,
-    ltu -> Cat(Fill(xlen - 1, 0.U), io.a.asUInt < io.b.asUInt).asSInt,
-    equ -> Cat(Fill(xlen - 1, 0.U), io.a === io.b).asSInt,
-    neq -> Cat(Fill(xlen - 1, 0.U), io.a =/= io.b).asSInt,
-    ges -> Cat(Fill(xlen - 1, 0.U), io.a >= io.b).asSInt,
-    geu -> Cat(Fill(xlen - 1, 0.U), io.a.asUInt >= io.b.asUInt).asSInt
+    lts -> (0.U((xlen - 1).W) ## lessthan).asSInt,
+    ltu -> (0.U((xlen - 1).W) ## ulessthan).asSInt,
+    equ -> (0.U((xlen - 1).W) ## equal).asSInt,
+    neq -> (0.U((xlen - 1).W) ## !equal).asSInt,
+    ges -> (0.U((xlen - 1).W) ## !lessthan).asSInt,
+    geu -> (0.U((xlen - 1).W) ## !ulessthan).asSInt
   ))
 }
 
