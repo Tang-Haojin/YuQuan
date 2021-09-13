@@ -75,6 +75,7 @@ class ID(implicit p: Parameters) extends YQModule {
   io.output.op1_3   := op1_3
   io.output.special := special
   io.output.retire  := retire
+  io.isAmo          := amoStat =/= idle
   io.gprsR.raddr    := VecInit(10.U, 0.U, 0.U)
   io.csrsR.rcsr     := VecInit(Seq.fill(RegConf.readCsrsPort)(0xFFF.U(12.W)))
 
@@ -156,7 +157,7 @@ class ID(implicit p: Parameters) extends YQModule {
   when(decoded(8) === inv)    { wireExcept(2)  := 1.B } // illegal instruction
   when(decoded(8) === ecall)  { wireExcept(11) := 1.B } // environment call from M-mode
   when(decoded(8) === ebreak) { wireExcept(3)  := 1.B } // breakpoint
-  when(decoded(8) === fencei) { wireBlocked := 1.B }
+  when(decoded(8) === fencei) { wireBlocked    := 1.B }
   when(decoded(8) === mret) {
     when(io.currentPriv =/= 3.U) { wireExcept(2) := 1.B } // illegal instruction
     .otherwise {
@@ -217,7 +218,7 @@ class ID(implicit p: Parameters) extends YQModule {
   }
 
   if (extensions.contains('A')) when(amoStat === loading) {
-    io.gprsR.raddr(0) := rd // FIXME: it will break when rd = 0
+    io.gprsR.raddr(0) := rd
     when(!io.isWait) {
       num(1)  := io.gprsR.rdata(0)
       special := st

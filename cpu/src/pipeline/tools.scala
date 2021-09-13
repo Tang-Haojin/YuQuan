@@ -78,6 +78,7 @@ class IDIO(implicit p: Parameters) extends YQBundle {
   val isWait      = Input (Bool())
   val currentPriv = Input (UInt(2.W))
   val newPriv     = Output(UInt(2.W))
+  val isAmo       = Output(Bool())
 }
 
 // IF
@@ -102,6 +103,7 @@ class MEMOutput(implicit p: Parameters) extends YQBundle {
 
 // Bypass
 class RdVal(implicit p: Parameters) extends YQBundle {
+  val valid = Input(Bool())
   val index = Input(UInt(5.W))
   val value = Input(UInt(xlen.W))
 }

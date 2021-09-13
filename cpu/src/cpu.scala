@@ -83,13 +83,17 @@ class CPU(implicit p: Parameters) extends YQModule {
   moduleEX.io.wbDch   <> moduleDCache.io.wb
 
   moduleBypass.io.request <> moduleGPRs.io.gprsR
-  moduleBypass.io.idOut.index  := moduleID.io.output.rd & Fill(5, moduleID.io.nextVR.VALID)
+  moduleBypass.io.idOut.valid  := moduleID.io.nextVR.VALID
+  moduleBypass.io.idOut.index  := moduleID.io.output.rd
   moduleBypass.io.idOut.value  := DontCare
-  moduleBypass.io.exOut.index  := moduleEX.io.output.rd & Fill(5, moduleEX.io.nextVR.VALID)
+  moduleBypass.io.exOut.valid  := moduleEX.io.nextVR.VALID
+  moduleBypass.io.exOut.index  := moduleEX.io.output.rd
   moduleBypass.io.exOut.value  := moduleEX.io.output.data
-  moduleBypass.io.memOut.index := moduleMEM.io.output.rd & Fill(5, moduleMEM.io.nextVR.VALID)
+  moduleBypass.io.memOut.valid := moduleMEM.io.nextVR.VALID
+  moduleBypass.io.memOut.index := moduleMEM.io.output.rd
   moduleBypass.io.memOut.value := moduleMEM.io.output.data
   moduleBypass.io.isLd         := moduleEX.io.output.isLd
+  moduleBypass.io.isAmo        := moduleID.io.isAmo
 
   moduleBypassCsr.io.request <> moduleCSRs.io.csrsR
   for (i <- 0 until RegConf.writeCsrsPort) {
