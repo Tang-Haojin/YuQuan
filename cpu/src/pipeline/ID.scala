@@ -219,7 +219,7 @@ class ID(implicit p: Parameters) extends YQModule {
 
   if (extensions.contains('A')) when(amoStat === loading) {
     io.gprsR.raddr(0) := rd
-    when(!io.isWait) {
+    when(!io.isWait && io.nextVR.READY) {
       num(1)  := io.gprsR.rdata(0)
       special := st
       NVALID  := 1.B
