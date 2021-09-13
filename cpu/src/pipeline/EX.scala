@@ -155,6 +155,7 @@ class EX(implicit p: Parameters) extends YQModule {
       when(wireAddr =/= lraddr || !lrvalid) { wireData := 1.U }
       .otherwise {
         wireScState := storing
+        wireLrvalid := 0.B
         wireRetire  := 0.B
         wireRd      := 0.U
         wireIsMem   := 1.B
