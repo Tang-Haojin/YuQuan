@@ -14,6 +14,7 @@ static inline bool in_pmem(uint64_t addr) {
 }
 
 static uint8_t pmem[PMEM_SIZE] PG_ALIGN = {};
+static uint64_t ret[2] = {};
 
 extern "C" uint64_t ram_read(uint64_t addr) {
   return in_pmem(addr) ? *(uint64_t *)(pmem + addr) : 0xBB;
@@ -30,7 +31,7 @@ extern "C" void ram_write(uint64_t addr, uint64_t data, uint8_t mask) {
     }
 }
 
-extern "C" void ram_init(char *img) {
+extern "C" uint64_t *ram_init(char *img) {
   FILE *fp = fopen(img, "rb");
   Assert(fp, "Can not open '%s'", img);
 
@@ -41,4 +42,9 @@ extern "C" void ram_init(char *img) {
   assert(fread(pmem, size, 1, fp) == 1);
 
   fclose(fp);
+
+  ret[0] = (uint64_t)pmem;
+  ret[1] = size;
+
+  return ret;
 }

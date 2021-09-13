@@ -2,7 +2,7 @@ pwd := $(shell pwd)
 NO_ERR = >>/dev/null 2>&1 | echo >>/dev/null 2>&1
 site = https://tanghaojin.site/static
 BUILD_DIR = ./build
-LIB_DIR   = $(pwd)/sim/lib
+LIB_DIR   = $(pwd)/difftest/difftest/build
 simSrcDir = $(pwd)/sim/src
 srcDir    = $(pwd)/cpu/src
 cpuNum    = $(shell echo $$((`lscpu -p=CORE | tail -n 1` + 1)))
@@ -54,15 +54,12 @@ CFLAGS += -DTRACE
 endif
 
 DIFF ?= 1
-ifeq ($(DIFF),0)
+ifneq ($(DIFF),1)
 else
-LIBNEMU = $(LIB_DIR)/librv64nemu.so
+LIB_SPIKE = $(LIB_DIR)/librv64spike.so
 $(shell mkdir $(LIB_DIR) $(NO_ERR))
-ifeq ($(wildcard $(LIBNEMU)),)
-$(shell wget $(site)/librv64nemu.so -O $(LIBNEMU) || rm $(LIBNEMU))
-endif
 export LD_LIBRARY_PATH := $(LIB_DIR):$(LD_LIBRARY_PATH)
-LDFLAGS += -L$(LIB_DIR) -lrv64nemu -lSDL2 -lreadline
+LDFLAGS += -L$(LIB_DIR) -lrv64spike -ldl
 CFLAGS  += -DDIFFTEST
 endif
 
@@ -118,17 +115,20 @@ verilate:
 	@cd $(BUILD_DIR)/sim && \
 	verilator $(VFLAGS) --build $(CSRCS) -CFLAGS "$(CFLAGS)" -LDFLAGS "$(LDFLAGS)" >/dev/null
 
-sim: verilate
+sim: $(LIB_SPIKE) verilate
 ifeq ($(BIN),)
 	$(error $(nobin))
 endif
 	@$(BUILD_DIR)/sim/obj_dir/VTestTop $(binFile) $(flashBinFile) $(storageBinFile)
 
-simall: verilate
+simall: $(LIB_SPIKE) verilate
 	@for x in $(SIMBIN); do \
 		$(BUILD_DIR)/sim/obj_dir/VTestTop $(pwd)/sim/bin/$$x-$(ISA)-nemu.bin >/dev/null 2>&1; \
 		if [ $$? -eq 0 ]; then printf "[$$x] \33[1;32mpass\33[0m\n"; \
 		else                   printf "[$$x] \33[1;31mfail\33[0m\n"; fi; \
 	done
 
-.PHONY: test verilog help compile bsp reformat checkformat ysyxcheck clean clean-all verilate sim simall
+$(LIB_DIR)/librv64spike.so:
+	@cd $(pwd)/difftest/difftest && make -j && cd build && ln -sf riscv64-spike-so librv64spike.so
+
+.PHONY: test verilog help compile bsp reformat checkformat ysyxcheck clean clean-all verilate sim simall $(LIB_DIR)/librv64spike.so

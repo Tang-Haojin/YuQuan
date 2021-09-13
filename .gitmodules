@@ -1,3 +1,6 @@
 [submodule "ysyxSoC"]
 	path = ysyxSoC
 	url = https://github.com/Tang-Haojin/ysyxSoC.git
+[submodule "difftest"]
+	path = difftest
+	url = https://github.com/Tang-Haojin/riscv-isa-sim.git
