@@ -35,10 +35,10 @@ class MstatusBundle(implicit val p: Parameters) extends Bundle with CPUParams {
 
   def := (that: => Data): Unit = {
     val mstatus = WireDefault(new MstatusBundle, that.asTypeOf(new MstatusBundle))
+    MXR := mstatus.MXR; SUM := mstatus.SUM
     MPP := Mux(mstatus.MPP =/= 2.U, mstatus.MPP, MPP)
     SPP := mstatus.SPP; MPIE := mstatus.MPIE; SPIE := mstatus.SPIE; UPIE := mstatus.UPIE
-    MIE := mstatus.MIE; SIE := mstatus.SIE; UIE := mstatus.UIE
-    TSR := mstatus.TSR
+    MIE := mstatus.MIE; SIE := mstatus.SIE; UIE := mstatus.UIE; TSR := mstatus.TSR
   }
 }
 
