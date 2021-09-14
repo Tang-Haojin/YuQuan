@@ -50,7 +50,7 @@ int main(int argc, char **argv, char **env) {
 #ifdef DIFFTEST
   vaddr_t pc, spike_pc;
   {
-    size_t tmp[33] = {};
+    size_t tmp[32+2] = {};
     tmp[32] = 0x80000000UL;
     difftest_init(0);
     difftest_regcpy(tmp, DIFFTEST_TO_REF);
@@ -105,7 +105,7 @@ int main(int argc, char **argv, char **env) {
         printf("debug: Exit after %ld clock cycles.\n", cycles / 2);
         printf("debug: ");
         printf("\33[1;31mPC Diff\33[0m\n");
-        printf("pc = " FMT_WORD "\tspike_pc=" FMT_WORD "\n", pc, spike_pc);
+        printf("pc = " FMT_WORD "\tspike_pc = " FMT_WORD "\n", pc, spike_pc);
         ret = 1;
         break;
       }
@@ -115,6 +115,7 @@ int main(int argc, char **argv, char **env) {
         size_t tmp[33];
         memcpy(tmp, gprs, 32 * sizeof(size_t));
         tmp[32] = pc + 4;
+        tmp[33] = 0;
         difftest_regcpy(tmp, DIFFTEST_TO_REF);
       }
       if (diff_context.gpr[top->io_wbRd] != gprs[top->io_wbRd]) {
@@ -122,9 +123,19 @@ int main(int argc, char **argv, char **env) {
         printf("debug: ");
         printf("\33[1;31mGPR[%d] Diff\33[0m ", top->io_wbRd);
         printf("at pc = " FMT_WORD "\n", pc);
-        printf("GPR[%d] = " FMT_WORD "\tspike_GPR[%d]=" FMT_WORD "\n",
+        printf("GPR[%d] = " FMT_WORD "\tspike_GPR[%d] = " FMT_WORD "\n",
                top->io_wbRd, gprs[top->io_wbRd],
                top->io_wbRd, diff_context.gpr[top->io_wbRd]);
+        ret = 1;
+        break;
+      }
+      if (diff_context.mstatus[0] != top->io_mstatus) {
+        printf("debug: Exit after %ld clock cycles.\n", cycles / 2);
+        printf("debug: ");
+        printf("\33[1;31mmstatus Diff\33[0m ");
+        printf("at pc = " FMT_WORD "\n", pc);
+        printf("mstatus = " FMT_WORD "\tspike_mstatus = " FMT_WORD "\n",
+               top->io_mstatus, diff_context.mstatus[0]);
         ret = 1;
         break;
       }

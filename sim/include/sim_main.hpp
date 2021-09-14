@@ -110,6 +110,7 @@ extern "C" {
 struct diff_context_p {
   volatile const size_t *volatile gpr;
   volatile const size_t *pc;
+  volatile const size_t *mstatus;
 };
 
 extern struct diff_context_p diff_context;
