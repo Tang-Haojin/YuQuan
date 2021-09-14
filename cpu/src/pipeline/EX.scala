@@ -10,6 +10,7 @@ import utils.Convert._
 import ExecSpecials._
 import cpu.component._
 import cpu.tools._
+import cpu.privileged.MstatusBundle
 
 class EX(implicit p: Parameters) extends YQModule {
   val io = IO(new YQBundle {
@@ -122,27 +123,37 @@ class EX(implicit p: Parameters) extends YQModule {
     )
   }
   if (extensions.contains('S')) when(io.input.special === sret) {
-    wireCsrData(0) := Cat(
-      io.input.num(0)(xlen - 1, 9),
-      1.B,
-      io.input.num(0)(7, 3),
-      io.input.num(0)(5), // SPIE
-      io.input.num(0)(1, 0)
-    )
+    val oldMstatus = io.input.num(0).asTypeOf(new MstatusBundle)
+    val newMstatus = WireDefault(new MstatusBundle, oldMstatus)
+    newMstatus.SPP  := 0.B
+    newMstatus.SIE  := oldMstatus.SPIE
+    newMstatus.SPIE := 1.B
+    wireCsrData(0)  := newMstatus.asUInt
   }
   when(io.input.special === exception) {
+    val currentPriv = io.input.num(3)(xlen - 2, xlen - 3)
+    val newPriv     = io.input.num(3)(xlen - 4, xlen - 5)
+    val oldMstatus  = io.input.num(3).asTypeOf(new MstatusBundle)
+    val newMstatus  = WireDefault(new MstatusBundle, oldMstatus)
+    newMstatus.WPRI_0 := 0.U
+    when(newPriv === "b11".U) {
+      newMstatus.MPP  := currentPriv
+      newMstatus.MPIE := oldMstatus.MIE
+      newMstatus.MIE  := 0.B
+    }
+    when(newPriv === "b01".U) {
+      newMstatus.SPP  := currentPriv
+      newMstatus.SPIE := oldMstatus.SIE
+      newMstatus.SIE  := 0.B
+    }
+    when(newPriv === "b00".U) {
+      newMstatus.UPIE := oldMstatus.UIE
+      newMstatus.UIE  := 0.B
+    }
     wireCsrData(0) := io.input.num(0)
     wireCsrData(1) := io.input.num(1)
     wireCsrData(2) := io.input.num(2)
-    wireCsrData(3) := Cat(
-      io.input.num(3)(xlen - 1, 13),
-      "b11".U,
-      io.input.num(3)(10, 8),
-      io.input.num(3)(3), // MIE
-      io.input.num(3)(6, 4),
-      0.B,
-      io.input.num(3)(2, 0)
-    )
+    wireCsrData(3) := newMstatus.asUInt
     wireRd := 0.U
   }
   if (extensions.contains('A')) when(io.input.special === amo) {

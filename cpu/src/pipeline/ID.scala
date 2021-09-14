@@ -155,8 +155,12 @@ class ID(implicit p: Parameters) extends YQModule {
     io.csrsR.rcsr(0) := wireCsr(0)
     wireCsr(0) := wireInstr(31, 20)
   }
-  when(decoded(8) === inv)    { wireExcept(2)  := 1.B } // illegal instruction
-  when(decoded(8) === ecall)  { wireExcept(11) := 1.B } // environment call from M-mode
+  when(decoded(8) === inv) { wireExcept(2)  := 1.B } // illegal instruction
+  when(decoded(8) === ecall) {
+    when(io.currentPriv === "b11".U) { wireExcept(11) := 1.B } // environment call from M-mode
+    when(io.currentPriv === "b01".U) { wireExcept( 9) := 1.B } // environment call from S-mode
+    when(io.currentPriv === "b00".U) { wireExcept( 8) := 1.B } // environment call from U-mode
+  }
   when(decoded(8) === ebreak) { wireExcept(3)  := 1.B } // breakpoint
   when(decoded(8) === fencei) { wireBlocked    := 1.B }
   when(decoded(8) === mret) {
@@ -170,7 +174,7 @@ class ID(implicit p: Parameters) extends YQModule {
       io.jbAddr := io.csrsR.rdata(0)(alen - 1, 2) ## 0.U(2.W)
     }
   }
-  when(decoded(8) === sret) { // FIXME: consistency between mstatus and sstatus read & write
+  if (extensions.contains('S')) when(decoded(8) === sret) { // FIXME: consistency between mstatus and sstatus read & write
     when((io.currentPriv =/= 3.U && io.currentPriv =/= 1.U) || io.csrsR.rdata(1).asTypeOf(new MstatusBundle).TSR) { wireExcept(2) := 1.B } // illegal instruction
     .otherwise {
       io.csrsR.rcsr(0) := csrsAddr().Sepc
@@ -205,7 +209,7 @@ class ID(implicit p: Parameters) extends YQModule {
     if (extensions.contains('A')) amoStat := wireAmoStat
     retire  := wireRetire
     if (Debug) pc := io.input.pc
-    if (Debug) rcsr := Mux(decoded(8) === csr, wireInstr(31, 20), 0xfff.U)
+    if (Debug) rcsr := Mux(wireSpecial === csr, wireInstr(31, 20), 0xfff.U)
   }.elsewhen(io.isWait && io.nextVR.READY && amoStat === idle) {
     NVALID  := 0.B
     rd      := 0.U
@@ -242,12 +246,21 @@ class ID(implicit p: Parameters) extends YQModule {
       code := interrupt.B ## exceptionCode.U((xlen - 1).W)
     } else for (i <- wireExcept.indices) when(wireExcept(i)) { fire := 1.B; code := i.U }
     when(io.lastVR.VALID && fire) {
-      io.csrsR.rcsr(5) := csrsAddr().Mtvec
+      printf("exception code: %d, pc = %x, current state = %d\n", if (interrupt) exceptionCode.id.U else code, io.input.pc, io.currentPriv)
+      val mstat  = io.csrsR.rdata(1)(xlen - 1) ## io.currentPriv ## wireNewPriv ## io.csrsR.rdata(1)(xlen - 6, 0)
+      val Xepc   = MuxLookup(wireNewPriv, csrsAddr().Mepc,   Seq("b01".U -> csrsAddr().Sepc,   "b00".U -> csrsAddr().Uepc  ))
+      val Xcause = MuxLookup(wireNewPriv, csrsAddr().Mcause, Seq("b01".U -> csrsAddr().Scause, "b00".U -> csrsAddr().Ucause))
+      val Xtval  = MuxLookup(wireNewPriv, csrsAddr().Mtval,  Seq("b01".U -> csrsAddr().Stval,  "b00".U -> csrsAddr().Utval ))
+      val Xtvec  = MuxLookup(wireNewPriv, csrsAddr().Mtvec,  Seq("b01".U -> csrsAddr().Stvec,  "b00".U -> csrsAddr().Utvec ))
+      val deleg  = if (interrupt) io.csrsR.rdata(4)(exceptionCode) else VecInit(Seq.tabulate(16)(io.csrsR.rdata(4)(_)))(code)
+      io.csrsR.rcsr(4) := (if (interrupt) csrsAddr().Mideleg else csrsAddr().Medeleg)
+      io.csrsR.rcsr(5) := Xtvec
       io.jmpBch := 1.B
+      wireNewPriv := Mux(deleg, io.currentPriv, "b11".U(2.W))
       wireSpecial := exception
       wireRd := 0.U
-      wireCsr := VecInit(csrsAddr().Mepc, csrsAddr().Mcause, csrsAddr().Mtval, csrsAddr().Mstatus)
-      wireNum := VecInit(io.input.pc, code, io.input.instr, io.csrsR.rdata(1))
+      wireCsr := VecInit(Xepc, Xcause, Xtval, csrsAddr().Mstatus)
+      wireNum := VecInit(io.input.pc, code, io.input.instr, mstat)
       io.jbAddr := io.csrsR.rdata(5)(alen - 1, 2) ## 0.U(2.W) + Mux(interrupt.B && io.csrsR.rdata(5)(0), (exceptionCode * 4).U, 0.U)
     }
   }
