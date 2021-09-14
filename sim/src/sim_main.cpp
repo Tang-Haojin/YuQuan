@@ -109,7 +109,14 @@ int main(int argc, char **argv, char **env) {
         ret = 1;
         break;
       }
-      difftest_exec(1);
+      if (top->io_wbRcsr != 0x301 && !in_pmpaddr(top->io_wbRcsr) && top->io_wbRcsr != 0xC01 && !top->io_wbMMIO)
+        difftest_exec(1);
+      else {
+        size_t tmp[33];
+        memcpy(tmp, gprs, 32 * sizeof(size_t));
+        tmp[32] = pc + 4;
+        difftest_regcpy(tmp, DIFFTEST_TO_REF);
+      }
       if (diff_context.gpr[top->io_wbRd] != gprs[top->io_wbRd]) {
         printf("debug: Exit after %ld clock cycles.\n", cycles / 2);
         printf("debug: ");
