@@ -122,12 +122,8 @@ class CPU(implicit p: Parameters) extends YQModule {
     io.debug.wbPC    := moduleWB.io.debug.pc
     io.debug.wbValid := moduleWB.io.retire
     io.debug.wbRd    := moduleWB.io.debug.rd
+    io.debug.wbRcsr  := moduleWB.io.debug.rcsr
     io.debug.gprs    := moduleGPRs.io.debug.gprs
-    
-    moduleEX.io.input.debug.pc    := moduleID.io.output.debug.pc
-    moduleMEM.io.input.debug.pc   := moduleEX.io.output.debug.pc
-    moduleMEM.io.input.debug.exit := moduleEX.io.output.debug.exit
-    moduleWB.io.input.debug.pc    := moduleMEM.io.output.debug.pc
-    moduleWB.io.input.debug.exit  := moduleMEM.io.output.debug.exit
+    io.debug.wbMMIO  := moduleWB.io.debug.mmio
   }
 }

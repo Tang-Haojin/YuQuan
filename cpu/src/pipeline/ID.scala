@@ -33,6 +33,7 @@ class ID(implicit p: Parameters) extends YQModule {
   private val amoStat = RegInit(UInt(1.W), idle)
   private val retire  = RegInit(0.B)
   private val pc      = if (Debug) RegInit(0.U(alen.W)) else null
+  private val rcsr    = if (Debug) RegInit(0xfff.U(12.W)) else null
 
   private val num = RegInit(VecInit(Seq.fill(4)(0.U(xlen.W))))
 
@@ -204,6 +205,7 @@ class ID(implicit p: Parameters) extends YQModule {
     if (extensions.contains('A')) amoStat := wireAmoStat
     retire  := wireRetire
     if (Debug) pc := io.input.pc
+    if (Debug) rcsr := Mux(decoded(8) === csr, wireInstr(31, 20), 0xfff.U)
   }.elsewhen(io.isWait && io.nextVR.READY && amoStat === idle) {
     NVALID  := 0.B
     rd      := 0.U
@@ -229,7 +231,8 @@ class ID(implicit p: Parameters) extends YQModule {
     }
   }
 
-  if (Debug) io.output.debug.pc := pc
+  if (Debug) io.output.debug.pc   := pc
+  if (Debug) io.output.debug.rcsr := rcsr
 
   private class AddException(interrupt: Boolean = false, exceptionCode: Value = usi) {
     private val fire = WireDefault(0.B)
