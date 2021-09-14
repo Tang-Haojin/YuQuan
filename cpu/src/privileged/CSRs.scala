@@ -27,8 +27,8 @@ trait CSRsAddr extends CPUParams {
 
   val Mstatus       = 0x300.U
   val Misa          = 0x301.U
-  // val Medeleg       = 0x302.U
-  // val Mideleg       = 0x303.U
+  val Medeleg       = 0x302.U
+  val Mideleg       = 0x303.U
   val Mie           = 0x304.U
   val Mtvec         = 0x305.U
   val Mcounteren    = 0x306.U
@@ -76,6 +76,15 @@ trait CSRsAddr extends CPUParams {
   val Stval         = 0x143.U
   val Sip           = 0x144.U
   val Satp          = 0x180.U
+
+  val Ustatus       = 0x000.U
+  val Uie           = 0x004.U
+  val Utvec         = 0x005.U
+  val Uscratch      = 0x040.U
+  val Uepc          = 0x041.U
+  val Ucause        = 0x042.U
+  val Utval         = 0x043.U
+  val Uip           = 0x044.U
 }
 
 class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
@@ -87,6 +96,9 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
     val currentPriv = Output(UInt(2.W))
     val changePriv  = Input (Bool())
     val newPriv     = Input (UInt(2.W))
+    val debug       = if (Debug) new Bundle {
+      val mstatus = Output(UInt(xlen.W))
+    } else null
   })
 
   private val misa      = (log2Down(xlen) - 4).U(2.W) ## 0.U((xlen - 28).W) ## extensions.foldLeft(0)((res, x) => res | 1 << x - 'A').U(26.W)
@@ -101,8 +113,8 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
     init
   })
 
-  // val medeleg // should not exist with only M-Mode
-  // val mideleg // should not exist with only M-Mode
+  private val medeleg = if (extensions.contains('S')) RegInit(0.U(xlen.W)) else null
+  private val mideleg = if (extensions.contains('S')) RegInit(0.U(xlen.W)) else null
 
   private val mcycle       = RegInit(0.U(64.W)) // the number of clock cycles
   private val minstret     = RegInit(0.U(64.W)) // the number of instructions retired
@@ -187,6 +199,8 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
         when(io.csrsW.wcsr(i) === Stval) { stval := io.csrsW.wdata(i) } // TODO: set the value when exception is arised
         when(io.csrsW.wcsr(i) === Sip) { sip := io.csrsW.wdata(i) }
         when(io.csrsW.wcsr(i) === Satp) {} // TODO: support paging
+        when(io.csrsW.wcsr(i) === Mideleg) { if (extensions.contains('S')) mideleg := io.csrsW.wdata(i) }
+        when(io.csrsW.wcsr(i) === Medeleg) { if (extensions.contains('S')) medeleg := io.csrsW.wdata(i) }
 
         if (xlen == 32) {
           when((io.csrsW.wcsr(i) === Pmpcfg1) || (io.csrsW.wcsr(i) === Pmpcfg3)) {} // Currently do nothing.
@@ -237,6 +251,8 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
     when(io.csrsR.rcsr(i) === Stval) { io.csrsR.rdata(i) := stval }
     when(io.csrsR.rcsr(i) === Sip) { io.csrsR.rdata(i) := sip }
     when(io.csrsR.rcsr(i) === Satp) { io.csrsR.rdata(i) := satp }
+    when(io.csrsR.rcsr(i) === Mideleg) { if (extensions.contains('S')) io.csrsR.rdata(i) := mideleg }
+    when(io.csrsR.rcsr(i) === Medeleg) { if (extensions.contains('S')) io.csrsR.rdata(i) := medeleg }
 
     if (xlen == 32) {
       when((io.csrsR.rcsr(i) === Pmpcfg1) || (io.csrsR.rcsr(i) === Pmpcfg3)) { io.csrsR.rdata(i) := 0.U }
@@ -246,4 +262,6 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
       when(io.csrsR.rcsr(i) === Timeh) { io.csrsR.rdata(i) := mtime(63, 32) }
     }
   }
+
+  if (Debug) io.debug.mstatus := mstatus.asUInt
 }
