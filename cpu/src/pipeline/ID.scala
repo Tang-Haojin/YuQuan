@@ -57,7 +57,7 @@ class ID(implicit p: Parameters) extends YQModule {
   private val wireDataRs1 = WireDefault(UInt(xlen.W), io.gprsR.rdata(0))
   private val wireDataRs2 = WireDefault(UInt(xlen.W), io.gprsR.rdata(1))
   private val wireExcept  = WireDefault(VecInit(Seq.fill(16)(0.B)))
-  private val wireNewPriv = WireDefault(3.U(2.W))
+  private val wireNewPriv = WireDefault(UInt(2.W), newPriv)
   private val wireAmoStat = WireDefault(UInt(1.W), amoStat)
   private val wireRetire  = WireDefault(Bool(), 1.B)
   private val wireBlocked = WireDefault(Bool(), blocked)
