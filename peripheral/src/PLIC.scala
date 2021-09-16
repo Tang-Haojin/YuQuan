@@ -41,6 +41,9 @@ class Plic(implicit val p: Parameters) extends RawModule with PeripheralParams {
     val ieb = RegInit(VecInit(Seq.fill( 1)(0.U(32.W))))
     val ipt = RegInit(VecInit(Seq.fill( 1)(0.U(32.W))))
 
+    val sieb = RegInit(VecInit(Seq.fill( 1)(0.U(32.W))))
+    val sipt = RegInit(VecInit(Seq.fill( 1)(0.U(32.W))))
+
     io.channel.r.bits.data := VecInit((0 until 8).map { i => RDATA << (8 * i) })(offset)
     
     when(io.channel.r.fire) {
@@ -57,8 +60,11 @@ class Plic(implicit val p: Parameters) extends RawModule with PeripheralParams {
       when(io.channel.ar.bits.addr === PLIC.Ieb(10, 0).U) { RDATA := ieb(0) }
       when(io.channel.ar.bits.addr === PLIC.Ipt(0).U) { RDATA := ipt(0) }
       when(io.channel.ar.bits.addr === PLIC.Ic(0).U) { when(io.inter(10)) { RDATA := 10.U } }
+      when(io.channel.ar.bits.addr === PLIC.SIeb(10, 0).U) { RDATA := sieb(0) }
+      when(io.channel.ar.bits.addr === PLIC.SIpt(0).U) { RDATA := sipt(0) }
+      when(io.channel.ar.bits.addr === PLIC.SIc(0).U) { when(io.inter(10)) { RDATA := 10.U } }
     }
-    
+
     when(io.channel.aw.fire) {
       WADDR   := io.channel.aw.bits.addr
       BID     := io.channel.aw.bits.id
@@ -78,6 +84,8 @@ class Plic(implicit val p: Parameters) extends RawModule with PeripheralParams {
       for (i <- 1 until 16) when(WADDR === PLIC.Isp(i).U) { isp(i) := WDATA }
       when(WADDR === PLIC.Ieb(10, 0).U) { ieb(0) := WDATA }
       when(WADDR === PLIC.Ipt(0).U) { ipt(0) := WDATA }
+      when(WADDR === PLIC.SIeb(10, 0).U) { sieb(0) := WDATA }
+      when(WADDR === PLIC.SIpt(0).U) { sipt(0) := WDATA }
     }
 
     when(io.channel.b.fire) {

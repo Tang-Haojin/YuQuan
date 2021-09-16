@@ -37,8 +37,12 @@ object PeripheralConfig {
     val Isp = (source: Int) => BASE + 4 * source // Interrupt source n priority
     val Ipb = (source: Int) => BASE + 0x1000 + 4 * (source / 32) // Interrupt Pending bit
     val Ieb = (source: Int, context: Int) => BASE + 0x2000 + 0x80 * context + 4 * (source / 32) // Interrupt Enable Bits
-    val Ipt = (context: Int) => BASE + 0x200000 + 0x1000 * context
-    val Ic  = (context: Int) => Ipt(context) + 4
+    val Ipt = (context: Int) => BASE + 0x200000 + 0x1000 * context // threshold
+    val Ic  = (context: Int) => Ipt(context) + 4 // claim & complete
+
+    val SIeb = (source: Int, context: Int) => BASE + 0x2080 + 0x80 * context + 4 * (source / 32) // Supervisor Interrupt Enable Bits
+    val SIpt = (context: Int) => BASE + 0x201000 + 0x1000 * context // supervisor threshold
+    val SIc  = (context: Int) => SIpt(context) + 4 // supervisor claim & complete
   }
 
   class CHIPLINK extends MMAP {
