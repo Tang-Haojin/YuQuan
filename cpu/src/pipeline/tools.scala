@@ -112,12 +112,6 @@ class RdVal(implicit p: Parameters) extends YQBundle {
   val value = Input(UInt(xlen.W))
 }
 
-// BypassCsr
-class CsrVal(implicit p: Parameters) extends YQBundle {
-  val wcsr  = Input(Vec(RegConf.writeCsrsPort, UInt(12.W)))
-  val value = Input(Vec(RegConf.writeCsrsPort, UInt(xlen.W)))
-}
-
 object ExceptionCode extends Enumeration {
   import chisel3.internal.firrtl.Width
   val usi,ssi,hsi,msi,uti,sti,hti,mti,uei,sei,hei,mei = Value

@@ -63,7 +63,7 @@ class CPU(implicit p: Parameters) extends YQModule {
   io.slave.b  <> moduleAXIWMux.io.axiWrIn1
 
   moduleID.io.gprsR <> moduleBypass.io.receive
-  moduleID.io.csrsR <> moduleBypassCsr.io.receive
+  moduleID.io.csrsR <> moduleCSRs.io.csrsR
   moduleWB.io.gprsW <> moduleGPRs.io.gprsW
   moduleWB.io.csrsW <> moduleCSRs.io.csrsW
 
@@ -95,15 +95,10 @@ class CPU(implicit p: Parameters) extends YQModule {
   moduleBypass.io.isLd         := moduleEX.io.output.isLd
   moduleBypass.io.isAmo        := moduleID.io.isAmo
 
-  moduleBypassCsr.io.request <> moduleCSRs.io.csrsR
-  for (i <- 0 until RegConf.writeCsrsPort) {
-    moduleBypassCsr.io.idOut.wcsr(i)  := moduleID.io.output.wcsr(i)  | Fill(12, !moduleID.io.nextVR.VALID)
-    moduleBypassCsr.io.exOut.wcsr(i)  := moduleEX.io.output.wcsr(i)  | Fill(12, !moduleEX.io.nextVR.VALID)
-    moduleBypassCsr.io.memOut.wcsr(i) := moduleMEM.io.output.wcsr(i) | Fill(12, !moduleMEM.io.nextVR.VALID)
-  }
-  moduleBypassCsr.io.idOut.value  := DontCare
-  moduleBypassCsr.io.exOut.value  := moduleEX.io.output.csrData
-  moduleBypassCsr.io.memOut.value := moduleMEM.io.output.csrData
+  moduleBypassCsr.io.receive := moduleID.io.csrsR.rcsr.asUInt.andR
+  moduleBypassCsr.io.idOut   := moduleID.io.output.wcsr.asUInt.andR  || !moduleID.io.nextVR.VALID
+  moduleBypassCsr.io.exOut   := moduleEX.io.output.wcsr.asUInt.andR  || !moduleEX.io.nextVR.VALID
+  moduleBypassCsr.io.memOut  := moduleMEM.io.output.wcsr.asUInt.andR || !moduleMEM.io.nextVR.VALID
 
   moduleID.io.isWait := moduleBypass.io.isWait || moduleBypassCsr.io.isWait
 
