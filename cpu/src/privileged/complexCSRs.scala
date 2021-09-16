@@ -56,6 +56,20 @@ class MipBundle(implicit val p: Parameters) extends Bundle with CPUParams {
   val WPRI_3 = Bool()
   val SSIP   = Bool()
   val USIP   = Bool()
+
+  def := (that: => Data): Unit = {
+    val mip = WireDefault(new MipBundle, that.asTypeOf(new MipBundle))
+    if (extensions.contains('S')) { SEIP := mip.SEIP; SSIP := mip.SSIP; STIP := mip.STIP }
+    if (extensions.contains('U')) { UEIP := mip.UEIP; USIP := mip.USIP; UTIP := mip.UTIP }
+  }
+
+  def apply(x: Int): Bool = asUInt()(x)
+  def apply(x: Int, y: Int): UInt = asUInt()(x, y)
+}
+
+object MipBundle {
+  import scala.language.implicitConversions
+  implicit def mip2UInt(x: MipBundle): UInt = x.asUInt()
 }
 
 class MieBundle(implicit val p: Parameters) extends Bundle with CPUParams {
@@ -79,6 +93,10 @@ class MieBundle(implicit val p: Parameters) extends Bundle with CPUParams {
     if (extensions.contains('S')) { SEIE := mie.SEIE; SSIE := mie.SSIE; STIE := mie.STIE }
     if (extensions.contains('U')) { UEIE := mie.UEIE; USIE := mie.USIE; UTIE := mie.UTIE }
   }
+
+  def apply(x: Int): Bool = asUInt()(x)
+  def apply(x: Int, y: Int): UInt = asUInt()(x, y)
+  def apply(x: UInt): Bool = VecInit(Seq.tabulate(xlen)(asUInt()(_)))(x)
 }
 
 class Sstatus(val mstatus: MstatusBundle)(implicit val p: Parameters) extends CPUParams {
