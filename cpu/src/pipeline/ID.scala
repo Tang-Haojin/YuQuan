@@ -10,7 +10,7 @@ import InstrTypes._
 import ExceptionCode._
 import cpu.tools._
 import cpu._
-import cpu.privileged.MstatusBundle
+import cpu.privileged._
 
 private case class csrsAddr()(implicit val p: Parameters) extends CPUParams with cpu.privileged.CSRsAddr
 
@@ -20,6 +20,12 @@ class ID(implicit p: Parameters) extends YQModule {
 
   private val idle::loading::Nil = Enum(2)
   private val csrsRdata0 = io.csrsR.rdata(0)
+
+  private val mstatus = io.csrsR.rdata(1).asTypeOf(new MstatusBundle)
+  private val mie = io.csrsR.rdata(2).asTypeOf(new MieBundle)
+  private val mip = io.csrsR.rdata(7).asTypeOf(new MipBundle)
+  private val mideleg = io.csrsR.rdata(3).asTypeOf(new MieBundle)
+  private val medeleg = io.csrsR.rdata(4).asTypeOf(new MieBundle)
 
   private val NVALID  = RegInit(0.B)
   private val rd      = RegInit(0.U(5.W))
@@ -82,6 +88,8 @@ class ID(implicit p: Parameters) extends YQModule {
 
   io.csrsR.rcsr(1) := csrsAddr().Mstatus
   io.csrsR.rcsr(2) := csrsAddr().Mie
+  io.csrsR.rcsr(3) := csrsAddr().Mideleg
+  io.csrsR.rcsr(4) := csrsAddr().Medeleg
   io.csrsR.rcsr(7) := csrsAddr().Mip
 
   io.newPriv := newPriv
@@ -174,7 +182,7 @@ class ID(implicit p: Parameters) extends YQModule {
       io.jbAddr := io.csrsR.rdata(0)(alen - 1, 2) ## 0.U(2.W)
     }
   }
-  if (extensions.contains('S')) when(decoded(8) === sret) { // FIXME: consistency between mstatus and sstatus read & write
+  if (extensions.contains('S')) when(decoded(8) === sret) {
     when((io.currentPriv =/= 3.U && io.currentPriv =/= 1.U) || io.csrsR.rdata(1).asTypeOf(new MstatusBundle).TSR) { wireExcept(2) := 1.B } // illegal instruction
     .otherwise {
       io.csrsR.rcsr(0) := csrsAddr().Sepc
@@ -191,7 +199,7 @@ class ID(implicit p: Parameters) extends YQModule {
     wireRetire  := 0.B
   }
 
-  AddException(true, mti); AddException(true, mei); AddException()
+  AddException()
 
   io.lastVR.READY := io.nextVR.READY && !io.isWait && !blocked && amoStat === idle
 
@@ -238,34 +246,50 @@ class ID(implicit p: Parameters) extends YQModule {
   if (Debug) io.output.debug.pc   := pc
   if (Debug) io.output.debug.rcsr := rcsr
 
-  private class AddException(interrupt: Boolean = false, exceptionCode: Value = usi) {
+  private class AddException {
     private val fire = WireDefault(0.B)
     private val code = WireDefault(0.U(xlen.W))
-    if (interrupt) {
-      fire := io.csrsR.rdata(1)(3) && io.csrsR.rdata(2)(exceptionCode) && io.csrsR.rdata(7)(exceptionCode)
-      code := interrupt.B ## exceptionCode.U((xlen - 1).W)
-    } else for (i <- wireExcept.indices) when(wireExcept(i)) { fire := 1.B; code := i.U }
+    private val intCode = WireDefault("b1111".U(4.W))
+    private val isInt = intCode =/= "b1111".U
+    private val tmpNewPriv = WireDefault(UInt(2.W), newPriv)
+    if (extensions.contains('U')) Seq(uti, usi, uei).foreach(x => {
+      when(mstatus.UIE && io.currentPriv === "b00".U && mie(x) && mip(x)) { intCode := x.id.U }
+    })
+    if (extensions.contains('S')) Seq(sti, ssi, sei).foreach(x => {
+      if (extensions.contains('U')) when(io.currentPriv === "b00".U && mie(x) && mip(x)) { intCode := x.id.U }
+      when(mstatus.SIE && io.currentPriv === "b01".U && mie(x) && mip(x)) { intCode := x.id.U }
+    })
+    Seq(mti, msi, mei).foreach(x => {
+      if (extensions.contains('U')) when(io.currentPriv === "b00".U && mie(x) && mip(x)) { intCode := x.id.U }
+      if (extensions.contains('S')) when(io.currentPriv === "b01".U && mie(x) && mip(x)) { intCode := x.id.U }
+      when(mstatus.MIE && io.currentPriv === "b11".U && mie(x) && mip(x)) { intCode := x.id.U }
+    })
+    when(isInt) {
+      fire := 1.B
+      code := 1.B ## 0.U((xlen - 5).W) ## intCode
+      when(!mideleg(intCode)) { tmpNewPriv := intCode(1, 0) }
+    }.otherwise {
+      for (i <- wireExcept.indices) when(wireExcept(i)) { fire := 1.B; code := i.U }
+      when(!medeleg(code)) { tmpNewPriv := "b11".U }
+    }
     when(io.lastVR.VALID && fire) {
-      printf("exception code: %d, pc = %x, current state = %d\n", if (interrupt) exceptionCode.id.U else code, io.input.pc, io.currentPriv)
       val mstat  = io.csrsR.rdata(1)(xlen - 1) ## io.currentPriv ## wireNewPriv ## io.csrsR.rdata(1)(xlen - 6, 0)
       val Xepc   = MuxLookup(wireNewPriv, csrsAddr().Mepc,   Seq("b01".U -> csrsAddr().Sepc,   "b00".U -> csrsAddr().Uepc  ))
       val Xcause = MuxLookup(wireNewPriv, csrsAddr().Mcause, Seq("b01".U -> csrsAddr().Scause, "b00".U -> csrsAddr().Ucause))
       val Xtval  = MuxLookup(wireNewPriv, csrsAddr().Mtval,  Seq("b01".U -> csrsAddr().Stval,  "b00".U -> csrsAddr().Utval ))
       val Xtvec  = MuxLookup(wireNewPriv, csrsAddr().Mtvec,  Seq("b01".U -> csrsAddr().Stvec,  "b00".U -> csrsAddr().Utvec ))
-      val deleg  = if (interrupt) io.csrsR.rdata(4)(exceptionCode) else VecInit(Seq.tabulate(16)(io.csrsR.rdata(4)(_)))(code)
-      io.csrsR.rcsr(4) := (if (interrupt) csrsAddr().Mideleg else csrsAddr().Medeleg)
       io.csrsR.rcsr(5) := Xtvec
       io.jmpBch := 1.B
-      wireNewPriv := Mux(deleg, io.currentPriv, "b11".U(2.W))
+      wireNewPriv := tmpNewPriv
       wireSpecial := exception
       wireRd := 0.U
       wireCsr := VecInit(Xepc, Xcause, Xtval, csrsAddr().Mstatus)
       wireNum := VecInit(io.input.pc, code, io.input.instr, mstat)
-      io.jbAddr := io.csrsR.rdata(5)(alen - 1, 2) ## 0.U(2.W) + Mux(interrupt.B && io.csrsR.rdata(5)(0), (exceptionCode * 4).U, 0.U)
+      io.jbAddr := io.csrsR.rdata(5)(alen - 1, 2) ## 0.U(2.W) + Mux(isInt && io.csrsR.rdata(5)(0), code(3, 0) ## 0.U(2.W), 0.U)
     }
   }
 
   private object AddException {
-    def apply(interrupt: Boolean = false, exceptionCode: Value = usi): AddException = new AddException(interrupt, exceptionCode)
+    def apply(): AddException = new AddException
   }
 }
