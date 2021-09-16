@@ -62,7 +62,7 @@ class ID(implicit p: Parameters) extends YQModule {
   private val wireRs2     = WireDefault(UInt(5.W), wireInstr(24, 20))
   private val wireDataRs1 = WireDefault(UInt(xlen.W), io.gprsR.rdata(0))
   private val wireDataRs2 = WireDefault(UInt(xlen.W), io.gprsR.rdata(1))
-  private val wireExcept  = WireDefault(VecInit(Seq.fill(16)(0.B)))
+  private val wireExcept  = WireDefault(VecInit(Seq.fill(32)(0.B)))
   private val wireNewPriv = WireDefault(UInt(2.W), newPriv)
   private val wireAmoStat = WireDefault(UInt(1.W), amoStat)
   private val wireRetire  = WireDefault(Bool(), 1.B)
@@ -269,7 +269,7 @@ class ID(implicit p: Parameters) extends YQModule {
       code := 1.B ## 0.U((xlen - 5).W) ## intCode
       when(!mideleg(intCode)) { tmpNewPriv := intCode(1, 0) }
     }.otherwise {
-      for (i <- wireExcept.indices) when(wireExcept(i)) { fire := 1.B; code := i.U }
+      Seq(5,7,13,15,4,6,24,3,8,9,11,0,2,1,12,25).foreach(i => when(wireExcept(i)) { fire := 1.B; code := i.U }) // 24 for watchpoint, and 25 for breakpoint
       when(!medeleg(code)) { tmpNewPriv := "b11".U }
     }
     when(io.lastVR.VALID && fire) {
