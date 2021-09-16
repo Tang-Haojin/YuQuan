@@ -10,7 +10,7 @@ import utils.Convert._
 import ExecSpecials._
 import cpu.component._
 import cpu.tools._
-import cpu.privileged.MstatusBundle
+import cpu.privileged._
 
 class EX(implicit p: Parameters) extends YQModule {
   val io = IO(new YQBundle {
@@ -20,6 +20,8 @@ class EX(implicit p: Parameters) extends YQModule {
     val output = new EXOutput
     val invIch = Irrevocable(UInt(0.W))
     val wbDch  = Irrevocable(UInt(0.W))
+    val seip   = Input (Bool())
+    val ueip   = Input (Bool())
   })
 
   io.invIch.bits := DontCare; io.wbDch.bits := DontCare
@@ -90,10 +92,15 @@ class EX(implicit p: Parameters) extends YQModule {
   when(io.wbDch.fire)  { writebackDCache  := 0.B }
 
   when(io.input.special === csr) {
+    case class csrsAddr()(implicit val p: Parameters) extends cpu.CPUParams with cpu.privileged.CSRsAddr
+    val oldValue = io.input.num(0).asTypeOf(new MipBundle)
+    val newValue = WireDefault(new MipBundle, oldValue)
+    if (extensions.contains('S')) newValue.SEIP := Mux(io.input.wcsr(0) === csrsAddr().Mip, io.seip, oldValue.SEIP)
+    if (extensions.contains('U')) newValue.UEIP := Mux(io.input.wcsr(0) === csrsAddr().Mip || io.input.wcsr(0) === csrsAddr().Sip, io.ueip, oldValue.UEIP)
     wireCsrData(0) := MuxLookup(io.input.op1_3, 0.U, Seq(
       0.U -> (io.input.num(1)),
-      1.U -> (io.input.num(0) | io.input.num(1)),
-      2.U -> (io.input.num(0) & ~io.input.num(1))
+      1.U -> (newValue | io.input.num(1)),
+      2.U -> (newValue & ~io.input.num(1))
     ))
   }
   when(io.input.special === inv) {

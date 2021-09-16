@@ -94,6 +94,8 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
     val eip         = Input (Bool())
     val retire      = Input (Bool())
     val currentPriv = Output(UInt(2.W))
+    val bareSEIP    = Output(Bool())
+    val bareUEIP    = Output(Bool())
     val changePriv  = Input (Bool())
     val newPriv     = Input (UInt(2.W))
     val debug       = if (Debug) new Bundle {
@@ -262,6 +264,8 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
       when(io.csrsR.rcsr(i) === Timeh) { io.csrsR.rdata(i) := mtime(63, 32) }
     }
   }
+
+  io.bareSEIP := mip.SEIP; io.bareUEIP := mip.UEIP
 
   if (Debug) io.debug.mstatus := mstatus.asUInt
 }

@@ -105,6 +105,9 @@ class CPU(implicit p: Parameters) extends YQModule {
   moduleIF.io.jmpBch := moduleID.io.jmpBch
   moduleIF.io.jbAddr := moduleID.io.jbAddr
 
+  moduleEX.io.seip := moduleCSRs.io.bareSEIP
+  moduleEX.io.ueip := moduleCSRs.io.bareUEIP
+
   moduleCSRs.io.eip         <> io.interrupt
   moduleCSRs.io.retire      <> moduleWB.io.retire
   moduleCSRs.io.changePriv  <> (moduleID.io.nextVR.READY && moduleID.io.nextVR.VALID)
