@@ -173,8 +173,8 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
           // TODO: Raise an illegal instruction exception.
         }.elsewhen(io.csrsW.wcsr(i) === Mstatus) { mstatus := io.csrsW.wdata(i) }
         when(io.csrsW.wcsr(i) === Mtvec) { mtvec := io.csrsW.wdata(i)(xlen - 1, 2) ## Mux(io.csrsW.wdata(i)(1), mtvec(1, 0), io.csrsW.wdata(i)(1, 0)) }
-        when(io.csrsW.wcsr(i) === Mip) {} // TODO: Currently do nothing.
-        when(io.csrsW.wcsr(i) === Mie) { mie := io.csrsW.wdata(i)}
+        when(io.csrsW.wcsr(i) === Mip) { mip := io.csrsW.wdata(i) }
+        when(io.csrsW.wcsr(i) === Mie) { mie := io.csrsW.wdata(i) }
         when(io.csrsW.wcsr(i) === Mtime) { mtime := io.csrsW.wdata(i) }
         when(io.csrsW.wcsr(i) === Mtimecmp) { mtimecmp := io.csrsW.wdata(i) }
         when(io.csrsW.wcsr(i) === Mcycle) { if (xlen != 32) mcycle := io.csrsW.wdata(i) else mcycle(31, 0) := io.csrsW.wdata(i) }
@@ -223,7 +223,7 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
     when(io.csrsR.rcsr(i) === Mtvec) { io.csrsR.rdata(i) := mtvec }
     when(io.csrsR.rcsr(i) === Mip) { io.csrsR.rdata(i) := { val data = WireDefault(new MipBundle, mip)
       data.WPRI_0 := 0.U; data.WPRI_1 := 0.B; data.WPRI_2 := 0.B; data.WPRI_3 := 0.B
-      data.MEIP := io.eip; data.MTIP := (mtime > mtimecmp)
+      data.MEIP := io.eip; data.MTIP := (mtime > mtimecmp); data.SEIP := mip.SEIP || io.eip
       data.asUInt
     }}
     when(io.csrsR.rcsr(i) === Mie) { io.csrsR.rdata(i) := mie.asUInt }
