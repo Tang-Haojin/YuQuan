@@ -108,7 +108,7 @@ clean:
 	-rm -rf $(BUILD_DIR)
 
 clean-all: clean
-	-rm -rf ./out
+	-rm -rf ./out ./difftest/build ./difftest/difftest/build
 
 verilate:
 	mill -i __.sim.runMain Elaborate -td build/sim $(param)
