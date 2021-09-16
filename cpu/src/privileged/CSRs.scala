@@ -110,8 +110,8 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
   private val mhartid   = 0.U(xlen.W) // the hart that running the code
   private val mtvec     = RegInit(0.U(xlen.W))
   private val mstatus   = RegInit({ val init = WireDefault(0.U.asTypeOf(new MstatusBundle))
-    init.UXL  := (if (extensions.contains('S')) log2Down(xlen) - 4 else 0).U
-    init.SXL  := (if (extensions.contains('S')) log2Down(xlen) - 4 else 0).U
+    init.UXL := (if (extensions.contains('S')) log2Down(xlen) - 4 else 0).U
+    init.SXL := (if (extensions.contains('S')) log2Down(xlen) - 4 else 0).U
     init
   })
 

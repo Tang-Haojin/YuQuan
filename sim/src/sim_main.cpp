@@ -109,7 +109,7 @@ int main(int argc, char **argv, char **env) {
         ret = 1;
         break;
       }
-      if (top->io_wbRcsr != 0xBFF && top->io_wbRcsr != 0xBFE && top->io_wbRcsr != 0x344 && top->io_wbRcsr != 0x301 && !in_pmpaddr(top->io_wbRcsr) && top->io_wbRcsr != 0xC01 && !top->io_wbMMIO)
+      if (!top->io_exit && top->io_wbRcsr != 0xBFF && top->io_wbRcsr != 0xBFE && top->io_wbRcsr != 0x344 && top->io_wbRcsr != 0x301 && !in_pmpaddr(top->io_wbRcsr) && top->io_wbRcsr != 0xC01 && !top->io_wbMMIO)
         difftest_exec(1);
       else {
         size_t tmp[33];

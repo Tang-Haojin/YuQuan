@@ -8,7 +8,6 @@ srcDir    = $(pwd)/cpu/src
 cpuNum    = $(shell echo $$((`lscpu -p=CORE | tail -n 1` + 1)))
 nobin     = $(shell echo "\e[31mNo BIN file specified\e[0m")
 $(shell mkdir -p $(pwd)/sim/bin $(NO_ERR))
-$(shell cat .config >>/dev/null 2>&1 || echo >.config)
 
 ISA := riscv64
 
@@ -72,7 +71,7 @@ $(shell wget $(site)/$(BIN)-$(ISA)-nemu.bin -O $(binFile) || rm $(binFile))
 endif
 endif
 
-SIMBIN = $(filter-out yield rtthread,$(shell cd $(pwd)/sim/bin && ls *-$(ISA)-nemu.bin | grep -oP ".*(?=-$(ISA)-nemu.bin)"))
+SIMBIN = $(filter-out yield rtthread fw_payload,$(shell cd $(pwd)/sim/bin && ls *-$(ISA)-nemu.bin | grep -oP ".*(?=-$(ISA)-nemu.bin)"))
 
 test:
 	mill -i __.test
