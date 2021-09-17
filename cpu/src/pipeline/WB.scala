@@ -16,6 +16,8 @@ class WB(implicit p: Parameters) extends YQModule {
     val lastVR = new LastVR
     val input  = Flipped(new MEMOutput)
     val retire = Output(Bool())
+    val priv   = Output(UInt(2.W))
+    val isPriv = Output(Bool())
     val debug = if (Debug) new YQBundle {
       val pc    = Output(UInt(alen.W))
       val exit  = Output(UInt(3.W))
@@ -24,18 +26,16 @@ class WB(implicit p: Parameters) extends YQModule {
       val mmio  = Output(Bool())
       val clint = Output(Bool())
       val intr  = Output(Bool())
-      val priv  = Output(UInt(2.W))
     } else null
   })
 
-  private val pc    = if (Debug) RegInit(0.U(alen.W)) else null
-  private val exit  = if (Debug) RegInit(0.U(3.W)) else null
-  private val rd    = if (Debug) RegInit(0.U(5.W)) else null
-  private val rcsr  = if (Debug) RegInit(0xfff.U(12.W)) else null
-  private val mmio  = if (Debug) RegInit(0.B) else null
-  private val clint = if (Debug) RegInit(0.B) else null
-  private val intr  = if (Debug) RegInit(0.B) else null
-  private val priv  = if (Debug) RegInit("b11".U(2.W)) else null
+  private val pc     = if (Debug) RegInit(0.U(alen.W)) else null
+  private val exit   = if (Debug) RegInit(0.U(3.W)) else null
+  private val rd     = if (Debug) RegInit(0.U(5.W)) else null
+  private val rcsr   = if (Debug) RegInit(0xfff.U(12.W)) else null
+  private val mmio   = if (Debug) RegInit(0.B) else null
+  private val clint  = if (Debug) RegInit(0.B) else null
+  private val intr   = if (Debug) RegInit(0.B) else null
 
   io.gprsW.wen   := 0.B
   io.gprsW.waddr := io.input.rd
@@ -47,10 +47,14 @@ class WB(implicit p: Parameters) extends YQModule {
 
   io.lastVR.READY := 1.B
   io.retire       := RegNext(io.lastVR.VALID && io.input.retire)
+  io.priv         := "b11".U
+  io.isPriv       := 0.B
   
   when(io.lastVR.VALID) { // ready to start fetching instr
     io.gprsW.wen := io.input.rd =/= 0.U
     for (i <- io.csrsW.wen.indices) io.csrsW.wen(i) := (io.input.wcsr(i) =/= 0xFFF.U)
+    io.priv   := io.input.priv
+    io.isPriv := io.input.isPriv
     if (Debug) {
       exit  := io.input.debug.exit
       pc    := io.input.debug.pc
@@ -59,7 +63,6 @@ class WB(implicit p: Parameters) extends YQModule {
       mmio  := io.input.debug.mmio
       clint := io.input.debug.clint
       intr  := io.input.debug.intr
-      priv  := io.input.debug.priv
     }
   }
 
@@ -71,6 +74,5 @@ class WB(implicit p: Parameters) extends YQModule {
     io.debug.mmio  := mmio
     io.debug.clint := clint
     io.debug.intr  := intr
-    io.debug.priv  := priv
   }
 }

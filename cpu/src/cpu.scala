@@ -95,10 +95,12 @@ class CPU(implicit p: Parameters) extends YQModule {
   moduleBypass.io.isLd         := moduleEX.io.output.isLd
   moduleBypass.io.isAmo        := moduleID.io.isAmo
 
-  moduleBypassCsr.io.receive := moduleID.io.csrsR.rcsr.asUInt.andR
-  moduleBypassCsr.io.idOut   := moduleID.io.output.wcsr.asUInt.andR  || !moduleID.io.nextVR.VALID
-  moduleBypassCsr.io.exOut   := moduleEX.io.output.wcsr.asUInt.andR  || !moduleEX.io.nextVR.VALID
-  moduleBypassCsr.io.memOut  := moduleMEM.io.output.wcsr.asUInt.andR || !moduleMEM.io.nextVR.VALID
+  moduleBypassCsr.io.idIO.bits   := moduleID.io.output
+  moduleBypassCsr.io.idIO.valid  := moduleID.io.nextVR.VALID
+  moduleBypassCsr.io.exIO.bits   := moduleEX.io.output
+  moduleBypassCsr.io.exIO.valid  := moduleEX.io.nextVR.VALID
+  moduleBypassCsr.io.memIO.bits  := moduleMEM.io.output
+  moduleBypassCsr.io.memIO.valid := moduleMEM.io.nextVR.VALID
 
   moduleID.io.isWait := moduleBypass.io.isWait || moduleBypassCsr.io.isWait
 
@@ -110,8 +112,8 @@ class CPU(implicit p: Parameters) extends YQModule {
 
   moduleCSRs.io.eip         <> io.interrupt
   moduleCSRs.io.retire      <> moduleWB.io.retire
-  moduleCSRs.io.changePriv  <> (moduleID.io.nextVR.READY && moduleID.io.nextVR.VALID)
-  moduleCSRs.io.newPriv     <> moduleID.io.newPriv
+  moduleCSRs.io.changePriv  <> moduleWB.io.isPriv
+  moduleCSRs.io.newPriv     <> moduleWB.io.priv
   moduleCSRs.io.currentPriv <> moduleID.io.currentPriv
 
   if (Debug) {
@@ -125,7 +127,7 @@ class CPU(implicit p: Parameters) extends YQModule {
     io.debug.wbMMIO   := moduleWB.io.debug.mmio
     io.debug.wbClint  := moduleWB.io.debug.clint
     io.debug.wbIntr   := moduleWB.io.debug.intr
-    io.debug.priv     := moduleWB.io.debug.priv
+    io.debug.priv     := moduleCSRs.io.currentPriv
     io.debug.mstatus  := moduleCSRs.io.debug.mstatus
     io.debug.mepc     := moduleCSRs.io.debug.mepc
     io.debug.sepc     := moduleCSRs.io.debug.sepc

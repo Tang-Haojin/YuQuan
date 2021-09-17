@@ -13,16 +13,7 @@ import cpu.tools._
 import cpu.privileged._
 
 class EX(implicit p: Parameters) extends YQModule {
-  val io = IO(new YQBundle {
-    val input  = Flipped(new IDOutput)
-    val lastVR = new LastVR
-    val nextVR = Flipped(new LastVR)
-    val output = new EXOutput
-    val invIch = Irrevocable(UInt(0.W))
-    val wbDch  = Irrevocable(UInt(0.W))
-    val seip   = Input (Bool())
-    val ueip   = Input (Bool())
-  })
+  val io = IO(new EXIO)
 
   io.invIch.bits := DontCare; io.wbDch.bits := DontCare
 
@@ -58,12 +49,13 @@ class EX(implicit p: Parameters) extends YQModule {
   private val lrvalid = RegInit(0.B)
   private val scState = RegInit(UInt(1.W), idle)
   private val tmpRd   = RegInit(0.U(5.W))
+  private val priv    = RegInit("b11".U(2.W))
+  private val isPriv  = RegInit(0.B)
   private val exit    = if (Debug) RegInit(0.U(3.W)) else null
   private val pc      = if (Debug) RegInit(0.U(alen.W)) else null
   private val rcsr    = if (Debug) RegInit(0xfff.U(12.W)) else null
   private val clint   = if (Debug) RegInit(0.B) else null
   private val intr    = if (Debug) RegInit(0.B) else null
-  private val priv    = if (Debug) RegInit("b11".U(2.W)) else null
 
   private val wireRd      = WireDefault(UInt(5.W), io.input.rd)
   private val wireData    = WireDefault(UInt(xlen.W), alu.io.output.bits.asUInt)
@@ -88,6 +80,8 @@ class EX(implicit p: Parameters) extends YQModule {
   io.output.addr    := addr
   io.output.mask    := mask
   io.output.retire  := retire
+  io.output.priv    := priv
+  io.output.isPriv  := isPriv
 
   io.invIch.valid   := invalidateICache
   io.wbDch.valid    := writebackDCache
@@ -217,6 +211,8 @@ class EX(implicit p: Parameters) extends YQModule {
     lrvalid := wireLrvalid
     scState := wireScState
     tmpRd   := wireTmpRd
+    priv    := io.input.priv
+    isPriv  := io.input.isPriv
 
     op      := wireOp
     isWord  := wireIsWord
@@ -232,7 +228,6 @@ class EX(implicit p: Parameters) extends YQModule {
       rcsr  := io.input.debug.rcsr
       clint := io.input.debug.clint
       intr  := io.input.debug.intr
-      priv  := io.input.debug.priv
     }
   }.elsewhen(io.nextVR.READY && io.nextVR.VALID) {
     NVALID := 0.B
@@ -253,6 +248,5 @@ class EX(implicit p: Parameters) extends YQModule {
     io.output.debug.rcsr  := rcsr
     io.output.debug.clint := clint
     io.output.debug.intr  := intr
-    io.output.debug.priv  := priv
   }
 }

@@ -9,6 +9,7 @@ import utils._
 import cpu.instruction._
 import cpu.component._
 import cpu.tools._
+import cpu.cache._
 import cpu._
 
 // EX
@@ -27,6 +28,8 @@ class EXOutput(implicit p: Parameters) extends YQBundle {
   val addr    = Output(UInt(alen.W))
   val mask    = Output(UInt(3.W))
   val retire  = Output(Bool())
+  val priv    = Output(UInt(2.W))
+  val isPriv  = Output(Bool())
   val debug   =
     if (Debug) new YQBundle {
       val exit  = Output(UInt(3.W))
@@ -34,7 +37,6 @@ class EXOutput(implicit p: Parameters) extends YQBundle {
       val rcsr  = Output(UInt(12.W))
       val clint = Output(Bool())
       val intr  = Output(Bool())
-      val priv  = Output(UInt(2.W))
     } else null
 }
 
@@ -64,6 +66,8 @@ class IDOutput(implicit p: Parameters) extends YQBundle {
   val op1_3   = Output(UInt(AluTypeWidth.W))
   val special = Output(UInt(5.W))
   val retire  = Output(Bool())
+  val priv    = Output(UInt(2.W))
+  val isPriv  = Output(Bool())
   val debug   =
     if (Debug) new YQBundle {
       val pc    = Output(UInt(alen.W))
@@ -85,8 +89,26 @@ class IDIO(implicit p: Parameters) extends YQBundle {
   val jbAddr      = Output(UInt(alen.W))
   val isWait      = Input (Bool())
   val currentPriv = Input (UInt(2.W))
-  val newPriv     = Output(UInt(2.W))
   val isAmo       = Output(Bool())
+}
+
+class EXIO(implicit p: Parameters) extends YQBundle {
+  val input  = Flipped(new IDOutput)
+  val lastVR = new LastVR
+  val nextVR = Flipped(new LastVR)
+  val output = new EXOutput
+  val invIch = Irrevocable(UInt(0.W))
+  val wbDch  = Irrevocable(UInt(0.W))
+  val seip   = Input (Bool())
+  val ueip   = Input (Bool())
+}
+
+class MEMIO(implicit p: Parameters) extends YQBundle {
+  val dcache = Flipped(new CpuIO)
+  val lastVR = new LastVR
+  val nextVR = Flipped(new LastVR)
+  val input  = Flipped(new EXOutput)
+  val output = new MEMOutput
 }
 
 // IF
@@ -102,6 +124,8 @@ class MEMOutput(implicit p: Parameters) extends YQBundle {
   val wcsr    = Output(Vec(RegConf.writeCsrsPort, UInt(12.W)))
   val csrData = Output(Vec(RegConf.writeCsrsPort, UInt(xlen.W)))
   val retire  = Output(Bool())
+  val priv    = Output(UInt(2.W))
+  val isPriv  = Output(Bool())
   val debug   =
     if (Debug) new YQBundle {
       val exit  = Output(UInt(3.W))
@@ -110,7 +134,6 @@ class MEMOutput(implicit p: Parameters) extends YQBundle {
       val mmio  = Output(Bool())
       val clint = Output(Bool())
       val intr  = Output(Bool())
-      val priv  = Output(UInt(2.W))
     } else null
 }
 

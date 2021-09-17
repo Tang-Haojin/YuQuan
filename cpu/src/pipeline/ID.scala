@@ -36,6 +36,7 @@ class ID(implicit p: Parameters) extends YQModule {
   private val special = RegInit(0.U(5.W))
   private val instr   = RegInit(0.U(32.W))
   private val newPriv = RegInit(3.U(2.W))
+  private val isPriv  = RegInit(0.B)
   private val blocked = RegInit(0.B)
   private val amoStat = RegInit(UInt(1.W), idle)
   private val retire  = RegInit(0.B)
@@ -62,7 +63,8 @@ class ID(implicit p: Parameters) extends YQModule {
   private val wireDataRs1 = WireDefault(UInt(xlen.W), io.gprsR.rdata(0))
   private val wireDataRs2 = WireDefault(UInt(xlen.W), io.gprsR.rdata(1))
   private val wireExcept  = WireDefault(VecInit(Seq.fill(32)(0.B)))
-  private val wireNewPriv = WireDefault(UInt(2.W), newPriv)
+  private val wirePriv    = WireDefault(UInt(2.W), newPriv)
+  private val wireIsPriv  = WireDefault(0.B)
   private val wireAmoStat = WireDefault(UInt(1.W), amoStat)
   private val wireRetire  = WireDefault(Bool(), 1.B)
   private val wireBlocked = WireDefault(Bool(), blocked)
@@ -84,6 +86,8 @@ class ID(implicit p: Parameters) extends YQModule {
   io.output.special := special
   io.output.retire  := retire
   io.isAmo          := amoStat =/= idle
+  io.output.priv    := newPriv
+  io.output.isPriv  := isPriv
   io.gprsR.raddr    := VecInit(10.U, 0.U, 0.U)
   io.csrsR.rcsr     := VecInit(Seq.fill(RegConf.readCsrsPort)(0xFFF.U(12.W)))
 
@@ -93,7 +97,6 @@ class ID(implicit p: Parameters) extends YQModule {
   io.csrsR.rcsr(4) := csrsAddr.Medeleg
   io.csrsR.rcsr(7) := csrsAddr.Mip
 
-  io.newPriv := newPriv
   for (i <- 1 to 4) when(decoded(i) === NumTypes.rs1) { io.gprsR.raddr(0) := wireRs1 }
   .elsewhen(decoded(i) === NumTypes.rs2) { io.gprsR.raddr(1) := wireRs2 }
 
@@ -178,22 +181,24 @@ class ID(implicit p: Parameters) extends YQModule {
     when(io.currentPriv =/= 3.U) { wireExcept(2) := 1.B } // illegal instruction
     .otherwise {
       io.csrsR.rcsr(0) := csrsAddr.Mepc
-      wireCsr(0)  := csrsAddr.Mstatus
-      wireNum(0)  := io.csrsR.rdata(1)
-      wireNewPriv := io.csrsR.rdata(1).asTypeOf(new MstatusBundle).MPP
-      io.jmpBch := 1.B
-      io.jbAddr := io.csrsR.rdata(0)(alen - 1, 2) ## 0.U(2.W)
+      wireCsr(0) := csrsAddr.Mstatus
+      wireNum(0) := io.csrsR.rdata(1)
+      wirePriv   := io.csrsR.rdata(1).asTypeOf(new MstatusBundle).MPP
+      wireIsPriv := wirePriv =/= io.currentPriv
+      io.jmpBch  := 1.B
+      io.jbAddr  := io.csrsR.rdata(0)(alen - 1, 2) ## 0.U(2.W)
     }
   }
   if (extensions.contains('S')) when(decoded(8) === sret) {
     when((io.currentPriv =/= 3.U && io.currentPriv =/= 1.U) || io.csrsR.rdata(1).asTypeOf(new MstatusBundle).TSR) { wireExcept(2) := 1.B } // illegal instruction
     .otherwise {
       io.csrsR.rcsr(0) := csrsAddr.Sepc
-      wireCsr(0)  := csrsAddr.Mstatus
-      wireNum(0)  := io.csrsR.rdata(1)
-      wireNewPriv := io.csrsR.rdata(1).asTypeOf(new MstatusBundle).SPP
-      io.jmpBch   := 1.B
-      io.jbAddr   := io.csrsR.rdata(0)(alen - 1, 2) ## 0.U(2.W)
+      wireCsr(0) := csrsAddr.Mstatus
+      wireNum(0) := io.csrsR.rdata(1)
+      wirePriv   := io.csrsR.rdata(1).asTypeOf(new MstatusBundle).SPP
+      wireIsPriv := wirePriv =/= io.currentPriv
+      io.jmpBch  := 1.B
+      io.jbAddr  := io.csrsR.rdata(0)(alen - 1, 2) ## 0.U(2.W)
     }
   }
   if (extensions.contains('A')) when(decoded(8) === amo && amoStat === idle && wireOp1_2 =/= Operators.lr && wireOp1_2 =/= Operators.sc) {
@@ -215,7 +220,8 @@ class ID(implicit p: Parameters) extends YQModule {
     op1_3   := wireOp1_3
     special := wireSpecial
     instr   := wireInstr
-    newPriv := wireNewPriv
+    newPriv := wirePriv
+    isPriv  := wireIsPriv
     blocked := wireBlocked
     if (extensions.contains('A')) amoStat := wireAmoStat
     retire  := wireRetire
@@ -287,14 +293,15 @@ class ID(implicit p: Parameters) extends YQModule {
       when(!medeleg(code)) { tmpNewPriv := "b11".U }
     }
     when(io.lastVR.VALID && fire) {
-      val mstat  = io.csrsR.rdata(1)(xlen - 1) ## io.currentPriv ## wireNewPriv ## io.csrsR.rdata(1)(xlen - 6, 0)
-      val Xepc   = MuxLookup(wireNewPriv, csrsAddr.Mepc,   Seq("b01".U -> csrsAddr.Sepc,   "b00".U -> csrsAddr.Uepc  ))
-      val Xcause = MuxLookup(wireNewPriv, csrsAddr.Mcause, Seq("b01".U -> csrsAddr.Scause, "b00".U -> csrsAddr.Ucause))
-      val Xtval  = MuxLookup(wireNewPriv, csrsAddr.Mtval,  Seq("b01".U -> csrsAddr.Stval,  "b00".U -> csrsAddr.Utval ))
-      val Xtvec  = MuxLookup(wireNewPriv, csrsAddr.Mtvec,  Seq("b01".U -> csrsAddr.Stvec,  "b00".U -> csrsAddr.Utvec ))
+      val mstat  = io.csrsR.rdata(1)(xlen - 1) ## io.currentPriv ## wirePriv ## io.csrsR.rdata(1)(xlen - 6, 0)
+      val Xepc   = MuxLookup(wirePriv, csrsAddr.Mepc,   Seq("b01".U -> csrsAddr.Sepc,   "b00".U -> csrsAddr.Uepc  ))
+      val Xcause = MuxLookup(wirePriv, csrsAddr.Mcause, Seq("b01".U -> csrsAddr.Scause, "b00".U -> csrsAddr.Ucause))
+      val Xtval  = MuxLookup(wirePriv, csrsAddr.Mtval,  Seq("b01".U -> csrsAddr.Stval,  "b00".U -> csrsAddr.Utval ))
+      val Xtvec  = MuxLookup(wirePriv, csrsAddr.Mtvec,  Seq("b01".U -> csrsAddr.Stvec,  "b00".U -> csrsAddr.Utvec ))
       io.csrsR.rcsr(5) := Xtvec
       io.jmpBch := 1.B
-      wireNewPriv := tmpNewPriv
+      wirePriv  := tmpNewPriv
+      wireIsPriv := wirePriv =/= io.currentPriv
       wireSpecial := exception
       wireRd := 0.U
       wireCsr := VecInit(Xepc, Xcause, Xtval, csrsAddr.Mstatus)
