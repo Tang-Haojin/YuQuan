@@ -23,7 +23,7 @@ class ID(implicit p: Parameters) extends YQModule {
   private val csrr    = io.csrsR.rdata(0)
   private val mstatus = io.csrsR.rdata(1).asTypeOf(new MstatusBundle)
   private val mie     = io.csrsR.rdata(2).asTypeOf(new MieBundle)
-  private val mideleg = io.csrsR.rdata(3).asTypeOf(new MieBundle)
+  private val mideleg = io.csrsR.rdata(3).asTypeOf(new MidelegBundle)
   private val medeleg = io.csrsR.rdata(4).asTypeOf(new MieBundle)
   private val xtvec   = io.csrsR.rdata(5)
   private val mip     = io.csrsR.rdata(7).asTypeOf(new MipBundle)
@@ -266,20 +266,21 @@ class ID(implicit p: Parameters) extends YQModule {
     private val tmpNewPriv = WireDefault(UInt(2.W), newPriv)
     if (extensions.contains('U')) Seq(uti, usi, uei).foreach(x => {
       when(mstatus.UIE && io.currentPriv === "b00".U && mie(x) && mip(x)) { intCode := x.id.U }
+      when(io.currentPriv === "b11".U && !mideleg(x) && mie(x) && mip(x)) { intCode := x.id.U }
     })
     if (extensions.contains('S')) Seq(sti, ssi, sei).foreach(x => {
       if (extensions.contains('U')) when(io.currentPriv === "b00".U && mie(x) && mip(x)) { intCode := x.id.U }
       when(mstatus.SIE && io.currentPriv === "b01".U && mie(x) && mip(x)) { intCode := x.id.U }
+      when(io.currentPriv === "b11".U && !mideleg(x) && mie(x) && mip(x)) { intCode := x.id.U }
     })
     Seq(mti, msi, mei).foreach(x => {
-      if (extensions.contains('U')) when(io.currentPriv === "b00".U && mie(x) && mip(x)) { intCode := x.id.U }
-      if (extensions.contains('S')) when(io.currentPriv === "b01".U && mie(x) && mip(x)) { intCode := x.id.U }
+      when(io.currentPriv =/= "b11".U && mie(x) && mip(x)) { intCode := x.id.U }
       when(mstatus.MIE && io.currentPriv === "b11".U && mie(x) && mip(x)) { intCode := x.id.U }
     })
     when(isInt) {
       fire := 1.B
       code := 1.B ## 0.U((xlen - 5).W) ## intCode
-      when(!mideleg(intCode)) { tmpNewPriv := intCode(1, 0) }
+      when(!mideleg(intCode)) { tmpNewPriv := "b11".U }
       if (Debug) wireIntr := 1.B
     }.otherwise {
       Seq(5,7,13,15,4,6,24,3,8,9,11,0,2,1,12,25).foreach(i => when(wireExcept(i)) { fire := 1.B; code := i.U }) // 24 for watchpoint, and 25 for breakpoint

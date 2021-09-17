@@ -99,6 +99,28 @@ class MieBundle(implicit val p: Parameters) extends Bundle with CPUParams {
   def apply(x: UInt): Bool = VecInit(Seq.tabulate(xlen)(asUInt()(_)))(x)
 }
 
+class MidelegBundle(implicit val p: Parameters) extends Bundle with CPUParams {
+  val WPRI_0 = UInt((xlen - 10).W)
+  val SEI    = Bool()
+  val UEI    = Bool()
+  val WPRI_1 = UInt(2.W)
+  val STI    = Bool()
+  val UTI    = Bool()
+  val WPRI_2 = UInt(2.W)
+  val SSI    = Bool()
+  val USI    = Bool()
+
+  def := (that: => Data): Unit = {
+    val mideleg = WireDefault(new MidelegBundle, that.asTypeOf(new MidelegBundle))
+    if (extensions.contains('S')) { SEI := mideleg.SEI; SSI := mideleg.SSI; STI := mideleg.STI }
+    if (extensions.contains('U')) { UEI := mideleg.UEI; USI := mideleg.USI; UTI := mideleg.UTI }
+  }
+
+  def apply(x: Int): Bool = asUInt()(x)
+  def apply(x: Int, y: Int): UInt = asUInt()(x, y)
+  def apply(x: UInt): Bool = VecInit(Seq.tabulate(xlen)(asUInt()(_)))(x)
+}
+
 class Sstatus(val mstatus: MstatusBundle)(implicit val p: Parameters) extends CPUParams {
   def := (that: => Data): Unit = {
     val smstatus = WireDefault(new MstatusBundle, that.asTypeOf(new MstatusBundle))
