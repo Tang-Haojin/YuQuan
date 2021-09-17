@@ -41,6 +41,8 @@ class ID(implicit p: Parameters) extends YQModule {
   private val retire  = RegInit(0.B)
   private val pc      = if (Debug) RegInit(0.U(alen.W)) else null
   private val rcsr    = if (Debug) RegInit(0xfff.U(12.W)) else null
+  private val clint   = if (Debug) RegInit(0.B) else null
+  private val intr    = if (Debug) RegInit(0.B) else null
 
   private val num = RegInit(VecInit(Seq.fill(4)(0.U(xlen.W))))
 
@@ -64,6 +66,8 @@ class ID(implicit p: Parameters) extends YQModule {
   private val wireAmoStat = WireDefault(UInt(1.W), amoStat)
   private val wireRetire  = WireDefault(Bool(), 1.B)
   private val wireBlocked = WireDefault(Bool(), blocked)
+  private val wireClint   = if (Debug) WireDefault(0.B) else null
+  private val wireIntr    = if (Debug) WireDefault(0.B) else null
 
   private val alu1_2   = Module(new SimpleALU)
   private val wireData = WireDefault(UInt(xlen.W), alu1_2.io.res.asUInt)
@@ -134,6 +138,7 @@ class ID(implicit p: Parameters) extends YQModule {
     ))
     wireNum(1) := non; wireNum(2) := non; wireNum(3)  := non
     wireOp1_2  := non; wireOp1_3  := non; wireSpecial := non
+    if (Debug) wireClint := 1.B
   }
   when(decoded(8) === st && isClint.io.addr_out =/= 0xFFF.U) {
     io.csrsR.rcsr(0) := isClint.io.addr_out
@@ -146,6 +151,7 @@ class ID(implicit p: Parameters) extends YQModule {
     ))
     wireNum(0) := non; wireNum(2) := non; wireNum(3)  := non
     wireOp1_2  := non; wireOp1_3  := 0.U; wireSpecial := csr
+    if (Debug) wireClint := 1.B
   }
   when(decoded(8) === jump || (decoded(8) === branch && wireData === 1.U)) {
     io.jmpBch := 1.B
@@ -213,8 +219,12 @@ class ID(implicit p: Parameters) extends YQModule {
     blocked := wireBlocked
     if (extensions.contains('A')) amoStat := wireAmoStat
     retire  := wireRetire
-    if (Debug) pc := io.input.pc
-    if (Debug) rcsr := Mux(wireSpecial === csr, wireInstr(31, 20), 0xfff.U)
+    if (Debug) {
+      pc := io.input.pc
+      rcsr := Mux(wireSpecial === csr, wireInstr(31, 20), 0xfff.U)
+      clint := wireClint
+      intr := wireIntr
+    }
   }.elsewhen(io.isWait && io.nextVR.READY && amoStat === idle) {
     NVALID  := 0.B
     rd      := 0.U
@@ -240,8 +250,13 @@ class ID(implicit p: Parameters) extends YQModule {
     }
   }
 
-  if (Debug) io.output.debug.pc   := pc
-  if (Debug) io.output.debug.rcsr := rcsr
+  if (Debug) {
+    io.output.debug.pc    := pc
+    io.output.debug.rcsr  := rcsr
+    io.output.debug.clint := clint
+    io.output.debug.intr  := intr
+    io.output.debug.priv  := newPriv
+  }
 
   private class AddException {
     private val fire = WireDefault(0.B)
@@ -265,6 +280,7 @@ class ID(implicit p: Parameters) extends YQModule {
       fire := 1.B
       code := 1.B ## 0.U((xlen - 5).W) ## intCode
       when(!mideleg(intCode)) { tmpNewPriv := intCode(1, 0) }
+      if (Debug) wireIntr := 1.B
     }.otherwise {
       Seq(5,7,13,15,4,6,24,3,8,9,11,0,2,1,12,25).foreach(i => when(wireExcept(i)) { fire := 1.B; code := i.U }) // 24 for watchpoint, and 25 for breakpoint
       when(!medeleg(code)) { tmpNewPriv := "b11".U }

@@ -29,9 +29,12 @@ class EXOutput(implicit p: Parameters) extends YQBundle {
   val retire  = Output(Bool())
   val debug   =
     if (Debug) new YQBundle {
-      val exit = Output(UInt(3.W))
-      val pc   = Output(UInt(alen.W))
-      val rcsr = Output(UInt(12.W))
+      val exit  = Output(UInt(3.W))
+      val pc    = Output(UInt(alen.W))
+      val rcsr  = Output(UInt(12.W))
+      val clint = Output(Bool())
+      val intr  = Output(Bool())
+      val priv  = Output(UInt(2.W))
     } else null
 }
 
@@ -63,8 +66,11 @@ class IDOutput(implicit p: Parameters) extends YQBundle {
   val retire  = Output(Bool())
   val debug   =
     if (Debug) new YQBundle {
-      val pc   = Output(UInt(alen.W))
-      val rcsr = Output(UInt(12.W))
+      val pc    = Output(UInt(alen.W))
+      val rcsr  = Output(UInt(12.W))
+      val clint = Output(Bool())
+      val intr  = Output(Bool())
+      val priv  = Output(UInt(2.W))
     } else null
 }
 
@@ -98,10 +104,13 @@ class MEMOutput(implicit p: Parameters) extends YQBundle {
   val retire  = Output(Bool())
   val debug   =
     if (Debug) new YQBundle {
-      val exit = Output(UInt(3.W))
-      val pc   = Output(UInt(alen.W))
-      val rcsr = Output(UInt(12.W))
-      val mmio = Output(Bool())
+      val exit  = Output(UInt(3.W))
+      val pc    = Output(UInt(alen.W))
+      val rcsr  = Output(UInt(12.W))
+      val mmio  = Output(Bool())
+      val clint = Output(Bool())
+      val intr  = Output(Bool())
+      val priv  = Output(UInt(2.W))
     } else null
 }
 

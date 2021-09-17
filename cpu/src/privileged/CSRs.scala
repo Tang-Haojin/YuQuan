@@ -99,7 +99,16 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
     val changePriv  = Input (Bool())
     val newPriv     = Input (UInt(2.W))
     val debug       = if (Debug) new Bundle {
-      val mstatus = Output(UInt(xlen.W))
+      val priv     = Output(UInt(2.W))
+      val mstatus  = Output(UInt(xlen.W))
+      val mepc     = Output(UInt(xlen.W))
+      val sepc     = Output(UInt(xlen.W))
+      val mtvec    = Output(UInt(xlen.W))
+      val stvec    = Output(UInt(xlen.W))
+      val mcause   = Output(UInt(xlen.W))
+      val scause   = Output(UInt(xlen.W))
+      val mie      = Output(UInt(xlen.W))
+      val mscratch = Output(UInt(xlen.W))
     } else null
   })
 
@@ -116,7 +125,7 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
   })
 
   private val medeleg = if (extensions.contains('S')) RegInit(0.U(xlen.W)) else null
-  private val mideleg = if (extensions.contains('S')) RegInit(0.U(xlen.W)) else null
+  private val mideleg = if (extensions.contains('S')) RegInit(0.U.asTypeOf(new MidelegBundle)) else null
 
   private val mcycle       = RegInit(0.U(64.W)) // the number of clock cycles
   private val minstret     = RegInit(0.U(64.W)) // the number of instructions retired
@@ -253,7 +262,7 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
     when(io.csrsR.rcsr(i) === Stval) { io.csrsR.rdata(i) := stval }
     when(io.csrsR.rcsr(i) === Sip) { io.csrsR.rdata(i) := sip }
     when(io.csrsR.rcsr(i) === Satp) { io.csrsR.rdata(i) := satp }
-    when(io.csrsR.rcsr(i) === Mideleg) { if (extensions.contains('S')) io.csrsR.rdata(i) := mideleg }
+    when(io.csrsR.rcsr(i) === Mideleg) { if (extensions.contains('S')) io.csrsR.rdata(i) := mideleg.asUInt }
     when(io.csrsR.rcsr(i) === Medeleg) { if (extensions.contains('S')) io.csrsR.rdata(i) := medeleg }
 
     if (xlen == 32) {
@@ -267,5 +276,16 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
 
   io.bareSEIP := mip.SEIP; io.bareUEIP := mip.UEIP
 
-  if (Debug) io.debug.mstatus := mstatus.asUInt
+  if (Debug) {
+    io.debug.priv     := currentPriv
+    io.debug.mstatus  := mstatus.asUInt
+    io.debug.mepc     := mepc
+    io.debug.sepc     := sepc
+    io.debug.mtvec    := mtvec
+    io.debug.stvec    := stvec
+    io.debug.mcause   := mcause
+    io.debug.scause   := scause
+    io.debug.mie      := mie.asUInt
+    io.debug.mscratch := mscratch
+  }
 }

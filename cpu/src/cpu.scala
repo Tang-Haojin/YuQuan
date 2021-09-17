@@ -115,14 +115,25 @@ class CPU(implicit p: Parameters) extends YQModule {
   moduleCSRs.io.currentPriv <> moduleID.io.currentPriv
 
   if (Debug) {
-    io.debug.exit    := moduleWB.io.debug.exit
-    io.debug.data    := moduleGPRs.io.gprsR.rdata(2)
-    io.debug.wbPC    := moduleWB.io.debug.pc
-    io.debug.wbValid := moduleWB.io.retire
-    io.debug.wbRd    := moduleWB.io.debug.rd
-    io.debug.wbRcsr  := moduleWB.io.debug.rcsr
-    io.debug.gprs    := moduleGPRs.io.debug.gprs
-    io.debug.wbMMIO  := moduleWB.io.debug.mmio
-    io.debug.mstatus := moduleCSRs.io.debug.mstatus
+    io.debug.exit     := moduleWB.io.debug.exit
+    io.debug.data     := moduleGPRs.io.gprsR.rdata(2)
+    io.debug.wbPC     := moduleWB.io.debug.pc
+    io.debug.wbValid  := moduleWB.io.retire
+    io.debug.wbRd     := moduleWB.io.debug.rd
+    io.debug.wbRcsr   := moduleWB.io.debug.rcsr
+    io.debug.gprs     := moduleGPRs.io.debug.gprs
+    io.debug.wbMMIO   := moduleWB.io.debug.mmio
+    io.debug.wbClint  := moduleWB.io.debug.clint
+    io.debug.wbIntr   := moduleWB.io.debug.intr
+    io.debug.priv     := moduleWB.io.debug.priv
+    io.debug.mstatus  := moduleCSRs.io.debug.mstatus
+    io.debug.mepc     := moduleCSRs.io.debug.mepc
+    io.debug.sepc     := moduleCSRs.io.debug.sepc
+    io.debug.mtvec    := moduleCSRs.io.debug.mtvec
+    io.debug.stvec    := moduleCSRs.io.debug.stvec
+    io.debug.mcause   := moduleCSRs.io.debug.mcause
+    io.debug.scause   := moduleCSRs.io.debug.scause
+    io.debug.mie      := moduleCSRs.io.debug.mie
+    io.debug.mscratch := moduleCSRs.io.debug.mscratch
   }
 }

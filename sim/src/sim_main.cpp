@@ -50,13 +50,16 @@ int main(int argc, char **argv, char **env) {
 #ifdef DIFFTEST
   vaddr_t pc, spike_pc;
   {
-    size_t tmp[32+2] = {};
-    tmp[32] = 0x80000000UL;
+    size_t tmp[50] = {};
     difftest_init(0);
+    difftest_regcpy(tmp, DIFFTEST_TO_DUT);
+    tmp[32] = 0x80000000UL;
     difftest_regcpy(tmp, DIFFTEST_TO_REF);
     difftest_memcpy(0x80000000UL, (void *)(ram_param[0]), ram_param[1], DIFFTEST_TO_REF);
   }
   QData *gprs = &top->io_gprs_0;
+  char name[15] = {};
+  size_t cpu_reg, diff_reg;
 #endif
 
   setbuf(stdout, NULL);
@@ -100,69 +103,87 @@ int main(int argc, char **argv, char **env) {
 #ifdef DIFFTEST
     if (top->io_wbValid && top->clock) {
       pc = top->io_wbPC;
-      spike_pc = diff_context.pc[0];
+#ifndef TRACE
+      assert(pc > 0x7ffffff8UL);
+#endif
+      spike_pc = diff_gpr_pc.pc[0];
       if (pc != spike_pc) {
-        printf("debug: Exit after %ld clock cycles.\n", cycles / 2);
-        printf("debug: ");
-        printf("\33[1;31mPC Diff\33[0m\n");
-        printf("pc = " FMT_WORD "\tspike_pc = " FMT_WORD "\n", pc, spike_pc);
-        ret = 1;
-        break;
+        strcpy(name, "pc");
+        cpu_reg = pc;
+        diff_reg = spike_pc;
+        goto reg_diff;
       }
-      if (!top->io_exit && top->io_wbRcsr != 0xBFF && top->io_wbRcsr != 0xBFE && top->io_wbRcsr != 0x344 && top->io_wbRcsr != 0x301 && !in_pmpaddr(top->io_wbRcsr) && top->io_wbRcsr != 0xC01 && !top->io_wbMMIO)
+      if (!top->io_wbIntr && !top->io_wbClint && !top->io_exit && top->io_wbRcsr != 0xBFF && top->io_wbRcsr != 0xBFE && top->io_wbRcsr != 0x344 && top->io_wbRcsr != 0x301 && !in_pmpaddr(top->io_wbRcsr) && top->io_wbRcsr != 0xC01 && !top->io_wbMMIO) {
         difftest_exec(1);
-      else {
-        size_t tmp[33];
+        if (diff_gpr_pc.gpr[top->io_wbRd] != gprs[top->io_wbRd]) {
+          char tmp[10];
+          sprintf(tmp, "GPR[%d]", top->io_wbRd);
+          strcpy(name, tmp);
+          cpu_reg = gprs[top->io_wbRd];
+          diff_reg = diff_gpr_pc.gpr[top->io_wbRd];
+          goto reg_diff;
+        }
+        size_t diff_regs[50];
+        difftest_regcpy(diff_regs, DIFFTEST_TO_DUT);
+        add_diff(mstatus);
+        add_diff(mepc);
+        add_diff(sepc);
+        add_diff(mtvec);
+        add_diff(stvec);
+        add_diff(mcause);
+        add_diff(scause);
+        add_diff(mie);
+        add_diff(mscratch);
+        add_diff(priv);
+      } else {
+        size_t tmp[50];
+        difftest_regcpy(tmp, DIFFTEST_TO_DUT);
         memcpy(tmp, gprs, 32 * sizeof(size_t));
-        tmp[32] = pc + 4;
-        tmp[33] = 0;
+        tmp[mstatus] = top->io_mstatus;
+        tmp[mepc] = top->io_mepc;
+        tmp[sepc] = top->io_sepc;
+        tmp[mtvec] = top->io_mtvec;
+        tmp[stvec] = top->io_stvec;
+        tmp[mcause] = top->io_mcause;
+        tmp[scause] = top->io_scause;
+        tmp[mie] = top->io_mie;
+        tmp[mscratch] = top->io_mscratch;
+        if (top->io_wbIntr) tmp[priv] = top->io_priv;
+        tmp[32] = top->io_wbIntr ? (top->io_priv == 0b11 ? tmp[mtvec] : tmp[stvec]) : pc + 4;
         difftest_regcpy(tmp, DIFFTEST_TO_REF);
-      }
-      if (diff_context.gpr[top->io_wbRd] != gprs[top->io_wbRd]) {
-        printf("debug: Exit after %ld clock cycles.\n", cycles / 2);
-        printf("debug: ");
-        printf("\33[1;31mGPR[%d] Diff\33[0m ", top->io_wbRd);
-        printf("at pc = " FMT_WORD "\n", pc);
-        printf("GPR[%d] = " FMT_WORD "\tspike_GPR[%d] = " FMT_WORD "\n",
-               top->io_wbRd, gprs[top->io_wbRd],
-               top->io_wbRd, diff_context.gpr[top->io_wbRd]);
-        ret = 1;
-        break;
-      }
-      if (diff_context.mstatus[0] != top->io_mstatus) {
-        printf("debug: Exit after %ld clock cycles.\n", cycles / 2);
-        printf("debug: ");
-        printf("\33[1;31mmstatus Diff\33[0m ");
-        printf("at pc = " FMT_WORD "\n", pc);
-        printf("mstatus = " FMT_WORD "\tspike_mstatus = " FMT_WORD "\n",
-               top->io_mstatus, diff_context.mstatus[0]);
-        ret = 1;
-        break;
       }
     }
 #endif
 
     if (top->io_exit == 1) {
-      printf("debug: Exit after %ld clock cycles.\n", cycles / 2);
-      printf("debug: ");
+      printf(DEBUG "Exit after %ld clock cycles.\n", cycles / 2);
+      printf(DEBUG);
       if (top->io_data) {
         printf("\33[1;31mHIT BAD TRAP");
         ret = 1;
       }
-      else
-        printf("\33[1;32mHIT GOOD TRAP");
+      else printf("\33[1;32mHIT GOOD TRAP");
       printf("\33[0m at pc = " FMT_WORD "\n\n", top->io_wbPC - 4);
       break;
     }
     else if (top->io_exit == 2) {
-      printf("debug: Exit after %ld clock cycles.\n", cycles / 2);
-      printf("debug: ");
-      printf("\33[1;31mINVALID INSTRUCTION");
+      printf(DEBUG "Exit after %ld clock cycles.\n", cycles / 2);
+      printf(DEBUG "\33[1;31mINVALID INSTRUCTION");
       printf("\33[0m at pc = " FMT_WORD "\n\n", top->io_wbPC - 4);
       ret = 1;
       break;
     }
     if (int_sig) real_int_handler();
+#ifdef DIFFTEST
+    continue;
+  reg_diff:
+    std::cout << DEBUG "Exit after " << cycles / 2 << " clock cycles.\n";
+    std::cout << DEBUG "\33[1;31m" << name << " Diff\33[0m ";
+    printf("at pc = " FMT_WORD "\n" DEBUG, pc);
+    printf("%s = " FMT_WORD "\tspike_%s = " FMT_WORD "\n", name, cpu_reg, name, diff_reg);
+    ret = 1;
+    break;
+#endif
   }
 
   scan_uart(_isRunning) = false;
