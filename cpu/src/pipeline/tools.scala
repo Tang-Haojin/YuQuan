@@ -8,6 +8,7 @@ import utils._
 
 import cpu.instruction._
 import cpu.component._
+import cpu.component.mmu._
 import cpu.tools._
 import cpu.cache._
 import cpu._
@@ -104,7 +105,7 @@ class EXIO(implicit p: Parameters) extends YQBundle {
 }
 
 class MEMIO(implicit p: Parameters) extends YQBundle {
-  val dcache = Flipped(new CpuIO)
+  val dmmu   = Flipped(new PipelineIO)
   val lastVR = new LastVR
   val nextVR = Flipped(new LastVR)
   val input  = Flipped(new EXOutput)

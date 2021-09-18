@@ -98,6 +98,7 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
     val bareUEIP    = Output(Bool())
     val changePriv  = Input (Bool())
     val newPriv     = Input (UInt(2.W))
+    val vmMode      = Output(UInt(4.W))
     val debug       = if (Debug) new Bundle {
       val priv     = Output(UInt(2.W))
       val mstatus  = Output(UInt(xlen.W))
@@ -159,7 +160,7 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
   private val scause     = RegInit(0.U(5.W))
   private val stval      = RegInit(0.U(xlen.W))
   private val sip        = new Sip(mip)
-  private val satp       = 0.U(xlen.W)
+  private val satp       = UseSatp(RegInit(new SatpBundle, 0.U.asTypeOf(new SatpBundle)))
 
   private val currentPriv = RegEnable(io.newPriv, 3.U(2.W), io.changePriv)
   io.currentPriv := currentPriv
@@ -209,7 +210,7 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
         when(io.csrsW.wcsr(i) === Scause) { scause := io.csrsW.wdata(i)(xlen - 1) ## io.csrsW.wdata(i)(3, 0) }
         when(io.csrsW.wcsr(i) === Stval) { stval := io.csrsW.wdata(i) } // TODO: set the value when exception is arised
         when(io.csrsW.wcsr(i) === Sip) { sip := io.csrsW.wdata(i) }
-        when(io.csrsW.wcsr(i) === Satp) {} // TODO: support paging
+        when(io.csrsW.wcsr(i) === Satp) { satp := io.csrsW.wdata(i) } // TODO: support paging
         when(io.csrsW.wcsr(i) === Mideleg) { if (extensions.contains('S')) mideleg := io.csrsW.wdata(i) }
         when(io.csrsW.wcsr(i) === Medeleg) { if (extensions.contains('S')) medeleg := io.csrsW.wdata(i) }
 
@@ -261,7 +262,7 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
     when(io.csrsR.rcsr(i) === Scause) { io.csrsR.rdata(i) := scause(4) ## 0.U((xlen - 5).W) ## scause(3, 0) }
     when(io.csrsR.rcsr(i) === Stval) { io.csrsR.rdata(i) := stval }
     when(io.csrsR.rcsr(i) === Sip) { io.csrsR.rdata(i) := sip }
-    when(io.csrsR.rcsr(i) === Satp) { io.csrsR.rdata(i) := satp }
+    when(io.csrsR.rcsr(i) === Satp) { io.csrsR.rdata(i) := satp.asUInt }
     when(io.csrsR.rcsr(i) === Mideleg) { if (extensions.contains('S')) io.csrsR.rdata(i) := mideleg.asUInt }
     when(io.csrsR.rcsr(i) === Medeleg) { if (extensions.contains('S')) io.csrsR.rdata(i) := medeleg }
 
@@ -275,6 +276,7 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
   }
 
   io.bareSEIP := mip.SEIP; io.bareUEIP := mip.UEIP
+  io.vmMode := satp.mode
 
   if (Debug) {
     io.debug.priv     := currentPriv

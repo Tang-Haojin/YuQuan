@@ -6,14 +6,16 @@ import chipsalliance.rocketchip.config._
 import utils._
 import cpu.cache._
 import cpu.tools._
+import cpu.component.mmu._
 
 class IF(implicit p: Parameters) extends YQModule {
   val io = IO(new YQBundle {
-    val icache = Flipped(new CpuIO(32))
+    val immu   = Flipped(new PipelineIO(32))
     val nextVR = Flipped(new LastVR)
     val output = new IFOutput
     val jmpBch = Input(Bool())
     val jbAddr = Input(UInt(alen.W))
+    val vmMode = Input(UInt(4.W))
   })
 
   private val MEMBase = if (UseFlash) SPIFLASH.BASE else DRAM.BASE
@@ -26,20 +28,21 @@ class IF(implicit p: Parameters) extends YQModule {
   private val wireNVALID = WireDefault(Bool(), NVALID);         io.nextVR.VALID := wireNVALID
   private val wireNewPC  = WireDefault(UInt(alen.W), pc)
 
-  io.icache.cpuReq.data  := DontCare
-  io.icache.cpuReq.rw    := DontCare
-  io.icache.cpuReq.wmask := DontCare
-  io.icache.cpuReq.valid := io.nextVR.READY
-  io.icache.cpuReq.addr  := wireNewPC
+  io.immu.pipelineReq.cpuReq.data  := DontCare
+  io.immu.pipelineReq.cpuReq.rw    := DontCare
+  io.immu.pipelineReq.cpuReq.wmask := DontCare
+  io.immu.pipelineReq.cpuReq.valid := io.nextVR.READY
+  io.immu.pipelineReq.cpuReq.addr  := wireNewPC
+  io.immu.pipelineReq.vm           := 0.B
 
-  when(io.icache.cpuResult.ready) {
-    instr      := io.icache.cpuResult.data
-    wireInstr  := io.icache.cpuResult.data
+  when(io.immu.pipelineResult.cpuResult.ready) {
+    instr      := io.immu.pipelineResult.cpuResult.data
+    wireInstr  := io.immu.pipelineResult.cpuResult.data
     pc         := pc + 4.U
     wirePC     := pc
     wireNewPC  := pc + 4.U
     wireNVALID := 1.B
-    when(!io.icache.cpuReq.valid) { NVALID := 1.B }
+    when(!io.immu.pipelineReq.cpuReq.valid) { NVALID := 1.B }
   }
 
   when(io.jmpBch && io.nextVR.READY && io.nextVR.VALID) {
@@ -47,7 +50,7 @@ class IF(implicit p: Parameters) extends YQModule {
     pc        := io.jbAddr
   }
 
-  when(io.nextVR.READY && io.nextVR.VALID && !io.icache.cpuResult.ready) {
+  when(io.nextVR.READY && io.nextVR.VALID && !io.immu.pipelineResult.cpuResult.ready) {
     NVALID := 0.B
   }
 }

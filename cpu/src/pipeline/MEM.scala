@@ -46,7 +46,7 @@ class MEM(implicit p: Parameters) extends YQModule {
   private val wireMask = WireDefault(UInt((xlen / 8).W), mask)
   private val wireRetr = WireDefault(Bool(), io.input.retire)
 
-  private val shiftRdata = VecInit((0 until 8).map(i => io.dcache.cpuResult.data >> (8 * i)))(offset)
+  private val shiftRdata = VecInit((0 until 8).map(i => io.dmmu.pipelineResult.cpuResult.data >> (8 * i)))(offset)
   private val extRdata   = VecInit((0 until 7).map {
     case 0 => Fill(xlen - 8 , shiftRdata(7 )) ## shiftRdata(7 , 0)
     case 1 => Fill(xlen - 16, shiftRdata(15)) ## shiftRdata(15, 0)
@@ -60,16 +60,17 @@ class MEM(implicit p: Parameters) extends YQModule {
 
   private val rawStrb = VecInit((0 until 4).map { i => Fill(pow(2, i).round.toInt, 1.B) })(io.input.mask)
 
-  io.dcache.cpuReq.data  := wireData
-  io.dcache.cpuReq.rw    := wireRw
-  io.dcache.cpuReq.wmask := wireMask
-  io.dcache.cpuReq.valid := wireIsMem
-  io.dcache.cpuReq.addr  := wireAddr
+  io.dmmu.pipelineReq.cpuReq.data  := wireData
+  io.dmmu.pipelineReq.cpuReq.rw    := wireRw
+  io.dmmu.pipelineReq.cpuReq.wmask := wireMask
+  io.dmmu.pipelineReq.cpuReq.valid := wireIsMem
+  io.dmmu.pipelineReq.cpuReq.addr  := wireAddr
+  io.dmmu.pipelineReq.vm           := 0.B
   io.output.retire       := retire
   io.output.priv         := priv
   io.output.isPriv       := isPriv
 
-  when(io.dcache.cpuResult.ready) {
+  when(io.dmmu.pipelineResult.cpuResult.ready) {
     LREADY := 1.B
     NVALID := 1.B
     isMem  := 0.B

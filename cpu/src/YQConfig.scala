@@ -34,6 +34,7 @@ object YQConfig {
     case REG_CONF      => new RegConf
     case IS_YSYX       => true
     case NO_CACHE      => false
+    case TLB_ENTRIES   => 16
   }
 
   class CLINT extends MMAP {
@@ -68,3 +69,4 @@ case object ILEN         extends Field[Int]
 case object REG_CONF     extends Field[YQConfig.RegConf]
 case object IS_YSYX      extends Field[Boolean]
 case object NO_CACHE     extends Field[Boolean]
+case object TLB_ENTRIES  extends Field[Int]

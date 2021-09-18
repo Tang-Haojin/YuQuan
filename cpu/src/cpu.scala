@@ -6,13 +6,13 @@ import chipsalliance.rocketchip.config._
 
 import cpu.pipeline._
 import component._
+import component.mmu._
 import tools._
 import cache._
 import utils._
 
 class CPU(implicit p: Parameters) extends YQModule {
-  override val desiredName = if (IsYsyx) modulePrefix.dropRight(1)
-                             else modulePrefix + this.getClass().getSimpleName()
+  override val desiredName = if (IsYsyx) modulePrefix.dropRight(1) else modulePrefix + this.getClass().getSimpleName()
   val io = IO(new YQBundle {
     val master    = new AXI_BUNDLE
     val slave     = Flipped(new AXI_BUNDLE)
@@ -33,6 +33,7 @@ class CPU(implicit p: Parameters) extends YQModule {
 
   private val moduleICache = ICache(p.alter(cache.CacheConfig.f))
   private val moduleDCache = DCache(p.alter(cache.CacheConfig.f))
+  private val moduleMMU    = Module(new MMU()(p.alter(cache.CacheConfig.f)))
 
   private val moduleIF  = Module(new IF)
   private val moduleID  = Module(new ID)
@@ -77,10 +78,13 @@ class CPU(implicit p: Parameters) extends YQModule {
   moduleEX.io.nextVR  <> moduleMEM.io.lastVR
   moduleMEM.io.nextVR <> moduleWB.io.lastVR
 
-  moduleIF.io.icache  <> moduleICache.io.cpuIO
-  moduleMEM.io.dcache <> moduleDCache.io.cpuIO
-  moduleEX.io.invIch  <> moduleICache.io.inv
-  moduleEX.io.wbDch   <> moduleDCache.io.wb
+  moduleMMU.io.icacheIO <> moduleICache.io.cpuIO
+  moduleMMU.io.dcacheIO <> moduleDCache.io.cpuIO
+  moduleMMU.io.ifIO     <> moduleIF.io.immu
+  moduleMMU.io.memIO    <> moduleMEM.io.dmmu
+  moduleIF.io.vmMode    := moduleCSRs.io.vmMode
+  moduleEX.io.invIch    <> moduleICache.io.inv
+  moduleEX.io.wbDch     <> moduleDCache.io.wb
 
   moduleBypass.io.request <> moduleGPRs.io.gprsR
   moduleBypass.io.idOut.valid  := moduleID.io.nextVR.VALID

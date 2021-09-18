@@ -168,3 +168,25 @@ object Sie {
     0.U((x.xlen - 10).W) ## x.mie.SEIE ## x.mie.UEIE ## 0.U(2.W) ## x.mie.STIE ## x.mie.UTIE ## 0.U(2.W) ## x.mie.SSIE ## x.mie.USIE
   }
 }
+
+class SatpBundle extends Bundle {
+  val mode = UInt(2.W)
+  val PPN  = UInt(44.W)
+}
+
+class UseSatp(val satp: SatpBundle = null) {
+  def asUInt(): UInt = mode ## 0.U(16.W) ## satp.PPN
+  def :=[T <: Data](that: T): Unit = {
+    satp.mode := MuxLookup(that.asUInt()(63, 60), 0.U, Seq(
+      8.U -> "b10".U,
+      9.U -> "b11".U
+    ))
+    satp.PPN := that.asUInt()(43, 0)
+  }
+  def asTypeOf[T <: Data](that: T) = satp.asTypeOf(that)
+  def mode(): UInt = satp.mode(1) ## 0.U(2.W) ## satp.mode(0)
+}
+
+object UseSatp {
+  def apply(satp: SatpBundle): UseSatp = new UseSatp(satp)
+}

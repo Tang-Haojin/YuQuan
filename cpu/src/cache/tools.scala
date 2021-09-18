@@ -10,23 +10,23 @@ import cpu._
 
 // CPU -> Cache Controller
 class CpuReq(implicit p: Parameters) extends YQBundle {
-  val addr  = Input(UInt(alen.W))
-  val data  = Input(UInt(xlen.W))
-  val rw    = Input(Bool())
-  val wmask = Input(UInt((xlen / 8).W))
-  val valid = Input(Bool())
+  val addr  = UInt(alen.W)
+  val data  = UInt(xlen.W)
+  val rw    = Bool()
+  val wmask = UInt((xlen / 8).W)
+  val valid = Bool()
 }
 
 // Cache Controller -> CPU
 class CpuResult(datalen: Int = 64)(implicit p: Parameters) extends YQBundle {
-  val data  = Output(UInt(datalen.W))
-  val ready = Output(Bool())
+  val data  = UInt(datalen.W)
+  val ready = Bool()
 }
 
 // CPU <-> Cache Controller
 class CpuIO(datalen: Int = 64)(implicit p: Parameters) extends YQBundle {
-  val cpuReq    = new CpuReq
-  val cpuResult = new CpuResult(datalen)
+  val cpuReq    = Input (new CpuReq)
+  val cpuResult = Output(new CpuResult(datalen))
 }
 
 class IsPeripheral(addr: UInt)(implicit p: Parameters) {
