@@ -51,6 +51,7 @@ class EX(implicit p: Parameters) extends YQModule {
   private val tmpRd   = RegInit(0.U(5.W))
   private val priv    = RegInit("b11".U(2.W))
   private val isPriv  = RegInit(0.B)
+  private val isSatp  = RegInit(0.B)
   private val exit    = if (Debug) RegInit(0.U(3.W)) else null
   private val pc      = if (Debug) RegInit(0.U(alen.W)) else null
   private val rcsr    = if (Debug) RegInit(0xfff.U(12.W)) else null
@@ -82,6 +83,7 @@ class EX(implicit p: Parameters) extends YQModule {
   io.output.retire  := retire
   io.output.priv    := priv
   io.output.isPriv  := isPriv
+  io.output.isSatp  := isSatp
 
   io.invIch.valid   := invalidateICache
   io.wbDch.valid    := writebackDCache
@@ -185,7 +187,7 @@ class EX(implicit p: Parameters) extends YQModule {
     is(inv)  { wireExit := ExitReasons.inv  }
   }
 
-  io.lastVR.READY := io.nextVR.READY && alu.io.input.ready && !invalidateICache && !writebackDCache && scState === idle
+  io.lastVR.READY := io.nextVR.READY && alu.io.input.ready && !invalidateICache && !writebackDCache && scState === idle && !isSatp
 
   import Operators.{mul, ruw}
   when(alu.io.output.fire && ((op >= mul) && (op <= ruw))) {
@@ -213,6 +215,7 @@ class EX(implicit p: Parameters) extends YQModule {
     tmpRd   := wireTmpRd
     priv    := io.input.priv
     isPriv  := io.input.isPriv
+    isSatp  := io.input.isSatp
 
     op      := wireOp
     isWord  := wireIsWord
@@ -231,6 +234,7 @@ class EX(implicit p: Parameters) extends YQModule {
     }
   }.elsewhen(io.nextVR.READY && io.nextVR.VALID) {
     NVALID := 0.B
+    isSatp := 0.B
   }
 
   if (extensions.contains('A')) when(scState === storing) {

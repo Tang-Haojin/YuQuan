@@ -7,6 +7,7 @@ import chipsalliance.rocketchip.config._
 import utils._
 import cpu.tools._
 import cpu.cache._
+import cpu.privileged._
 
 class MMU(implicit p: Parameters) extends YQModule with CacheParams {
   val io = IO(new YQBundle {
@@ -14,27 +15,140 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
     val memIO    = new PipelineIO
     val icacheIO = Flipped(new CpuIO(32))
     val dcacheIO = Flipped(new CpuIO)
+    val satp     = Input (UInt(xlen.W))
   })
-  io.icacheIO.cpuReq.valid := 0.B
+
+  private val idle::walking::Nil = Enum(2)
+  private val ifWalking::memWalking::Nil = Enum(2)
+  private val stage = RegInit(0.U(1.W))
+  private val level = RegInit(0.U(2.W))
+  private val tlb = new TLB
+  private val ifVaddr  = io.ifIO.pipelineReq.cpuReq.addr.asTypeOf(new Vaddr)
+  private val memVaddr = io.memIO.pipelineReq.cpuReq.addr.asTypeOf(new Vaddr)
+  private val vaddr    = RegInit(new Vaddr, 0.U.asTypeOf(new Vaddr))
+  private val satp     = UseSatp(io.satp.asTypeOf(new SatpBundle))
+  private val pte      = RegInit(new PTE, 0.U.asTypeOf(new PTE))
+  private val newPte   = io.dcacheIO.cpuResult.data.asTypeOf(new PTE)
+  private val current  = RegInit(0.U(1.W))
+  private val isWrite  = io.memIO.pipelineReq.cpuReq.rw
+  private val ifDel    = RegInit(0.B); when(ifDel) { ifDel := 0.B }
+  private val memDel   = RegInit(0.B); when(memDel) { memDel := 0.B }
+  private val ifCause  = RegInit(0.U(4.W))
+  private val memCause = RegInit(0.U(4.W))
+  private val ifReady  = RegInit(0.B)
+  private val memReady = RegInit(0.B)
+  private val ifExcpt  = RegInit(0.B)
+  private val memExcpt = RegInit(0.B)
+
   io.icacheIO.cpuReq.data  := DontCare
   io.icacheIO.cpuReq.rw    := DontCare
   io.icacheIO.cpuReq.wmask := DontCare
-  // io.icacheIO.cpuReq.addr
 
   io.ifIO.pipelineResult.cause      := 0.U
   io.ifIO.pipelineResult.exception  := 0.B
   io.memIO.pipelineResult.cause     := 0.U
   io.memIO.pipelineResult.exception := 0.B
 
-  io.ifIO.pipelineReq.cpuReq       <> io.icacheIO.cpuReq
-  io.ifIO.pipelineResult.cpuResult <> io.icacheIO.cpuResult
-  when(io.ifIO.pipelineReq.vm) {
-
-  }
-
+  io.ifIO.pipelineReq.cpuReq        <> io.icacheIO.cpuReq
+  io.ifIO.pipelineResult.cpuResult  <> io.icacheIO.cpuResult
   io.memIO.pipelineReq.cpuReq       <> io.dcacheIO.cpuReq
   io.memIO.pipelineResult.cpuResult <> io.dcacheIO.cpuResult
-  when(io.memIO.pipelineReq.vm) {
 
+  when(ifDel) {
+    io.ifIO.pipelineResult.cpuResult.ready := ifReady
+    io.ifIO.pipelineResult.exception := ifExcpt
+    io.ifIO.pipelineResult.cause := ifCause
+  }
+  when(memDel) {
+    io.memIO.pipelineResult.cpuResult.ready := memReady
+    io.memIO.pipelineResult.exception := memExcpt
+    io.memIO.pipelineResult.cause := memCause
+  }
+
+  when(satp.mode === 8.U) {
+    io.icacheIO.cpuReq.addr := tlb.getPpn(ifVaddr) ## ifVaddr.offset
+    io.dcacheIO.cpuReq.addr := tlb.getPpn(memVaddr) ## memVaddr.offset
+    when(!tlb.isHit(ifVaddr)) {
+      ifDel := 1.B
+      ifReady := 0.B
+      io.icacheIO.cpuReq.valid := 0.B
+    }
+    when(!tlb.isHit(memVaddr)) {
+      memDel := 1.B
+      memReady := 0.B
+      io.dcacheIO.cpuReq.valid := 0.B
+    }
+
+    when(stage === walking) {
+      io.dcacheIO.cpuReq.valid := 1.B
+      io.dcacheIO.cpuReq.addr  := Mux(level === 2.U, satp.ppn, pte.ppn) ## vaddr.vpn(level)
+      when(io.dcacheIO.cpuResult.ready) {
+        pte := io.dcacheIO.cpuResult.data
+        when(level =/= 0.U) {
+          when(newPte.w | newPte.r | newPte.x) {
+            when(current === ifWalking) { IfRaiseException(1.U) } // Instruction access fault
+            .otherwise { MemRaiseException(Mux(isWrite, 7.U, 5.U)) } // load/store/amo access fault
+          }
+          level := level - 1.U
+        }.otherwise {
+          stage := idle
+          io.dcacheIO.cpuReq.valid := 0.B
+          when((!newPte.w && !newPte.r && !newPte.x) || (newPte.w && !newPte.r)) { // this should be leaf, and that with w must have r
+            when(current === ifWalking) { IfRaiseException(1.U) } // Instruction access fault
+            .otherwise { MemRaiseException(Mux(isWrite, 7.U, 5.U)) } // load/store/amo access fault
+          }.elsewhen(current === ifWalking && !newPte.x) { IfRaiseException(1.U) } // Instruction access fault
+          .elsewhen(current === memWalking && !isWrite && !newPte.r) { MemRaiseException(5.U) } // load access fault
+          .elsewhen(current === memWalking && isWrite && !newPte.w) { MemRaiseException(7.U) } // store/amo access fault
+          .otherwise { tlb.update(vaddr, newPte) }
+        }
+        when(!newPte.v) {
+          when(current === ifWalking) { IfRaiseException(12.U) } // Instruction page fault
+          .otherwise { MemRaiseException(Mux(isWrite, 15.U, 13.U)) } // load/store/amo page fault
+        }
+      }
+    }
+  }
+
+  when(io.ifIO.pipelineReq.cpuReq.valid && io.ifIO.pipelineReq.cpuReq.addr(1, 0) =/= 0.U) {
+    io.icacheIO.cpuReq.valid := 0.B
+    IfRaiseException(0.U, false) // Instruction address misaligned // TODO: compression instructions
+  }.elsewhen(io.memIO.pipelineReq.cpuReq.valid && (
+    (io.memIO.pipelineReq.reqLen === 1.U && io.memIO.pipelineReq.cpuReq.addr(0)) ||
+    (io.memIO.pipelineReq.reqLen === 2.U && io.memIO.pipelineReq.cpuReq.addr(1, 0) =/= 0.U) ||
+    (io.memIO.pipelineReq.reqLen === 3.U && io.memIO.pipelineReq.cpuReq.addr(2, 0) =/= 0.U)
+  )) {
+    io.dcacheIO.cpuReq.valid := 0.B
+    MemRaiseException(Mux(isWrite, 6.U, 4.U), false) // load/store/amo address misaligned
+  }.elsewhen(satp.mode === 8.U) {
+    when(io.ifIO.pipelineReq.cpuReq.valid && !tlb.isHit(ifVaddr) && !io.dcacheIO.cpuReq.valid && stage =/= walking) {
+      current := ifWalking
+      stage := walking
+      vaddr := ifVaddr
+      level := 2.U
+    }
+
+    when(io.memIO.pipelineReq.cpuReq.valid && !tlb.isHit(memVaddr) && stage =/= walking) {
+      current := memWalking
+      stage := walking
+      vaddr := memVaddr
+      level := 2.U
+    }
+  }
+
+  private case class IfRaiseException(cause: UInt, isPtw: Boolean = true) {
+    if (isPtw) stage := idle
+    if (isPtw) io.dcacheIO.cpuReq.valid := 0.B
+    ifDel   := 1.B
+    ifReady := 1.B
+    ifCause := cause
+    ifExcpt := 1.B
+  }
+
+  private case class MemRaiseException(cause: UInt, isPtw: Boolean = true) {
+    IfRaiseException(cause, isPtw)
+    memDel   := 1.B
+    memReady := 1.B
+    memCause := cause
+    memExcpt := 1.B
   }
 }

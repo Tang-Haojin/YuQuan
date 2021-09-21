@@ -40,6 +40,7 @@ class ID(implicit p: Parameters) extends YQModule {
   private val blocked = RegInit(0.B)
   private val amoStat = RegInit(UInt(1.W), idle)
   private val retire  = RegInit(0.B)
+  private val isSatp  = RegInit(0.B)
   private val pc      = if (Debug) RegInit(0.U(alen.W)) else null
   private val rcsr    = if (Debug) RegInit(0xfff.U(12.W)) else null
   private val clint   = if (Debug) RegInit(0.B) else null
@@ -68,6 +69,7 @@ class ID(implicit p: Parameters) extends YQModule {
   private val wireAmoStat = WireDefault(UInt(1.W), amoStat)
   private val wireRetire  = WireDefault(Bool(), 1.B)
   private val wireBlocked = WireDefault(Bool(), blocked)
+  private val wireIsSatp  = WireDefault(0.B)
   private val wireClint   = if (Debug) WireDefault(0.B) else null
   private val wireIntr    = if (Debug) WireDefault(0.B) else null
 
@@ -88,6 +90,7 @@ class ID(implicit p: Parameters) extends YQModule {
   io.isAmo          := amoStat =/= idle
   io.output.priv    := newPriv
   io.output.isPriv  := isPriv
+  io.output.isSatp  := isSatp
   io.gprsR.raddr    := VecInit(10.U, 0.U, 0.U)
   io.csrsR.rcsr     := VecInit(Seq.fill(RegConf.readCsrsPort)(0xFFF.U(12.W)))
 
@@ -168,6 +171,7 @@ class ID(implicit p: Parameters) extends YQModule {
   when(decoded(8) === csr) {
     io.csrsR.rcsr(0) := wireCsr(0)
     wireCsr(0) := wireInstr(31, 20)
+    when(wireCsr(0) === csrsAddr.Satp) { wireIsSatp := 1.B }
   }
   when(decoded(8) === inv) { wireExcept(2)  := 1.B } // illegal instruction
   when(decoded(8) === ecall) {
@@ -206,10 +210,11 @@ class ID(implicit p: Parameters) extends YQModule {
     wireSpecial := ld
     wireRetire  := 0.B
   }
+  if (extensions.contains('S')) when(io.input.except) { wireExcept(io.input.cause) := 1.B }
 
   new AddException
 
-  io.lastVR.READY := io.nextVR.READY && !io.isWait && !blocked && amoStat === idle
+  io.lastVR.READY := io.nextVR.READY && !io.isWait && !blocked && amoStat === idle && !wireIsSatp && !isSatp
 
   when(io.lastVR.VALID && io.lastVR.READY) { // let's start working
     NVALID  := 1.B
@@ -223,6 +228,7 @@ class ID(implicit p: Parameters) extends YQModule {
     newPriv := wirePriv
     isPriv  := wireIsPriv
     blocked := wireBlocked
+    isSatp  := wireIsSatp
     if (extensions.contains('A')) amoStat := wireAmoStat
     retire  := wireRetire
     if (Debug) {
@@ -242,6 +248,7 @@ class ID(implicit p: Parameters) extends YQModule {
   }.elsewhen(io.nextVR.READY && io.nextVR.VALID) {
     NVALID  := 0.B
     blocked := 0.B
+    isSatp  := 0.B
   }
 
   if (extensions.contains('A')) when(amoStat === loading) {

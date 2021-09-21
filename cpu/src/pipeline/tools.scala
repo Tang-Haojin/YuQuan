@@ -31,6 +31,7 @@ class EXOutput(implicit p: Parameters) extends YQBundle {
   val retire  = Output(Bool())
   val priv    = Output(UInt(2.W))
   val isPriv  = Output(Bool())
+  val isSatp  = Output(Bool())
   val debug   =
     if (Debug) new YQBundle {
       val exit  = Output(UInt(3.W))
@@ -69,6 +70,7 @@ class IDOutput(implicit p: Parameters) extends YQBundle {
   val retire  = Output(Bool())
   val priv    = Output(UInt(2.W))
   val isPriv  = Output(Bool())
+  val isSatp  = Output(Bool())
   val debug   =
     if (Debug) new YQBundle {
       val pc    = Output(UInt(alen.W))
@@ -114,8 +116,10 @@ class MEMIO(implicit p: Parameters) extends YQBundle {
 
 // IF
 class IFOutput(implicit p: Parameters) extends YQBundle {
-  val instr = Output(UInt(32.W))
-  val pc    = Output(UInt(alen.W))
+  val instr  = Output(UInt(32.W))
+  val pc     = Output(UInt(alen.W))
+  val except = Output(Bool())
+  val cause  = Output(UInt(4.W))
 }
 
 // MEM
@@ -127,6 +131,7 @@ class MEMOutput(implicit p: Parameters) extends YQBundle {
   val retire  = Output(Bool())
   val priv    = Output(UInt(2.W))
   val isPriv  = Output(Bool())
+  val isSatp  = Output(Bool())
   val debug   =
     if (Debug) new YQBundle {
       val exit  = Output(UInt(3.W))

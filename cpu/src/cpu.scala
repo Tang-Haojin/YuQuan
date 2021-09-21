@@ -17,7 +17,7 @@ class CPU(implicit p: Parameters) extends YQModule {
     val master    = new AXI_BUNDLE
     val slave     = Flipped(new AXI_BUNDLE)
     val interrupt = Input(Bool())
-    val debug     = 
+    val debug     =
     if(Debug)       new DEBUG
     else            null
   })
@@ -82,7 +82,7 @@ class CPU(implicit p: Parameters) extends YQModule {
   moduleMMU.io.dcacheIO <> moduleDCache.io.cpuIO
   moduleMMU.io.ifIO     <> moduleIF.io.immu
   moduleMMU.io.memIO    <> moduleMEM.io.dmmu
-  moduleIF.io.vmMode    := moduleCSRs.io.vmMode
+  moduleMMU.io.satp     <> moduleCSRs.io.satp
   moduleEX.io.invIch    <> moduleICache.io.inv
   moduleEX.io.wbDch     <> moduleDCache.io.wb
 

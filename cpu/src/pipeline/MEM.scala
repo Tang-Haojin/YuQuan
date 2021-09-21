@@ -24,6 +24,7 @@ class MEM(implicit p: Parameters) extends YQModule {
   private val retire  = RegInit(0.B)
   private val priv    = RegInit("b11".U(2.W))
   private val isPriv  = RegInit(0.B)
+  private val isSatp  = RegInit(0.B)
   private val exit    = if (Debug) RegInit(0.U(3.W)) else null
   private val pc      = if (Debug) RegInit(0.U(alen.W)) else null
   private val rcsr    = if (Debug) RegInit(0xfff.U(12.W)) else null
@@ -36,7 +37,7 @@ class MEM(implicit p: Parameters) extends YQModule {
   private val wireOff = io.input.addr(axSize - 1, 0)
 
   private val NVALID  = RegInit(0.B); io.nextVR.VALID := NVALID
-  private val LREADY  = RegInit(1.B); io.lastVR.READY := LREADY && io.nextVR.READY
+  private val LREADY  = RegInit(1.B); io.lastVR.READY := LREADY && io.nextVR.READY && !isSatp
 
   private val isMem = RegInit(0.B); private val wireIsMem = WireDefault(Bool(), isMem)
   private val rw    = RegInit(0.B); private val wireRw    = WireDefault(Bool(), rw)
@@ -45,6 +46,7 @@ class MEM(implicit p: Parameters) extends YQModule {
   private val wireAddr = WireDefault(UInt(alen.W), addr)
   private val wireMask = WireDefault(UInt((xlen / 8).W), mask)
   private val wireRetr = WireDefault(Bool(), io.input.retire)
+  private val wireReql = WireDefault(UInt(3.W), extType)
 
   private val shiftRdata = VecInit((0 until 8).map(i => io.dmmu.pipelineResult.cpuResult.data >> (8 * i)))(offset)
   private val extRdata   = VecInit((0 until 7).map {
@@ -65,10 +67,11 @@ class MEM(implicit p: Parameters) extends YQModule {
   io.dmmu.pipelineReq.cpuReq.wmask := wireMask
   io.dmmu.pipelineReq.cpuReq.valid := wireIsMem
   io.dmmu.pipelineReq.cpuReq.addr  := wireAddr
-  io.dmmu.pipelineReq.vm           := 0.B
-  io.output.retire       := retire
-  io.output.priv         := priv
-  io.output.isPriv       := isPriv
+  io.dmmu.pipelineReq.reqLen       := wireReql(1, 0)
+  io.output.retire := retire
+  io.output.priv   := priv
+  io.output.isPriv := isPriv
+  io.output.isSatp := isSatp
 
   when(io.dmmu.pipelineResult.cpuResult.ready) {
     LREADY := 1.B
@@ -81,15 +84,17 @@ class MEM(implicit p: Parameters) extends YQModule {
     wireAddr := io.input.addr
     wireData := io.input.data
     wireMask := VecInit((0 until xlen / 8).map(i => if (i == 0) rawStrb else rawStrb(xlen / 8 - 1 - i, 0) ## 0.U(i.W)))(wireOff)
+    wireReql := io.input.mask
     addr     := wireAddr
     data     := wireData
     mask     := wireMask
     wcsr     := io.input.wcsr
     retire   := wireRetr
     csrData  := io.input.csrData
-    extType  := io.input.mask
+    extType  := wireReql
     priv     := io.input.priv
     isPriv   := io.input.isPriv
+    isSatp   := io.input.isSatp
     if (Debug) {
       exit  := io.input.debug.exit
       pc    := io.input.debug.pc
@@ -112,6 +117,7 @@ class MEM(implicit p: Parameters) extends YQModule {
     }
   }.otherwise {
     NVALID := 0.B
+    isSatp := 0.B
   }
 
   if (Debug) {

@@ -132,12 +132,11 @@ class Sstatus(val mstatus: MstatusBundle)(implicit val p: Parameters) extends CP
 
 object Sstatus {
   import scala.language.implicitConversions
-  implicit def getVal(x: Sstatus): UInt = {
+  implicit def getVal(x: Sstatus): UInt =
     x.mstatus.SD ## (if (x.xlen == 32) 0.U(11.W) else (0.U((x.xlen - 35).W) ##
     x.mstatus.UXL ## 0.U(12.W))) ## x.mstatus.MXR ## x.mstatus.SUM ## 0.B ## x.mstatus.XS ##
     x.mstatus.FS ## 0.U(4.W) ## x.mstatus.SPP ## 0.U(2.W) ## x.mstatus.SPIE ## x.mstatus.UPIE ##
     0.U(2.W) ## x.mstatus.SIE ## x.mstatus.UIE
-  }
 }
 
 class Sip(val mip: MipBundle)(implicit val p: Parameters) extends CPUParams {
@@ -185,8 +184,11 @@ class UseSatp(val satp: SatpBundle = null) {
   }
   def asTypeOf[T <: Data](that: T) = satp.asTypeOf(that)
   def mode(): UInt = satp.mode(1) ## 0.U(2.W) ## satp.mode(0)
+  def ppn(): UInt = satp.PPN
 }
 
 object UseSatp {
   def apply(satp: SatpBundle): UseSatp = new UseSatp(satp)
+  import scala.language.implicitConversions
+  implicit def Satp2UInt(x: UseSatp): UInt = x.asUInt()
 }
