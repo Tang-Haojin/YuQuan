@@ -32,6 +32,8 @@ class EXOutput(implicit p: Parameters) extends YQBundle {
   val priv    = Output(UInt(2.W))
   val isPriv  = Output(Bool())
   val isSatp  = Output(Bool())
+  val except  = Output(Bool())
+  val cause   = Output(UInt(4.W))
   val debug   =
     if (Debug) new YQBundle {
       val exit  = Output(UInt(3.W))
@@ -71,6 +73,8 @@ class IDOutput(implicit p: Parameters) extends YQBundle {
   val priv    = Output(UInt(2.W))
   val isPriv  = Output(Bool())
   val isSatp  = Output(Bool())
+  val except  = Output(Bool())
+  val cause   = Output(UInt(4.W))
   val debug   =
     if (Debug) new YQBundle {
       val pc    = Output(UInt(alen.W))

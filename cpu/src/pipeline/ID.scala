@@ -41,6 +41,8 @@ class ID(implicit p: Parameters) extends YQModule {
   private val amoStat = RegInit(UInt(1.W), idle)
   private val retire  = RegInit(0.B)
   private val isSatp  = RegInit(0.B)
+  private val except  = RegInit(0.B)
+  private val cause   = RegInit(0.U(4.W))
   private val pc      = if (Debug) RegInit(0.U(alen.W)) else null
   private val rcsr    = if (Debug) RegInit(0xfff.U(12.W)) else null
   private val clint   = if (Debug) RegInit(0.B) else null
@@ -91,6 +93,8 @@ class ID(implicit p: Parameters) extends YQModule {
   io.output.priv    := newPriv
   io.output.isPriv  := isPriv
   io.output.isSatp  := isSatp
+  io.output.except  := except
+  io.output.cause   := cause
   io.gprsR.raddr    := VecInit(10.U, 0.U, 0.U)
   io.csrsR.rcsr     := VecInit(Seq.fill(RegConf.readCsrsPort)(0xFFF.U(12.W)))
 
@@ -210,7 +214,7 @@ class ID(implicit p: Parameters) extends YQModule {
     wireSpecial := ld
     wireRetire  := 0.B
   }
-  if (extensions.contains('S')) when(io.input.except) { wireExcept(io.input.cause) := 1.B }
+  when(io.input.except) { wireExcept(io.input.cause) := 1.B }
 
   new AddException
 
@@ -231,6 +235,8 @@ class ID(implicit p: Parameters) extends YQModule {
     isSatp  := wireIsSatp
     if (extensions.contains('A')) amoStat := wireAmoStat
     retire  := wireRetire
+    except  := io.input.except
+    cause   := io.input.cause
     if (Debug) {
       pc := io.input.pc
       rcsr := Mux(wireSpecial === csr, wireInstr(31, 20), 0xfff.U)
@@ -290,13 +296,19 @@ class ID(implicit p: Parameters) extends YQModule {
       when(io.currentPriv =/= "b11".U && mie(x) && mip(x)) { intCode := x.id.U }
       when(mstatus.MIE && io.currentPriv === "b11".U && mie(x) && mip(x)) { intCode := x.id.U }
     })
-    when(isInt) {
+    when(wireExcept(5) | wireExcept(7) | wireExcept(13) | wireExcept(15) | wireExcept(4) | wireExcept(6)) {
+      // the mem-access exceptions should be handled first, because they happened "in the past".
+      // All other types of exceptions prior to these must not have happened, as the mem-access
+      // action can not have been acted if any other exceptions had occurred in previous id level.
+      Seq(5,7,13,15,4,6).foreach(i => when(wireExcept(i)) { fire := 1.B; code := i.U })
+      when(!medeleg(code)) { tmpNewPriv := "b11".U }
+    }.elsewhen(isInt) {
       fire := 1.B
       code := 1.B ## 0.U((xlen - 5).W) ## intCode
       when(!mideleg(intCode)) { tmpNewPriv := "b11".U }
       if (Debug) wireIntr := 1.B
     }.otherwise {
-      Seq(5,7,13,15,4,6,24,3,8,9,11,0,2,1,12,25).foreach(i => when(wireExcept(i)) { fire := 1.B; code := i.U }) // 24 for watchpoint, and 25 for breakpoint
+      Seq(24,3,8,9,11,0,2,1,12,25).foreach(i => when(wireExcept(i)) { fire := 1.B; code := i.U }) // 24 for watchpoint, and 25 for breakpoint
       when(!medeleg(code)) { tmpNewPriv := "b11".U }
     }
     when(io.lastVR.VALID && fire) {

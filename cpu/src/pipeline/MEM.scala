@@ -25,6 +25,8 @@ class MEM(implicit p: Parameters) extends YQModule {
   private val priv    = RegInit("b11".U(2.W))
   private val isPriv  = RegInit(0.B)
   private val isSatp  = RegInit(0.B)
+  private val isWfe   = RegInit(0.B)
+  private val cause   = RegInit(0.U(4.W))
   private val exit    = if (Debug) RegInit(0.U(3.W)) else null
   private val pc      = if (Debug) RegInit(0.U(alen.W)) else null
   private val rcsr    = if (Debug) RegInit(0xfff.U(12.W)) else null
@@ -74,11 +76,20 @@ class MEM(implicit p: Parameters) extends YQModule {
   io.output.isSatp := isSatp
 
   when(io.dmmu.pipelineResult.cpuResult.ready) {
+    NVALID := Mux(io.dmmu.pipelineResult.exception, 0.B, 1.B)
     LREADY := 1.B
-    NVALID := 1.B
     isMem  := 0.B
     rw     := 0.B
     when(!rw) { data := extRdata }
+    when(io.dmmu.pipelineResult.exception) {
+      isWfe := 1.B
+      cause := io.dmmu.pipelineResult.cause
+    }
+  }.elsewhen(isWfe && (!io.input.except || io.input.cause =/= cause)) {
+    LREADY := 1.B
+    NVALID := 0.B // flush invalid instructions
+    isMem  := 0.B
+    rw     := 0.B
   }.elsewhen(io.lastVR.VALID && io.lastVR.READY) {
     rd       := io.input.rd
     wireAddr := io.input.addr
@@ -95,6 +106,7 @@ class MEM(implicit p: Parameters) extends YQModule {
     priv     := io.input.priv
     isPriv   := io.input.isPriv
     isSatp   := io.input.isSatp
+    isWfe    := 0.B
     if (Debug) {
       exit  := io.input.debug.exit
       pc    := io.input.debug.pc

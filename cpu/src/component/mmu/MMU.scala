@@ -31,14 +31,13 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
   private val newPte   = io.dcacheIO.cpuResult.data.asTypeOf(new PTE)
   private val current  = RegInit(0.U(1.W))
   private val isWrite  = io.memIO.pipelineReq.cpuReq.rw
-  private val ifDel    = RegInit(0.B); when(ifDel) { ifDel := 0.B }
-  private val memDel   = RegInit(0.B); when(memDel) { memDel := 0.B }
-  private val ifCause  = RegInit(0.U(4.W))
-  private val memCause = RegInit(0.U(4.W))
-  private val ifReady  = RegInit(0.B)
-  private val memReady = RegInit(0.B)
-  private val ifExcpt  = RegInit(0.B)
-  private val memExcpt = RegInit(0.B)
+  private val (ifDel  , memDel  ) = (RegInit(0.B), RegInit(0.B))
+  private val (ifReady, memReady) = (RegInit(0.B), RegInit(0.B))
+  private val (ifExcpt, memExcpt) = (RegInit(0.B), RegInit(0.B))
+  private val (ifCause, memCause) = (RegInit(0.U(4.W)), RegInit(0.U(4.W)))
+
+  when(ifDel) { ifDel := 0.B }
+  when(memDel) { memDel := 0.B }
 
   io.icacheIO.cpuReq.data  := DontCare
   io.icacheIO.cpuReq.rw    := DontCare
