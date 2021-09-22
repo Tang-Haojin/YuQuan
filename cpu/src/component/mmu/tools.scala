@@ -9,6 +9,7 @@ import cpu.tools._
 class PipelineReq(implicit p: Parameters) extends YQBundle {
   val cpuReq = new cpu.cache.CpuReq
   val reqLen = UInt(2.W)
+  val flush  = Bool()
 }
 
 class PipelineResult(implicit p: Parameters) extends YQBundle {

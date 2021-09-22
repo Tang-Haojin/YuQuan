@@ -29,7 +29,7 @@ class TLB(implicit val p: Parameters) extends CacheParams {
     def vpn: UInt = x(38, 12)
   }
 
-  def flush: Unit = tlbEntries.foreach(_.flush)
+  def flush(): Unit = tlbEntries.foreach(_.flush)
   def apply(x: Int ): TlbEntryBundle = tlbEntries(x)
   def apply(x: UInt): TlbEntryBundle = tlbEntries(x)
   def isHit(vaddr: UInt): Bool = tlbEntries(vaddr(TlbIndex - 1 + 12, 12)).v && vaddr.vpn === getVpn(vaddr)

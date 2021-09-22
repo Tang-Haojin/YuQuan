@@ -262,7 +262,7 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
     when(io.csrsR.rcsr(i) === Scause) { io.csrsR.rdata(i) := scause(4) ## 0.U((xlen - 5).W) ## scause(3, 0) }
     when(io.csrsR.rcsr(i) === Stval) { io.csrsR.rdata(i) := stval }
     when(io.csrsR.rcsr(i) === Sip) { io.csrsR.rdata(i) := sip }
-    when(io.csrsR.rcsr(i) === Satp) { io.csrsR.rdata(i) := satp.asUInt }
+    when(io.csrsR.rcsr(i) === Satp) { io.csrsR.rdata(i) := satp }
     when(io.csrsR.rcsr(i) === Mideleg) { if (extensions.contains('S')) io.csrsR.rdata(i) := mideleg.asUInt }
     when(io.csrsR.rcsr(i) === Medeleg) { if (extensions.contains('S')) io.csrsR.rdata(i) := medeleg }
 

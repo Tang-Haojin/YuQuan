@@ -36,9 +36,6 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
   private val (ifExcpt, memExcpt) = (RegInit(0.B), RegInit(0.B))
   private val (ifCause, memCause) = (RegInit(0.U(4.W)), RegInit(0.U(4.W)))
 
-  when(ifDel) { ifDel := 0.B }
-  when(memDel) { memDel := 0.B }
-
   io.icacheIO.cpuReq.data  := DontCare
   io.icacheIO.cpuReq.rw    := DontCare
   io.icacheIO.cpuReq.wmask := DontCare
@@ -108,7 +105,11 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
     }
   }
 
-  when(io.ifIO.pipelineReq.cpuReq.valid && io.ifIO.pipelineReq.cpuReq.addr(1, 0) =/= 0.U) {
+  when(io.memIO.pipelineReq.cpuReq.valid && io.memIO.pipelineReq.flush) {
+    tlb.flush()
+    memDel := 1.B; memReady := 1.B; memCause := 0.U; memExcpt := 0.B
+    io.dcacheIO.cpuReq.valid := 0.B
+  }.elsewhen(io.ifIO.pipelineReq.cpuReq.valid && io.ifIO.pipelineReq.cpuReq.addr(1, 0) =/= 0.U) {
     io.icacheIO.cpuReq.valid := 0.B
     IfRaiseException(0.U, false) // Instruction address misaligned // TODO: compression instructions
   }.elsewhen(io.memIO.pipelineReq.cpuReq.valid && (
@@ -133,6 +134,9 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
       level := 2.U
     }
   }
+
+  when(ifDel) { ifDel := 0.B; ifCause := 0.U; ifExcpt := 0.B }
+  when(memDel) { memDel := 0.B; memCause := 0.U; memExcpt := 0.B }
 
   private case class IfRaiseException(cause: UInt, isPtw: Boolean = true) {
     if (isPtw) stage := idle

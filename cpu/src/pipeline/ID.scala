@@ -214,9 +214,10 @@ class ID(implicit p: Parameters) extends YQModule {
     wireSpecial := ld
     wireRetire  := 0.B
   }
+  if (extensions.contains('S')) when(decoded(8) === sfence) { wireIsSatp := 1.B }
   when(io.input.except) { wireExcept(io.input.cause) := 1.B }
 
-  new AddException
+  HandleException()
 
   io.lastVR.READY := io.nextVR.READY && !io.isWait && !blocked && amoStat === idle && !isSatp
 
@@ -280,7 +281,7 @@ class ID(implicit p: Parameters) extends YQModule {
     io.output.debug.priv  := newPriv
   }
 
-  private class AddException {
+  private case class HandleException() {
     private val fire = WireDefault(0.B)
     private val code = WireDefault(0.U(xlen.W))
     private val intCode = WireDefault("b1111".U(4.W))

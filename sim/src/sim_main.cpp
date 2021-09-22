@@ -96,7 +96,7 @@ int main(int argc, char **argv, char **env) {
     top->clock = !top->clock;
     top->eval();
 #ifdef TRACE
-    if (cycles >= 0)
+    if (cycles >= 37300000)
       tfp->dump(contextp->time());
 #endif
 
@@ -117,26 +117,26 @@ int main(int argc, char **argv, char **env) {
           top->io_wbRcsr != 0xBFE && top->io_wbRcsr != 0x344 && top->io_wbRcsr != 0x301 &&
           !in_pmpaddr(top->io_wbRcsr) && top->io_wbRcsr != 0xC01 && !top->io_wbMMIO) {
         difftest_exec(1);
-        if (diff_gpr_pc.gpr[top->io_wbRd] != gprs[top->io_wbRd]) {
-          char tmp[10];
-          sprintf(tmp, "GPR[%d]", top->io_wbRd);
-          strcpy(name, tmp);
-          cpu_reg = gprs[top->io_wbRd];
-          diff_reg = diff_gpr_pc.gpr[top->io_wbRd];
-          goto reg_diff;
-        }
         size_t diff_regs[50];
         difftest_regcpy(diff_regs, DIFFTEST_TO_DUT);
-        add_diff(mstatus);
-        add_diff(mepc);
-        add_diff(sepc);
-        add_diff(mtvec);
-        add_diff(stvec);
         add_diff(mcause);
         add_diff(scause);
+        add_diff(mepc);
+        add_diff(sepc);
+        add_diff(mstatus);
+        add_diff(mtvec);
+        add_diff(stvec);
         add_diff(mie);
         add_diff(mscratch);
         add_diff(priv);
+        for (int i = 0; i < 32; i++) if (diff_regs[i] != gprs[i]) {
+          char tmp[10];
+          sprintf(tmp, "GPR[%d]", i);
+          strcpy(name, tmp);
+          cpu_reg = gprs[i];
+          diff_reg = diff_regs[i];
+          goto reg_diff;
+        }
       } else {
         size_t tmp[50];
         difftest_regcpy(tmp, DIFFTEST_TO_DUT);

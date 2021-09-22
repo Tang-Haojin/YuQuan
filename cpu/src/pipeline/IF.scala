@@ -37,7 +37,10 @@ class IF(implicit p: Parameters) extends YQModule {
   private val wireCause  = WireDefault(UInt(4.W), cause);       io.output.cause  := wireCause
   private val wirePause  = WireDefault(Bool(), pause)
 
-  private val isSatp = wireInstr(6, 0) === "b1110011".U && wireInstr(31, 20) === csrsAddr.Satp
+  private val isSatp = wireInstr(6, 0) === "b1110011".U && (
+                         wireInstr(31, 20) === csrsAddr.Satp ||
+                         (wireInstr(31, 25) === "b0001001".U && wireInstr(14, 7) === 0.U)
+                       )
 
   io.immu.pipelineReq.cpuReq.data  := DontCare
   io.immu.pipelineReq.cpuReq.rw    := DontCare
@@ -45,6 +48,7 @@ class IF(implicit p: Parameters) extends YQModule {
   io.immu.pipelineReq.cpuReq.valid := io.nextVR.READY && !wirePause
   io.immu.pipelineReq.cpuReq.addr  := wireNewPC
   io.immu.pipelineReq.reqLen       := 2.U
+  io.immu.pipelineReq.flush        := DontCare
 
   when(io.immu.pipelineResult.cpuResult.ready) {
     wireInstr  := io.immu.pipelineResult.cpuResult.data

@@ -34,6 +34,7 @@ class EXOutput(implicit p: Parameters) extends YQBundle {
   val isSatp  = Output(Bool())
   val except  = Output(Bool())
   val cause   = Output(UInt(4.W))
+  val fshTLB  = if (extensions.contains('S')) Output(Bool()) else null
   val debug   =
     if (Debug) new YQBundle {
       val exit  = Output(UInt(3.W))
@@ -46,8 +47,8 @@ class EXOutput(implicit p: Parameters) extends YQBundle {
 
 // ID
 object ExecSpecials {
-  val specials = Enum(19)
-  val non::ld::st::jump::jalr::branch::trap::inv::word::csr::mret::exception::mu::msu::ecall::ebreak::sret::fencei::amo::Nil = specials
+  val specials = Enum(20)
+  val non::ld::st::jump::jalr::branch::trap::inv::word::csr::mret::exception::mu::msu::ecall::ebreak::sret::fencei::amo::sfence::Nil = specials
 }
 
 object InstrTypes { val i::u::s::r::j::b::c::Nil = Enum(7) }

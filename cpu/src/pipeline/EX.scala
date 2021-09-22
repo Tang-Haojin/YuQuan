@@ -54,6 +54,7 @@ class EX(implicit p: Parameters) extends YQModule {
   private val isSatp  = RegInit(0.B)
   private val except  = RegInit(0.B)
   private val cause   = RegInit(0.U(4.W))
+  private val fshTLB  = if (extensions.contains('S')) RegInit(0.B) else null
   private val exit    = if (Debug) RegInit(0.U(3.W)) else null
   private val pc      = if (Debug) RegInit(0.U(alen.W)) else null
   private val rcsr    = if (Debug) RegInit(0xfff.U(12.W)) else null
@@ -63,7 +64,7 @@ class EX(implicit p: Parameters) extends YQModule {
   private val wireRd      = WireDefault(UInt(5.W), io.input.rd)
   private val wireData    = WireDefault(UInt(xlen.W), alu.io.output.bits.asUInt)
   private val wireCsrData = WireDefault(VecInit(Seq.fill(RegConf.writeCsrsPort)(0.U(xlen.W))))
-  private val wireIsMem   = WireDefault(Bool(), io.input.special === ld || io.input.special === st)
+  private val wireIsMem   = WireDefault(Bool(), io.input.special === ld || io.input.special === st || io.input.special === sfence)
   private val wireIsLd    = WireDefault(Bool(), io.input.special === ld)
   private val wireAddr    = WireDefault(UInt(alen.W), io.input.num(2)(alen - 1, 0) + io.input.num(3)(alen - 1, 0))
   private val wireMask    = WireDefault(UInt(3.W), io.input.op1_3)
@@ -88,6 +89,7 @@ class EX(implicit p: Parameters) extends YQModule {
   io.output.isSatp  := isSatp
   io.output.except  := except
   io.output.cause   := cause
+  if (extensions.contains('S')) io.output.fshTLB := fshTLB
 
   io.invIch.valid   := invalidateICache
   io.wbDch.valid    := writebackDCache
@@ -222,6 +224,7 @@ class EX(implicit p: Parameters) extends YQModule {
     isSatp  := io.input.isSatp
     except  := io.input.except
     cause   := io.input.cause
+    if (extensions.contains('S')) fshTLB := io.input.special === sfence
 
     op      := wireOp
     isWord  := wireIsWord

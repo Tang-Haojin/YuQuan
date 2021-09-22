@@ -27,6 +27,7 @@ class MEM(implicit p: Parameters) extends YQModule {
   private val isSatp  = RegInit(0.B)
   private val isWfe   = RegInit(0.B)
   private val cause   = RegInit(0.U(4.W))
+  private val flush   = if (extensions.contains('S')) RegInit(0.B) else null
   private val exit    = if (Debug) RegInit(0.U(3.W)) else null
   private val pc      = if (Debug) RegInit(0.U(alen.W)) else null
   private val rcsr    = if (Debug) RegInit(0xfff.U(12.W)) else null
@@ -49,6 +50,7 @@ class MEM(implicit p: Parameters) extends YQModule {
   private val wireMask = WireDefault(UInt((xlen / 8).W), mask)
   private val wireRetr = WireDefault(Bool(), io.input.retire)
   private val wireReql = WireDefault(UInt(3.W), extType)
+  private val wireFsh  = if (extensions.contains('S')) WireDefault(Bool(), flush) else null
 
   private val shiftRdata = VecInit((0 until 8).map(i => io.dmmu.pipelineResult.cpuResult.data >> (8 * i)))(offset)
   private val extRdata   = VecInit((0 until 7).map {
@@ -70,6 +72,7 @@ class MEM(implicit p: Parameters) extends YQModule {
   io.dmmu.pipelineReq.cpuReq.valid := wireIsMem
   io.dmmu.pipelineReq.cpuReq.addr  := wireAddr
   io.dmmu.pipelineReq.reqLen       := wireReql(1, 0)
+  io.dmmu.pipelineReq.flush        := (if (extensions.contains('S')) wireFsh else 0.B)
   io.output.retire := retire
   io.output.priv   := priv
   io.output.isPriv := isPriv
@@ -80,6 +83,7 @@ class MEM(implicit p: Parameters) extends YQModule {
     LREADY := 1.B
     isMem  := 0.B
     rw     := 0.B
+    if (extensions.contains('S')) flush := 0.B
     when(!rw) { data := extRdata }
     when(io.dmmu.pipelineResult.exception) {
       isWfe := 1.B
@@ -107,6 +111,10 @@ class MEM(implicit p: Parameters) extends YQModule {
     isPriv   := io.input.isPriv
     isSatp   := io.input.isSatp
     isWfe    := 0.B
+    if (extensions.contains('S')) {
+      wireFsh := io.input.fshTLB
+      flush   := wireFsh
+    }
     if (Debug) {
       exit  := io.input.debug.exit
       pc    := io.input.debug.pc
