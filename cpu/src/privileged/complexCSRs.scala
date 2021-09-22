@@ -189,6 +189,12 @@ class UseSatp(val satp: SatpBundle = null) {
 
 object UseSatp {
   def apply(satp: SatpBundle): UseSatp = new UseSatp(satp)
+  def apply(satp: UInt): UseSatp = {
+    val wireSatp = WireDefault(0.U.asTypeOf(new SatpBundle))
+    wireSatp.PPN  := satp(43, 0)
+    wireSatp.mode := satp(63) ## satp(60)
+    new UseSatp(wireSatp)
+  }
   import scala.language.implicitConversions
   implicit def Satp2UInt(x: UseSatp): UInt = x.asUInt()
 }

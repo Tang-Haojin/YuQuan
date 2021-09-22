@@ -26,7 +26,7 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
   private val ifVaddr  = io.ifIO.pipelineReq.cpuReq.addr.asTypeOf(new Vaddr)
   private val memVaddr = io.memIO.pipelineReq.cpuReq.addr.asTypeOf(new Vaddr)
   private val vaddr    = RegInit(new Vaddr, 0.U.asTypeOf(new Vaddr))
-  private val satp     = UseSatp(io.satp.asTypeOf(new SatpBundle))
+  private val satp     = UseSatp(io.satp)
   private val pte      = RegInit(new PTE, 0.U.asTypeOf(new PTE))
   private val newPte   = io.dcacheIO.cpuResult.data.asTypeOf(new PTE)
   private val current  = RegInit(0.U(1.W))
