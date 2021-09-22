@@ -218,7 +218,7 @@ class ID(implicit p: Parameters) extends YQModule {
 
   new AddException
 
-  io.lastVR.READY := io.nextVR.READY && !io.isWait && !blocked && amoStat === idle && !wireIsSatp && !isSatp
+  io.lastVR.READY := io.nextVR.READY && !io.isWait && !blocked && amoStat === idle && !isSatp
 
   when(io.lastVR.VALID && io.lastVR.READY) { // let's start working
     NVALID  := 1.B
@@ -232,7 +232,7 @@ class ID(implicit p: Parameters) extends YQModule {
     newPriv := wirePriv
     isPriv  := wireIsPriv
     blocked := wireBlocked
-    isSatp  := wireIsSatp
+    isSatp  := Mux(io.nextVR.READY && io.nextVR.VALID, 0.B, wireIsSatp)
     if (extensions.contains('A')) amoStat := wireAmoStat
     retire  := wireRetire
     except  := io.input.except
@@ -243,18 +243,21 @@ class ID(implicit p: Parameters) extends YQModule {
       clint := wireClint
       intr := wireIntr
     }
-  }.elsewhen(io.isWait && io.nextVR.READY && amoStat === idle) {
-    NVALID  := 0.B
-    rd      := 0.U
-    wcsr    := VecInit(Seq.fill(RegConf.writeCsrsPort)(0xFFF.U(12.W)))
-    num     := VecInit(Seq.fill(4)(0.U))
-    op1_2   := 0.U
-    op1_3   := 0.U
-    special := 0.U
-  }.elsewhen(io.nextVR.READY && io.nextVR.VALID) {
-    NVALID  := 0.B
-    blocked := 0.B
-    isSatp  := 0.B
+  }.otherwise {
+    when(io.isWait && io.nextVR.READY && amoStat === idle) {
+      NVALID  := 0.B
+      rd      := 0.U
+      wcsr    := VecInit(Seq.fill(RegConf.writeCsrsPort)(0xFFF.U(12.W)))
+      num     := VecInit(Seq.fill(4)(0.U))
+      op1_2   := 0.U
+      op1_3   := 0.U
+      special := 0.U
+    }
+    when(io.nextVR.READY && io.nextVR.VALID) {
+      NVALID  := 0.B
+      blocked := 0.B
+      isSatp  := 0.B
+    }
   }
 
   if (extensions.contains('A')) when(amoStat === loading) {

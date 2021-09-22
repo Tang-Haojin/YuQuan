@@ -4,6 +4,7 @@ import chisel3._
 import chipsalliance.rocketchip.config._
 
 import utils._
+import cpu._
 import cpu.cache._
 import cpu.tools._
 import cpu.component.mmu._
@@ -17,12 +18,16 @@ class IF(implicit p: Parameters) extends YQModule {
     val jbAddr = Input(UInt(alen.W))
   })
 
+  private class csrsAddr(implicit val p: Parameters) extends CPUParams with cpu.privileged.CSRsAddr
+  private val csrsAddr = new csrsAddr
+
   private val MEMBase = if (UseFlash) SPIFLASH.BASE else DRAM.BASE
   private val instr   = RegInit(0x00000013.U(32.W))
   private val pc      = RegInit(MEMBase.U(alen.W))
   private val NVALID  = RegInit(0.B)
   private val except  = RegInit(0.B)
   private val cause   = RegInit(0.U(4.W))
+  private val pause   = RegInit(0.B)
 
   private val wireInstr  = WireDefault(UInt(32.W), instr);      io.output.instr  := wireInstr
   private val wirePC     = WireDefault(UInt(alen.W), pc - 4.U); io.output.pc     := wirePC
@@ -30,17 +35,20 @@ class IF(implicit p: Parameters) extends YQModule {
   private val wireNewPC  = WireDefault(UInt(alen.W), pc)
   private val wireExcept = WireDefault(Bool(), except);         io.output.except := wireExcept
   private val wireCause  = WireDefault(UInt(4.W), cause);       io.output.cause  := wireCause
+  private val wirePause  = WireDefault(Bool(), pause)
+
+  private val isSatp = wireInstr(6, 0) === "b1110011".U && wireInstr(31, 20) === csrsAddr.Satp
 
   io.immu.pipelineReq.cpuReq.data  := DontCare
   io.immu.pipelineReq.cpuReq.rw    := DontCare
   io.immu.pipelineReq.cpuReq.wmask := DontCare
-  io.immu.pipelineReq.cpuReq.valid := io.nextVR.READY
+  io.immu.pipelineReq.cpuReq.valid := io.nextVR.READY && !wirePause
   io.immu.pipelineReq.cpuReq.addr  := wireNewPC
   io.immu.pipelineReq.reqLen       := 2.U
 
   when(io.immu.pipelineResult.cpuResult.ready) {
-    instr      := io.immu.pipelineResult.cpuResult.data
     wireInstr  := io.immu.pipelineResult.cpuResult.data
+    instr      := wireInstr
     pc         := pc + 4.U
     wirePC     := pc
     wireNewPC  := pc + 4.U
@@ -49,15 +57,17 @@ class IF(implicit p: Parameters) extends YQModule {
     except     := wireExcept
     wireCause  := io.immu.pipelineResult.cause
     cause      := wireCause
-    when(!io.immu.pipelineReq.cpuReq.valid) { NVALID := 1.B }
+    wirePause  := isSatp
+    pause      := wirePause
+    when(!io.nextVR.READY) { NVALID := 1.B }
   }
 
-  when(io.jmpBch && io.nextVR.READY && io.nextVR.VALID) {
-    wireNewPC := io.jbAddr
-    pc        := io.jbAddr
-  }
-
-  when(io.nextVR.READY && io.nextVR.VALID && !io.immu.pipelineResult.cpuResult.ready) {
-    NVALID := 0.B
+  when(io.nextVR.READY && io.nextVR.VALID) {
+    pause := 0.B
+    when(!io.immu.pipelineResult.cpuResult.ready) { NVALID := 0.B }
+    when(io.jmpBch) {
+      wireNewPC := io.jbAddr
+      pc        := io.jbAddr
+    }
   }
 }
