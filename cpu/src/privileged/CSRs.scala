@@ -285,8 +285,8 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
     io.debug.sepc     := sepc
     io.debug.mtvec    := mtvec
     io.debug.stvec    := stvec
-    io.debug.mcause   := mcause
-    io.debug.scause   := scause
+    io.debug.mcause   := mcause(4) ## 0.U((xlen - 5).W) ## mcause(3, 0)
+    io.debug.scause   := scause(4) ## 0.U((xlen - 5).W) ## scause(3, 0)
     io.debug.mie      := mie.asUInt
     io.debug.mscratch := mscratch
   }
