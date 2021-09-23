@@ -90,6 +90,7 @@ class ID(implicit p: Parameters) extends YQModule {
   io.output.special := special
   io.output.retire  := retire
   io.isAmo          := amoStat =/= idle
+  io.ifIsPriv       := wireIsPriv
   io.output.priv    := newPriv
   io.output.isPriv  := isPriv
   io.output.isSatp  := isSatp

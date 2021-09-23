@@ -70,7 +70,7 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
   private val wireWay = WireDefault(UInt(log2Ceil(Associativity).W), way)
 
   private val isPeripheral = IsPeripheral(io.cpuIO.cpuReq.addr)
-  private val passThroughAxsize = RegInit(log2Ceil(32 / 8).U(3.W))
+  private val passThroughAxsize = RegInit(log2Ceil(32 / 8).U(3.W)) // FIXME: axsize should not be hardwired for peripheral
 
   private val wbBuffer    = WbBuffer(io.memIO, data(wireWay), tag(way) ## addrIndex ## 0.U(Offset.W))
   private val passThrough = PassThrough(false)(io.memIO, wbBuffer.ready, addr, reqData, reqWMask, reqRw, passThroughAxsize)

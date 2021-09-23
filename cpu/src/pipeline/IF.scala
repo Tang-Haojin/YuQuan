@@ -16,6 +16,7 @@ class IF(implicit p: Parameters) extends YQModule {
     val output = new IFOutput
     val jmpBch = Input(Bool())
     val jbAddr = Input(UInt(alen.W))
+    val isPriv = Input(Bool())
   })
 
   private class csrsAddr(implicit val p: Parameters) extends CPUParams with cpu.privileged.CSRsAddr
@@ -40,7 +41,7 @@ class IF(implicit p: Parameters) extends YQModule {
   private val isSatp = wireInstr(6, 0) === "b1110011".U && (
                          wireInstr(31, 20) === csrsAddr.Satp ||
                          (wireInstr(31, 25) === "b0001001".U && wireInstr(14, 7) === 0.U)
-                       )
+                       ) || io.isPriv
 
   io.immu.pipelineReq.cpuReq.data  := DontCare
   io.immu.pipelineReq.cpuReq.rw    := DontCare

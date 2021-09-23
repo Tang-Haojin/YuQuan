@@ -106,6 +106,7 @@ class CPU(implicit p: Parameters) extends YQModule {
   moduleBypassCsr.io.memIO.bits  := moduleMEM.io.output
   moduleBypassCsr.io.memIO.valid := moduleMEM.io.nextVR.VALID
 
+  moduleIF.io.isPriv := moduleBypassCsr.io.isPriv || moduleID.io.ifIsPriv
   moduleID.io.isWait := moduleBypass.io.isWait || moduleBypassCsr.io.isWait
 
   moduleIF.io.jmpBch := moduleID.io.jmpBch
