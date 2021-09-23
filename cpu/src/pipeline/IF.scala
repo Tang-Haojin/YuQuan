@@ -15,7 +15,7 @@ class IF(implicit p: Parameters) extends YQModule {
     val nextVR = Flipped(new LastVR)
     val output = new IFOutput
     val jmpBch = Input(Bool())
-    val jbAddr = Input(UInt(alen.W))
+    val jbAddr = Input(UInt(valen.W))
     val isPriv = Input(Bool())
   })
 
@@ -24,18 +24,18 @@ class IF(implicit p: Parameters) extends YQModule {
 
   private val MEMBase = if (UseFlash) SPIFLASH.BASE else DRAM.BASE
   private val instr   = RegInit(0x00000013.U(32.W))
-  private val pc      = RegInit(MEMBase.U(alen.W))
+  private val pc      = RegInit(MEMBase.U(valen.W))
   private val NVALID  = RegInit(0.B)
   private val except  = RegInit(0.B)
   private val cause   = RegInit(0.U(4.W))
   private val pause   = RegInit(0.B)
 
-  private val wireInstr  = WireDefault(UInt(32.W), instr);      io.output.instr  := wireInstr
-  private val wirePC     = WireDefault(UInt(alen.W), pc - 4.U); io.output.pc     := wirePC
-  private val wireNVALID = WireDefault(Bool(), NVALID);         io.nextVR.VALID  := wireNVALID
-  private val wireNewPC  = WireDefault(UInt(alen.W), pc)
-  private val wireExcept = WireDefault(Bool(), except);         io.output.except := wireExcept
-  private val wireCause  = WireDefault(UInt(4.W), cause);       io.output.cause  := wireCause
+  private val wireInstr  = WireDefault(UInt(32.W), instr);       io.output.instr  := wireInstr
+  private val wirePC     = WireDefault(UInt(valen.W), pc - 4.U); io.output.pc     := wirePC
+  private val wireNVALID = WireDefault(Bool(), NVALID);          io.nextVR.VALID  := wireNVALID
+  private val wireNewPC  = WireDefault(UInt(valen.W), pc)
+  private val wireExcept = WireDefault(Bool(), except);          io.output.except := wireExcept
+  private val wireCause  = WireDefault(UInt(4.W), cause);        io.output.cause  := wireCause
   private val wirePause  = WireDefault(Bool(), pause)
 
   private val isSatp = wireInstr(6, 0) === "b1110011".U && (

@@ -19,7 +19,7 @@ class WB(implicit p: Parameters) extends YQModule {
     val priv   = Output(UInt(2.W))
     val isPriv = Output(Bool())
     val debug = if (Debug) new YQBundle {
-      val pc    = Output(UInt(alen.W))
+      val pc    = Output(UInt(valen.W))
       val exit  = Output(UInt(3.W))
       val rd    = Output(UInt(5.W))
       val rcsr  = Output(UInt(12.W))
@@ -29,7 +29,7 @@ class WB(implicit p: Parameters) extends YQModule {
     } else null
   })
 
-  private val pc     = if (Debug) RegInit(0.U(alen.W)) else null
+  private val pc     = if (Debug) RegInit(0.U(valen.W)) else null
   private val exit   = if (Debug) RegInit(0.U(3.W)) else null
   private val rd     = if (Debug) RegInit(0.U(5.W)) else null
   private val rcsr   = if (Debug) RegInit(0xfff.U(12.W)) else null

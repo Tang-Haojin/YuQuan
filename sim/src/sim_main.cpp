@@ -13,7 +13,7 @@ static bool int_sig = false;
 
 void int_handler(int sig) {
   if (sig != SIGINT) {
-    if (write(STDERR_FILENO, "Wrong signal type\n", 19)) exit(EPERM);
+    if (write(STDERR_FILENO, "Wrong signal type\n", 19)) _exit(EPERM);
     else _exit(EIO);
   }
   int_sig = true;
@@ -27,7 +27,7 @@ void real_int_handler(void) {
 #ifdef TRACE
   tfp->close();
 #endif
-  printf("\ndebug: Exit after %ld clock cycles.\n", cycles / 2);
+  printf("\n" DEBUG "Exit after %ld clock cycles.\n", cycles / 2);
   exit(0);
 }
 

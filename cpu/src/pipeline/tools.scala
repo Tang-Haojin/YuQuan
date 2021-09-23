@@ -26,7 +26,7 @@ class EXOutput(implicit p: Parameters) extends YQBundle {
   val csrData = Output(Vec(RegConf.writeCsrsPort, UInt(xlen.W)))
   val isMem   = Output(Bool())
   val isLd    = Output(Bool())
-  val addr    = Output(UInt(alen.W))
+  val addr    = Output(UInt(valen.W))
   val mask    = Output(UInt(3.W))
   val retire  = Output(Bool())
   val priv    = Output(UInt(2.W))
@@ -38,7 +38,7 @@ class EXOutput(implicit p: Parameters) extends YQBundle {
   val debug   =
     if (Debug) new YQBundle {
       val exit  = Output(UInt(3.W))
-      val pc    = Output(UInt(alen.W))
+      val pc    = Output(UInt(valen.W))
       val rcsr  = Output(UInt(12.W))
       val clint = Output(Bool())
       val intr  = Output(Bool())
@@ -78,7 +78,7 @@ class IDOutput(implicit p: Parameters) extends YQBundle {
   val cause   = Output(UInt(4.W))
   val debug   =
     if (Debug) new YQBundle {
-      val pc    = Output(UInt(alen.W))
+      val pc    = Output(UInt(valen.W))
       val rcsr  = Output(UInt(12.W))
       val clint = Output(Bool())
       val intr  = Output(Bool())
@@ -94,7 +94,7 @@ class IDIO(implicit p: Parameters) extends YQBundle {
   val nextVR      = Flipped(new LastVR)
   val input       = Flipped(new IFOutput)
   val jmpBch      = Output(Bool())
-  val jbAddr      = Output(UInt(alen.W))
+  val jbAddr      = Output(UInt(valen.W))
   val isWait      = Input (Bool())
   val currentPriv = Input (UInt(2.W))
   val isAmo       = Output(Bool())
@@ -123,7 +123,7 @@ class MEMIO(implicit p: Parameters) extends YQBundle {
 // IF
 class IFOutput(implicit p: Parameters) extends YQBundle {
   val instr  = Output(UInt(32.W))
-  val pc     = Output(UInt(alen.W))
+  val pc     = Output(UInt(valen.W))
   val except = Output(Bool())
   val cause  = Output(UInt(4.W))
 }
@@ -141,7 +141,7 @@ class MEMOutput(implicit p: Parameters) extends YQBundle {
   val debug   =
     if (Debug) new YQBundle {
       val exit  = Output(UInt(3.W))
-      val pc    = Output(UInt(alen.W))
+      val pc    = Output(UInt(valen.W))
       val rcsr  = Output(UInt(12.W))
       val mmio  = Output(Bool())
       val clint = Output(Bool())

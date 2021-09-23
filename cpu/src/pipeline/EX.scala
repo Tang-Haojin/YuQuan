@@ -42,10 +42,10 @@ class EX(implicit p: Parameters) extends YQModule {
   private val csrData = RegInit(VecInit(Seq.fill(RegConf.writeCsrsPort)(0.U(xlen.W))))
   private val isMem   = RegInit(0.B)
   private val isLd    = RegInit(0.B)
-  private val addr    = RegInit(0.U(alen.W))
+  private val addr    = RegInit(0.U(valen.W))
   private val mask    = RegInit(0.U(3.W))
   private val retire  = RegInit(0.B)
-  private val lraddr  = RegInit(0.U(alen.W))
+  private val lraddr  = RegInit(0.U(valen.W))
   private val lrvalid = RegInit(0.B)
   private val scState = RegInit(UInt(1.W), idle)
   private val tmpRd   = RegInit(0.U(5.W))
@@ -56,7 +56,7 @@ class EX(implicit p: Parameters) extends YQModule {
   private val cause   = RegInit(0.U(4.W))
   private val fshTLB  = if (extensions.contains('S')) RegInit(0.B) else null
   private val exit    = if (Debug) RegInit(0.U(3.W)) else null
-  private val pc      = if (Debug) RegInit(0.U(alen.W)) else null
+  private val pc      = if (Debug) RegInit(0.U(valen.W)) else null
   private val rcsr    = if (Debug) RegInit(0xfff.U(12.W)) else null
   private val clint   = if (Debug) RegInit(0.B) else null
   private val intr    = if (Debug) RegInit(0.B) else null
@@ -66,10 +66,10 @@ class EX(implicit p: Parameters) extends YQModule {
   private val wireCsrData = WireDefault(VecInit(Seq.fill(RegConf.writeCsrsPort)(0.U(xlen.W))))
   private val wireIsMem   = WireDefault(Bool(), io.input.special === ld || io.input.special === st || io.input.special === sfence)
   private val wireIsLd    = WireDefault(Bool(), io.input.special === ld)
-  private val wireAddr    = WireDefault(UInt(alen.W), io.input.num(2)(alen - 1, 0) + io.input.num(3)(alen - 1, 0))
+  private val wireAddr    = WireDefault(UInt(valen.W), io.input.num(2)(valen - 1, 0) + io.input.num(3)(valen - 1, 0))
   private val wireMask    = WireDefault(UInt(3.W), io.input.op1_3)
   private val wireRetire  = WireDefault(Bool(), io.input.retire)
-  private val wireLraddr  = WireDefault(UInt(alen.W), lraddr)
+  private val wireLraddr  = WireDefault(UInt(valen.W), lraddr)
   private val wireLrvalid = WireDefault(Bool(), lrvalid)
   private val wireScState = WireDefault(UInt(1.W), scState)
   private val wireTmpRd   = WireDefault(UInt(5.W), tmpRd)

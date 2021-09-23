@@ -14,7 +14,7 @@ class MEM(implicit p: Parameters) extends YQModule {
   val io = IO(new MEMIO)
 
   private val mask     = RegInit(0.U(8.W))
-  private val addr     = RegInit(0.U(alen.W))
+  private val addr     = RegInit(0.U(valen.W))
   private val extType  = RegInit(0.U(3.W))
 
   private val rd      = RegInit(0.U(5.W));    io.output.rd   := rd
@@ -29,7 +29,7 @@ class MEM(implicit p: Parameters) extends YQModule {
   private val cause   = RegInit(0.U(4.W))
   private val flush   = if (extensions.contains('S')) RegInit(0.B) else null
   private val exit    = if (Debug) RegInit(0.U(3.W)) else null
-  private val pc      = if (Debug) RegInit(0.U(alen.W)) else null
+  private val pc      = if (Debug) RegInit(0.U(valen.W)) else null
   private val rcsr    = if (Debug) RegInit(0xfff.U(12.W)) else null
   private val mmio    = if (Debug) RegInit(0.B) else null
   private val clint   = if (Debug) RegInit(0.B) else null
@@ -46,7 +46,7 @@ class MEM(implicit p: Parameters) extends YQModule {
   private val rw    = RegInit(0.B); private val wireRw    = WireDefault(Bool(), rw)
 
   private val wireData = WireDefault(UInt(xlen.W), data)
-  private val wireAddr = WireDefault(UInt(alen.W), addr)
+  private val wireAddr = WireDefault(UInt(valen.W), addr)
   private val wireMask = WireDefault(UInt((xlen / 8).W), mask)
   private val wireRetr = WireDefault(Bool(), io.input.retire)
   private val wireReql = WireDefault(UInt(3.W), extType)

@@ -39,6 +39,7 @@ object SimConfig {
     case IS_YSYX        => false
     case NO_CACHE       => false
     case TLB_ENTRIES    => 16
+    case VALEN          => 39 // sv39 paging
   }
 
   val basicConfig: (View, View, View) => PartialFunction[Any, Any] = (site, here, up) => basePartFunc.orElse({

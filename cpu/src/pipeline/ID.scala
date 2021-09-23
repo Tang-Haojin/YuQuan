@@ -43,7 +43,7 @@ class ID(implicit p: Parameters) extends YQModule {
   private val isSatp  = RegInit(0.B)
   private val except  = RegInit(0.B)
   private val cause   = RegInit(0.U(4.W))
-  private val pc      = if (Debug) RegInit(0.U(alen.W)) else null
+  private val pc      = if (Debug) RegInit(0.U(valen.W)) else null
   private val rcsr    = if (Debug) RegInit(0xfff.U(12.W)) else null
   private val clint   = if (Debug) RegInit(0.B) else null
   private val intr    = if (Debug) RegInit(0.B) else null
@@ -134,7 +134,7 @@ class ID(implicit p: Parameters) extends YQModule {
 
   io.jmpBch := 0.B; io.jbAddr := 0.U
   private val adder0 = WireDefault(UInt(32.W), io.input.pc)
-  private val jbaddr = adder0 + wireImm(alen - 1, 0)
+  private val jbaddr = adder0 + wireImm(valen - 1, 0)
 
   when(decoded(8) === ld && isClint.io.addr_out =/= 0xFFF.U) {
     io.csrsR.rcsr(0) := isClint.io.addr_out
@@ -170,8 +170,8 @@ class ID(implicit p: Parameters) extends YQModule {
   }
   when(decoded(8) === jalr) {
     io.jmpBch := 1.B
-    adder0    := wireDataRs1(alen - 1, 0)
-    io.jbAddr := jbaddr(alen - 1, 1) ## 0.B
+    adder0    := wireDataRs1(valen - 1, 0)
+    io.jbAddr := jbaddr(valen - 1, 1) ## 0.B
   }
   when(decoded(8) === csr) {
     io.csrsR.rcsr(0) := wireCsr(0)
@@ -195,7 +195,7 @@ class ID(implicit p: Parameters) extends YQModule {
       wirePriv   := io.csrsR.rdata(1).asTypeOf(new MstatusBundle).MPP
       wireIsPriv := wirePriv =/= io.currentPriv
       io.jmpBch  := 1.B
-      io.jbAddr  := io.csrsR.rdata(0)(alen - 1, 2) ## 0.U(2.W)
+      io.jbAddr  := io.csrsR.rdata(0)(valen - 1, 2) ## 0.U(2.W)
     }
   }
   if (extensions.contains('S')) when(decoded(8) === sret) {
@@ -207,7 +207,7 @@ class ID(implicit p: Parameters) extends YQModule {
       wirePriv   := io.csrsR.rdata(1).asTypeOf(new MstatusBundle).SPP
       wireIsPriv := wirePriv =/= io.currentPriv
       io.jmpBch  := 1.B
-      io.jbAddr  := io.csrsR.rdata(0)(alen - 1, 2) ## 0.U(2.W)
+      io.jbAddr  := io.csrsR.rdata(0)(valen - 1, 2) ## 0.U(2.W)
     }
   }
   if (extensions.contains('A')) when(decoded(8) === amo && amoStat === idle && wireOp1_2 =/= Operators.lr && wireOp1_2 =/= Operators.sc) {
@@ -330,7 +330,7 @@ class ID(implicit p: Parameters) extends YQModule {
       wireRd := 0.U
       wireCsr := VecInit(Xepc, Xcause, Xtval, csrsAddr.Mstatus)
       wireNum := VecInit(io.input.pc, code, io.input.instr, mstat)
-      io.jbAddr := xtvec(alen - 1, 2) ## 0.U(2.W) + Mux(isInt && xtvec(0), code(3, 0) ## 0.U(2.W), 0.U)
+      io.jbAddr := xtvec(valen - 1, 2) ## 0.U(2.W) + Mux(isInt && xtvec(0), code(3, 0) ## 0.U(2.W), 0.U)
     }
   }
 }

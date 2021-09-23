@@ -35,6 +35,7 @@ object YQConfig {
     case IS_YSYX       => true
     case NO_CACHE      => false
     case TLB_ENTRIES   => 16
+    case VALEN         => 39 // sv39 paging
   }
 
   class CLINT extends MMAP {
@@ -70,3 +71,4 @@ case object REG_CONF     extends Field[YQConfig.RegConf]
 case object IS_YSYX      extends Field[Boolean]
 case object NO_CACHE     extends Field[Boolean]
 case object TLB_ENTRIES  extends Field[Int]
+case object VALEN        extends Field[Int]

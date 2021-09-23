@@ -7,7 +7,7 @@ import chipsalliance.rocketchip.config._
 import cpu.tools._
 
 class PipelineReq(implicit p: Parameters) extends YQBundle {
-  val cpuReq = new cpu.cache.CpuReq
+  val cpuReq = new cpu.cache.CpuReq()(p.alterPartial({ case utils.ALEN => valen }))
   val reqLen = UInt(2.W)
   val flush  = Bool()
 }
