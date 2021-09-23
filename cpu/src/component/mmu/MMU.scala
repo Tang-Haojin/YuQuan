@@ -121,6 +121,7 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
       io.dcacheIO.cpuReq.rw    := 1.B
       io.dcacheIO.cpuReq.wmask := "b11111111".U
       io.dcacheIO.cpuReq.data  := writingPte.asUInt
+      io.memIO.pipelineResult.cpuResult.ready := 0.B
       when(io.dcacheIO.cpuResult.ready) {
         tlb.update(vaddr, writingPte)
         io.dcacheIO.cpuReq.valid := 0.B
