@@ -15,6 +15,7 @@ class TlbEntryBundle extends Bundle {
   val x   = Bool()
   val u   = Bool()
   val g   = Bool()
+  val d   = Bool()
   val vpn = UInt(27.W)
   val ppn = UInt(44.W)
 
@@ -33,6 +34,7 @@ class TLB(implicit val p: Parameters) extends CacheParams {
   def apply(x: Int ): TlbEntryBundle = tlbEntries(x)
   def apply(x: UInt): TlbEntryBundle = tlbEntries(x)
   def isHit(vaddr: UInt): Bool = tlbEntries(vaddr(TlbIndex - 1 + 12, 12)).v && vaddr.vpn === getVpn(vaddr)
+  def isDirty(vaddr: UInt): Bool = tlbEntries(vaddr(TlbIndex - 1 + 12, 12)).d
 
   def getVpn(vaddr: UInt): UInt = tlbEntries(vaddr(TlbIndex - 1 + 12, 12)).vpn
   def getPpn(vaddr: UInt): UInt = tlbEntries(vaddr(TlbIndex - 1 + 12, 12)).ppn
@@ -50,5 +52,6 @@ class TLB(implicit val p: Parameters) extends CacheParams {
     tlbEntries(tlbIndex).u := pte.u
     tlbEntries(tlbIndex).w := pte.w
     tlbEntries(tlbIndex).x := pte.x
+    tlbEntries(tlbIndex).d := pte.d
   }
 }
