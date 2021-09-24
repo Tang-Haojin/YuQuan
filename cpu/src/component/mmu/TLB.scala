@@ -19,7 +19,7 @@ class TlbEntryBundle extends Bundle {
   val vpn = UInt(27.W)
   val ppn = UInt(44.W)
 
-  def flush: Unit = v := 0.B
+  def flush: Unit = getElements.foreach(_ := 0.U)
   def apply(x: Int): Bool = asUInt()(x)
   def apply(x: Int, y: Int): UInt = asUInt()(x, y)
 }

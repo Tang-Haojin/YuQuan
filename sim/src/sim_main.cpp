@@ -96,7 +96,7 @@ int main(int argc, char **argv, char **env) {
     top->clock = !top->clock;
     top->eval();
 #ifdef TRACE
-    if (cycles >= 37300000)
+    if (cycles >= 80000000)
       tfp->dump(contextp->time());
 #endif
 
