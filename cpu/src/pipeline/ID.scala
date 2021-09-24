@@ -133,7 +133,7 @@ class ID(implicit p: Parameters) extends YQModule {
   isClint.io.addr_in := wireDataRs1 + wireImm
 
   io.jmpBch := 0.B; io.jbAddr := 0.U
-  private val adder0 = WireDefault(UInt(32.W), io.input.pc)
+  private val adder0 = WireDefault(UInt(valen.W), io.input.pc)
   private val jbaddr = adder0 + wireImm(valen - 1, 0)
 
   when(decoded(8) === ld && isClint.io.addr_out =/= 0xFFF.U) {
