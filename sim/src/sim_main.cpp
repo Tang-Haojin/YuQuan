@@ -35,7 +35,7 @@ int main(int argc, char **argv, char **env) {
   VTestTop *top = new VTestTop;
 
 #ifdef DIFFTEST
-  uint64_t *ram_param =
+  void *ram_param =
 #endif
   ram_init(argv[1]);
 
@@ -55,7 +55,7 @@ int main(int argc, char **argv, char **env) {
     difftest_regcpy(tmp, DIFFTEST_TO_DUT);
     tmp[32] = 0x80000000UL;
     difftest_regcpy(tmp, DIFFTEST_TO_REF);
-    difftest_memcpy(0x80000000UL, (void *)(ram_param[0]), ram_param[1], DIFFTEST_TO_REF);
+    difftest_memcpy(0x80000000UL, ram_param, PMEM_SIZE, DIFFTEST_TO_REF);
   }
   QData *gprs = &top->io_gprs_0;
   char name[15] = {};
@@ -103,9 +103,6 @@ int main(int argc, char **argv, char **env) {
 #ifdef DIFFTEST
     if (top->io_wbValid && top->clock) {
       pc = top->io_wbPC;
-#ifndef TRACE
-      assert(pc > 0x7ffffff8UL);
-#endif
       spike_pc = diff_gpr_pc.pc[0];
       if (pc != spike_pc) {
         strcpy(name, "pc");

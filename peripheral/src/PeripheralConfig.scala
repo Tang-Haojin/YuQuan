@@ -32,8 +32,8 @@ object PeripheralConfig {
   }
   
   class PLIC extends MMAP {
-    override val BASE = 0xc000000L
-    override val SIZE = 0x4000000L
+    override val BASE = 0x0c000000L
+    override val SIZE = 0x04000000L
     val Isp = (source: Int) => BASE + 4 * source // Interrupt source n priority
     val Ipb = (source: Int) => BASE + 0x1000 + 4 * (source / 32) // Interrupt Pending bit
     val Ieb = (source: Int, context: Int) => BASE + 0x2000 + 0x80 * context + 4 * (source / 32) // Interrupt Enable Bits
@@ -52,12 +52,12 @@ object PeripheralConfig {
   
   class SPI extends MMAP {
     override val BASE = 0x10001000L
-    override val SIZE = 0x1000L // flash + spi controller
+    override val SIZE = 0x1000L // spi controller
   }
   
   class SPIFLASH extends MMAP {
     override val BASE = 0x30000000L
-    override val SIZE = 0x10000000L // flash + spi controller
+    override val SIZE = 0x10000000L // flash
   }
 
   def apply(): PeripheralConfig = new PeripheralConfig

@@ -26,6 +26,12 @@ typedef word_t vaddr_t;
 typedef uint32_t paddr_t;
 typedef uint16_t ioaddr_t;
 
+// ramdisk
+#define BSIZE  1024  // block size
+#define FSSIZE 1000  // size of file system in blocks
+
+#define PMEM_SIZE (128 * 1024 * 1024 + BSIZE * FSSIZE)
+
 #ifdef UART
  #define SCAN_OR_UART scan 
 #else
@@ -67,7 +73,7 @@ void difftest_memcpy(paddr_t addr, void *buf, size_t n, bool direction);
 
 
 void scan_uart(_init)(void);
-uint64_t *ram_init(char *img);
+void *ram_init(char *img);
 extern bool scan_uart(_isRunning);
 void flash_init(char *img);
 void storage_init(char *img);

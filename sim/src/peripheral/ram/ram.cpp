@@ -1,9 +1,15 @@
 #include <stdio.h>
+#include <string>
 #include <stdint.h>
 #include <svdpi.h>
 #include <debug.hpp>
 
-#define PMEM_SIZE (128 * 1024 * 1024)
+// ramdisk
+#define BSIZE  1024  // block size
+#define FSSIZE 1000  // size of file system in blocks
+
+#define RAM_SIZE  (128 * 1024 * 1024)
+#define PMEM_SIZE (RAM_SIZE + BSIZE * FSSIZE)
 
 #define PAGE_SIZE 4096
 #define PAGE_MASK (PAGE_SIZE - 1)
@@ -14,7 +20,6 @@ static inline bool in_pmem(uint64_t addr) {
 }
 
 static uint8_t pmem[PMEM_SIZE] PG_ALIGN = {};
-static uint64_t ret[2] = {};
 
 extern "C" uint64_t ram_read(uint64_t addr) {
   return in_pmem(addr) ? *(uint64_t *)(pmem + addr) : 0xBB;
@@ -31,7 +36,7 @@ extern "C" void ram_write(uint64_t addr, uint64_t data, uint8_t mask) {
     }
 }
 
-extern "C" uint64_t *ram_init(char *img) {
+extern "C" void *ram_init(char *img) {
   FILE *fp = fopen(img, "rb");
   Assert(fp, "Can not open '%s'", img);
 
@@ -43,8 +48,20 @@ extern "C" uint64_t *ram_init(char *img) {
 
   fclose(fp);
 
-  ret[0] = (uint64_t)pmem;
-  ret[1] = size;
+  // ramdisk
+  std::string ramdisk = img;
+  ramdisk.replace(ramdisk.find(".bin"), 4, "-ramdisk.img");
+  if (fp = fopen(ramdisk.c_str(), "rb")) {
+    printf("found ramdisk %s\n", ramdisk.c_str());
 
-  return ret;
+    fseek(fp, 0, SEEK_END);
+    size = ftell(fp);
+
+    fseek(fp, 0, SEEK_SET);
+    assert(fread(pmem + RAM_SIZE, size, 1, fp));
+
+    fclose(fp);
+  }
+
+  return pmem;
 }
