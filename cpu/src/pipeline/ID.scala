@@ -306,15 +306,15 @@ class ID(implicit p: Parameters) extends YQModule {
       // All other types of exceptions prior to these must not have happened, as the mem-access
       // action can not have been acted if any other exceptions had occurred in previous id level.
       Seq(5,7,13,15,4,6).foreach(i => when(wireExcept(i)) { fire := 1.B; code := i.U })
-      when(!medeleg(code)) { tmpNewPriv := "b11".U }
+      when(io.currentPriv <= "b01".U) { tmpNewPriv := Mux(medeleg(code), "b01".U, "b11".U) }
     }.elsewhen(isInt) {
       fire := 1.B
       code := 1.B ## 0.U((xlen - 5).W) ## intCode
-      when(!mideleg(intCode)) { tmpNewPriv := "b11".U }
+      when(io.currentPriv <= "b01".U) { tmpNewPriv := Mux(mideleg(intCode), "b01".U, "b11".U) }
       if (Debug) wireIntr := 1.B
     }.otherwise {
       Seq(24,3,8,9,11,0,2,1,12,25).foreach(i => when(wireExcept(i)) { fire := 1.B; code := i.U }) // 24 for watchpoint, and 25 for breakpoint
-      when(!medeleg(code)) { tmpNewPriv := "b11".U }
+      when(io.currentPriv <= "b01".U) { tmpNewPriv := Mux(medeleg(code), "b01".U, "b11".U) } // TODO: user interrupt
     }
     when(io.lastVR.VALID && fire) {
       val mstat  = io.csrsR.rdata(1)(xlen - 1) ## io.currentPriv ## wirePriv ## io.csrsR.rdata(1)(xlen - 6, 0)
