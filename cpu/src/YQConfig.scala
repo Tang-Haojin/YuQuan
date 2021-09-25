@@ -25,6 +25,7 @@ object YQConfig {
     case MODULE_PREFIX => s"ysyx_210153_"
     case CLINT_MMAP    => new CLINT
     case DRAM_MMAP     => new DRAM
+    case PLIC_MMAP     => new PeripheralConfig.PLIC
     case ALUTYPEWIDTH  => 6
     case USEFLASH      => true
     case SPIFLASH_MMAP => new PeripheralConfig.SPIFLASH

@@ -119,7 +119,7 @@ class MEM(implicit p: Parameters) extends YQModule {
       exit  := io.input.debug.exit
       pc    := io.input.debug.pc
       rcsr  := io.input.debug.rcsr
-      mmio  := io.input.isMem && io.input.addr <= DRAM.BASE.U
+      mmio  := io.input.isMem && (io.input.addr <= DRAM.BASE.U && io.input.addr >= PLIC.BASE.U)
       clint := io.input.debug.clint
       intr  := io.input.debug.intr
     }

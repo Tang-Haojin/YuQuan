@@ -13,6 +13,7 @@ abstract trait SimParams extends CPUParams with PeripheralParams {
   val IsRealUart  = p(ISREALUART)
   val UseChipLink = p(USECHIPLINK)
 
+  override val PLIC     = p(PLIC_MMAP)
   override val SPI      = p(SPI_MMAP)
   override val SPIFLASH = p(SPIFLASH_MMAP)
 }
