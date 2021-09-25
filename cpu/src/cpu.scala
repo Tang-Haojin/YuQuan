@@ -83,6 +83,7 @@ class CPU(implicit p: Parameters) extends YQModule {
   moduleMMU.io.ifIO     <> moduleIF.io.immu
   moduleMMU.io.memIO    <> moduleMEM.io.dmmu
   moduleMMU.io.satp     <> moduleCSRs.io.satp
+  moduleMMU.io.priv     <> moduleCSRs.io.currentPriv
   moduleEX.io.invIch    <> moduleICache.io.inv
   moduleEX.io.wbDch     <> moduleDCache.io.wb
 

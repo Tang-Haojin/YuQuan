@@ -16,9 +16,10 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
     val icacheIO = Flipped(new CpuIO(32))
     val dcacheIO = Flipped(new CpuIO)
     val satp     = Input (UInt(xlen.W))
+    val priv     = Input (UInt(2.W))
   })
 
-  // FIXME: disable paging in M-mode
+  // FIXME: fence.i
   private val idle::walking::writing::Nil = Enum(3)
   private val ifWalking::memWalking::Nil = Enum(2)
   private val stage = RegInit(0.U(2.W))
@@ -33,6 +34,7 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
   private val current  = RegInit(0.U(1.W))
   private val isWrite  = io.memIO.pipelineReq.cpuReq.rw
   private val ptePpn   = RegInit(0.U(44.W))
+  private val isSv39   = io.priv <= "b01".U && satp.mode === 8.U
   private val (ifDel  , memDel  ) = (RegInit(0.B), RegInit(0.B))
   private val (ifReady, memReady) = (RegInit(0.B), RegInit(0.B))
   private val (ifExcpt, memExcpt) = (RegInit(0.B), RegInit(0.B))
@@ -66,7 +68,7 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
     io.memIO.pipelineResult.cause := memCause
   }
 
-  when(satp.mode === 8.U) {
+  when(isSv39) {
     io.icacheIO.cpuReq.addr := tlb.getPpn(ifVaddr) ## ifVaddr.offset
     io.dcacheIO.cpuReq.addr := tlb.getPpn(memVaddr) ## memVaddr.offset
     when(!tlb.isHit(ifVaddr)) {
@@ -144,7 +146,7 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
   )) {
     io.dcacheIO.cpuReq.valid := 0.B
     MemRaiseException(Mux(isWrite, 6.U, 4.U), false) // load/store/amo address misaligned
-  }.elsewhen(satp.mode === 8.U) {
+  }.elsewhen(isSv39) {
     when(io.ifIO.pipelineReq.cpuReq.valid && !tlb.isHit(ifVaddr) && !io.dcacheIO.cpuReq.valid && stage === idle) {
       current := ifWalking
       stage := walking
