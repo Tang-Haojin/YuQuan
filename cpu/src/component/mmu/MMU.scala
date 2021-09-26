@@ -39,8 +39,7 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
   private val (ifExcpt, memExcpt) = (RegInit(0.B), RegInit(0.B))
   private val (ifCause, memCause) = (RegInit(0.U(4.W)), RegInit(0.U(4.W)))
 
-  when(ifDel) { ifDel := 0.B; ifCause := 0.U; ifExcpt := 0.B }
-  when(memDel) { memDel := 0.B; memCause := 0.U; memExcpt := 0.B }
+  when(ifDel) { ifDel := 0.B }; when(memDel) { memDel := 0.B }
 
   io.icacheIO.cpuReq.data  := DontCare
   io.icacheIO.cpuReq.rw    := DontCare
@@ -167,6 +166,9 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
       }
     }
   }
+
+  when(ifDel && ifExcpt) { ifDel := 0.B; ifCause := 0.U; ifExcpt := 0.B }
+  when(memDel && memExcpt) { memDel := 0.B; memCause := 0.U; memExcpt := 0.B }
 
   private case class IfRaiseException(cause: UInt, isPtw: Boolean = true) {
     if (isPtw) stage := idle
