@@ -317,18 +317,20 @@ class ID(implicit p: Parameters) extends YQModule {
         when(io.currentPriv <= "b01".U) { tmpNewPriv := Mux(medeleg(code), "b01".U, "b11".U) } // TODO: user interrupt
       }
       when(io.lastVR.VALID && fire) {
-        val mstat  = io.csrsR.rdata(1)(xlen - 1) ## io.currentPriv ## wirePriv ## io.csrsR.rdata(1)(xlen - 6, 0)
-        val Xepc   = MuxLookup(wirePriv, csrsAddr.Mepc,   Seq("b01".U -> csrsAddr.Sepc,   "b00".U -> csrsAddr.Uepc  ))
-        val Xcause = MuxLookup(wirePriv, csrsAddr.Mcause, Seq("b01".U -> csrsAddr.Scause, "b00".U -> csrsAddr.Ucause))
-        val Xtval  = MuxLookup(wirePriv, csrsAddr.Mtval,  Seq("b01".U -> csrsAddr.Stval,  "b00".U -> csrsAddr.Utval ))
-        val Xtvec  = MuxLookup(wirePriv, csrsAddr.Mtvec,  Seq("b01".U -> csrsAddr.Stvec,  "b00".U -> csrsAddr.Utvec ))
+        val mstat   = io.csrsR.rdata(1)(xlen - 1) ## io.currentPriv ## wirePriv ## io.csrsR.rdata(1)(xlen - 6, 0)
+        val badAddr = WireDefault(0.B)
+        val Xepc    = MuxLookup(wirePriv, csrsAddr.Mepc,   Seq("b01".U -> csrsAddr.Sepc,   "b00".U -> csrsAddr.Uepc  ))
+        val Xcause  = MuxLookup(wirePriv, csrsAddr.Mcause, Seq("b01".U -> csrsAddr.Scause, "b00".U -> csrsAddr.Ucause))
+        val Xtval   = MuxLookup(wirePriv, csrsAddr.Mtval,  Seq("b01".U -> csrsAddr.Stval,  "b00".U -> csrsAddr.Utval ))
+        val Xtvec   = MuxLookup(wirePriv, csrsAddr.Mtvec,  Seq("b01".U -> csrsAddr.Stvec,  "b00".U -> csrsAddr.Utvec ))
+        Seq(0,1,12).foreach(i => when(wireExcept(i)) { badAddr := 1.B })
         io.csrsR.rcsr(5) := Xtvec
         io.jmpBch := 1.B
         wirePriv  := tmpNewPriv
         wireSpecial := exception
         wireRd := 0.U
         wireCsr := VecInit(Xepc, Xcause, Xtval, csrsAddr.Mstatus)
-        wireNum := VecInit(io.input.pc, code, io.input.instr, mstat)
+        wireNum := VecInit(io.input.pc, code, Mux(badAddr, io.input.pc, 0.U), mstat)
         io.jbAddr := xtvec(valen - 1, 2) ## 0.U(2.W) + Mux(isInt && xtvec(0), code(3, 0) ## 0.U(2.W), 0.U)
       }
     }
