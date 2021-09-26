@@ -4,12 +4,14 @@
 #include <sim_main.hpp>
 
 VerilatedContext *const contextp = new VerilatedContext;
+VTestTop *top = nullptr;
 #ifdef TRACE
 VerilatedFstC *tfp = new VerilatedFstC;
 #endif
 struct termios new_settings, stored_settings;
 uint64_t cycles = 0;
 static bool int_sig = false;
+static uint64_t no_commit = 0;
 
 void int_handler(int sig) {
   if (sig != SIGINT) {
@@ -27,12 +29,12 @@ void real_int_handler(void) {
 #ifdef TRACE
   tfp->close();
 #endif
-  printf("\n" DEBUG "Exit after %ld clock cycles.\n", cycles / 2);
+  printf("\n" DEBUG "Exit at PC = " FMT_WORD " after %ld clock cycles.\n", top->io_wbPC, cycles / 2);
   exit(0);
 }
 
 int main(int argc, char **argv, char **env) {
-  VTestTop *top = new VTestTop;
+  top = new VTestTop;
 
 #ifdef DIFFTEST
   void *ram_param =
@@ -97,6 +99,11 @@ int main(int argc, char **argv, char **env) {
     contextp->timeInc(1);
     top->clock = !top->clock;
     top->eval();
+    no_commit = top->io_wbValid ? 0 : no_commit + 1;
+    if (no_commit > 1000) {
+      printf(DEBUG "Seems like stuck.\n");
+      real_int_handler();
+    }
 #ifdef TRACE
     if (cycles >= 2090000000)
       tfp->dump(contextp->time());
