@@ -36,7 +36,7 @@ object YQConfig {
     case IS_YSYX       => true
     case NO_CACHE      => false
     case TLB_ENTRIES   => 16
-    case VALEN         => 39 // sv39 paging
+    case VALEN         => 64
   }
 
   class CLINT extends MMAP {

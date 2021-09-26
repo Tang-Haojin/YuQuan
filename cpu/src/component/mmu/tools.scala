@@ -24,10 +24,12 @@ class PipelineIO(datalen: Int = 64)(implicit p: Parameters) extends YQBundle {
 }
 
 class Vaddr(implicit p: Parameters) extends YQBundle {
+  val higher = UInt((valen - 12 - 3 * 9).W)
   val vpn    = Vec(3, UInt(9.W))
   val offset = UInt(12.W)
 
-  def :=(that: UInt): Unit = this := that(3 * 9 + 12).asTypeOf(new Vaddr)
+  def :=(that: UInt): Unit = this := that(valen - 1, 0).asTypeOf(new Vaddr)
+  def getHigher(): UInt = higher ## vpn(2)(9 - 1)
 }
 
 object Vaddr {

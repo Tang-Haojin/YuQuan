@@ -19,7 +19,6 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
     val priv     = Input (UInt(2.W))
   })
 
-  // FIXME: fence.i
   private val idle::walking::writing::Nil = Enum(3)
   private val ifWalking::memWalking::Nil = Enum(2)
   private val stage = RegInit(0.U(2.W))
@@ -148,18 +147,24 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
     io.dcacheIO.cpuReq.valid := 0.B
     MemRaiseException(Mux(isWrite, 6.U, 4.U), false) // load/store/amo address misaligned
   }.elsewhen(isSv39) {
-    when(io.ifIO.pipelineReq.cpuReq.valid && !tlb.isHit(ifVaddr) && !io.dcacheIO.cpuReq.valid && stage === idle) {
-      current := ifWalking
-      stage := walking
-      vaddr := ifVaddr
-      level := 2.U
+    when(io.ifIO.pipelineReq.cpuReq.valid && !io.dcacheIO.cpuReq.valid && stage === idle) {
+      when(ifVaddr.getHigher.andR =/= ifVaddr.getHigher.orR) { IfRaiseException(12.U, false) } // Instruction page fault
+      .elsewhen(!tlb.isHit(ifVaddr)) {
+        current := ifWalking
+        stage := walking
+        vaddr := ifVaddr
+        level := 2.U
+      }
     }
 
-    when(io.memIO.pipelineReq.cpuReq.valid && (!tlb.isHit(memVaddr) || (isWrite && !tlb.isDirty(memVaddr))) && stage === idle) {
-      current := memWalking
-      stage := walking
-      vaddr := memVaddr
-      level := 2.U
+    when(io.memIO.pipelineReq.cpuReq.valid && stage === idle) {
+      when(memVaddr.getHigher.andR =/= memVaddr.getHigher.orR) { MemRaiseException(Mux(isWrite, 15.U, 13.U), false) } // load/store/amo page fault
+      .elsewhen(!tlb.isHit(memVaddr) || (isWrite && !tlb.isDirty(memVaddr))) {
+        current := memWalking
+        stage := walking
+        vaddr := memVaddr
+        level := 2.U
+      }
     }
   }
 
