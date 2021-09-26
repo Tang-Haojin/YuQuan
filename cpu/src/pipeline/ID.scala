@@ -193,7 +193,6 @@ class ID(implicit p: Parameters) extends YQModule {
       wireCsr(0) := csrsAddr.Mstatus
       wireNum(0) := io.csrsR.rdata(1)
       wirePriv   := io.csrsR.rdata(1).asTypeOf(new MstatusBundle).MPP
-      wireIsPriv := wirePriv =/= io.currentPriv
       io.jmpBch  := 1.B
       io.jbAddr  := io.csrsR.rdata(0)(valen - 1, 2) ## 0.U(2.W)
     }
@@ -205,7 +204,6 @@ class ID(implicit p: Parameters) extends YQModule {
       wireCsr(0) := csrsAddr.Mstatus
       wireNum(0) := io.csrsR.rdata(1)
       wirePriv   := io.csrsR.rdata(1).asTypeOf(new MstatusBundle).SPP
-      wireIsPriv := wirePriv =/= io.currentPriv
       io.jmpBch  := 1.B
       io.jbAddr  := io.csrsR.rdata(0)(valen - 1, 2) ## 0.U(2.W)
     }
@@ -235,22 +233,23 @@ class ID(implicit p: Parameters) extends YQModule {
   io.lastVR.READY := io.nextVR.READY && !io.isWait && !blocked && amoStat === idle && !isSatp
 
   when(io.lastVR.VALID && io.lastVR.READY) { // let's start working
-    NVALID  := 1.B
-    rd      := wireRd
-    wcsr    := wireCsr
-    num     := wireNum
-    op1_2   := wireOp1_2
-    op1_3   := wireOp1_3
-    special := wireSpecial
-    instr   := wireInstr
-    newPriv := wirePriv
-    isPriv  := wireIsPriv
-    blocked := wireBlocked
-    isSatp  := Mux(io.nextVR.READY && io.nextVR.VALID, 0.B, wireIsSatp)
+    NVALID     := 1.B
+    rd         := wireRd
+    wcsr       := wireCsr
+    num        := wireNum
+    op1_2      := wireOp1_2
+    op1_3      := wireOp1_3
+    special    := wireSpecial
+    instr      := wireInstr
+    wireIsPriv := wirePriv =/= io.currentPriv
+    newPriv    := wirePriv
+    isPriv     := wireIsPriv
+    blocked    := wireBlocked
+    isSatp     := Mux(io.nextVR.READY && io.nextVR.VALID, 0.B, wireIsSatp)
     if (extensions.contains('A')) amoStat := wireAmoStat
-    retire  := wireRetire
-    except  := io.input.except
-    cause   := io.input.cause
+    retire     := wireRetire
+    except     := io.input.except
+    cause      := io.input.cause
     if (Debug) {
       pc := io.input.pc
       rcsr := Mux(wireSpecial === csr, wireInstr(31, 20), 0xfff.U)
@@ -326,7 +325,6 @@ class ID(implicit p: Parameters) extends YQModule {
         io.csrsR.rcsr(5) := Xtvec
         io.jmpBch := 1.B
         wirePriv  := tmpNewPriv
-        wireIsPriv := wirePriv =/= io.currentPriv
         wireSpecial := exception
         wireRd := 0.U
         wireCsr := VecInit(Xepc, Xcause, Xtval, csrsAddr.Mstatus)

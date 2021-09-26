@@ -41,12 +41,12 @@ class IF(implicit p: Parameters) extends YQModule {
   private val isSatp = wireInstr(6, 0) === "b1110011".U && (
                          wireInstr(31, 20) === csrsAddr.Satp ||
                          (wireInstr(31, 25) === "b0001001".U && wireInstr(14, 7) === 0.U)
-                       ) || io.isPriv
+                       )
 
   io.immu.pipelineReq.cpuReq.data  := DontCare
   io.immu.pipelineReq.cpuReq.rw    := DontCare
   io.immu.pipelineReq.cpuReq.wmask := DontCare
-  io.immu.pipelineReq.cpuReq.valid := io.nextVR.READY && !wirePause
+  io.immu.pipelineReq.cpuReq.valid := io.nextVR.READY && !wirePause && !io.isPriv
   io.immu.pipelineReq.cpuReq.addr  := wireNewPC
   io.immu.pipelineReq.reqLen       := 2.U
   io.immu.pipelineReq.flush        := DontCare
