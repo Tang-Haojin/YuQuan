@@ -89,25 +89,26 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
       io.memIO.pipelineResult.cpuResult.ready := 0.B
       when(io.dcacheIO.cpuResult.ready) {
         pte := io.dcacheIO.cpuResult.data
-        when(level =/= 0.U) {
-          when(newPte.w | newPte.r | newPte.x) {
-            when(current === ifWalking) { IfRaiseException(1.U) } // Instruction access fault
-            .otherwise { MemRaiseException(Mux(isWrite, 7.U, 5.U)) } // load/store/amo access fault
+        when(newPte.v) {
+          when(level =/= 0.U) {
+            when(newPte.w | newPte.r | newPte.x) {
+              when(current === ifWalking) { IfRaiseException(1.U) } // Instruction access fault
+              .otherwise { MemRaiseException(Mux(isWrite, 7.U, 5.U)) } // load/store/amo access fault
+            }
+            level := level - 1.U
+          }.otherwise {
+            stage := idle
+            io.dcacheIO.cpuReq.valid := 0.B
+            when((!newPte.w && !newPte.r && !newPte.x) || (newPte.w && !newPte.r)) { // this should be leaf, and that with w must have r
+              when(current === ifWalking) { IfRaiseException(1.U) } // Instruction access fault
+              .otherwise { MemRaiseException(Mux(isWrite, 7.U, 5.U)) } // load/store/amo access fault
+            }.elsewhen(current === ifWalking && !newPte.x) { IfRaiseException(1.U) } // Instruction access fault
+            .elsewhen(current === memWalking && !isWrite && !newPte.r) { MemRaiseException(5.U) } // load access fault
+            .elsewhen(current === memWalking && isWrite && !newPte.w) { MemRaiseException(7.U) } // store/amo access fault
+            .elsewhen(!newPte.a || (current === memWalking && isWrite && !newPte.d)) { stage := writing; ptePpn := pte.ppn }
+            .otherwise { tlb.update(vaddr, newPte) }
           }
-          level := level - 1.U
         }.otherwise {
-          stage := idle
-          io.dcacheIO.cpuReq.valid := 0.B
-          when((!newPte.w && !newPte.r && !newPte.x) || (newPte.w && !newPte.r)) { // this should be leaf, and that with w must have r
-            when(current === ifWalking) { IfRaiseException(1.U) } // Instruction access fault
-            .otherwise { MemRaiseException(Mux(isWrite, 7.U, 5.U)) } // load/store/amo access fault
-          }.elsewhen(current === ifWalking && !newPte.x) { IfRaiseException(1.U) } // Instruction access fault
-          .elsewhen(current === memWalking && !isWrite && !newPte.r) { MemRaiseException(5.U) } // load access fault
-          .elsewhen(current === memWalking && isWrite && !newPte.w) { MemRaiseException(7.U) } // store/amo access fault
-          .elsewhen(!newPte.a || (current === memWalking && isWrite && !newPte.d)) { stage := writing; ptePpn := pte.ppn }
-          .otherwise { tlb.update(vaddr, newPte) }
-        }
-        when(!newPte.v) {
           when(current === ifWalking) { IfRaiseException(12.U) } // Instruction page fault
           .otherwise { MemRaiseException(Mux(isWrite, 15.U, 13.U)) } // load/store/amo page fault
         }
