@@ -94,18 +94,20 @@ int main(int argc, char **argv, char **env) {
 
   top->reset = 0;
   for (;!contextp->gotFinish();cycles++) {
+#ifdef mainargs
     if (cycles == 80000000)
-      command_init("usertests\n");
+      command_init(to_string(mainargs) "\n");
+#endif
     contextp->timeInc(1);
     top->clock = !top->clock;
     top->eval();
     no_commit = top->io_wbValid ? 0 : no_commit + 1;
-    if (no_commit > 1000) {
+    if (no_commit > 1000000) {
       printf(DEBUG "Seems like stuck.\n");
       real_int_handler();
     }
 #ifdef TRACE
-    if (cycles >= 2090000000)
+    if (cycles >= 103000000)
       tfp->dump(contextp->time());
 #endif
 

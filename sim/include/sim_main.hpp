@@ -11,6 +11,8 @@
 
 #define DEBUG "\33[1;33m[debug]\33[0m "
 
+#define to_string_temp(x) #x
+#define to_string(x) to_string_temp(x)
 #define concat_temp(x, y) x##y
 #define concat(x, y) concat_temp(x, y)
 #define MAP(c, f) c(f)

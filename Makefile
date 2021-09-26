@@ -73,6 +73,10 @@ endif
 
 SIMBIN = $(filter-out yield rtthread fw_payload xv6,$(shell cd $(pwd)/sim/bin && ls *-$(ISA)-nemu.bin | grep -oP ".*(?=-$(ISA)-nemu.bin)"))
 
+ifneq ($(mainargs),)
+CFLAGS += '-Dmainargs=$(mainargs)'
+endif
+
 test:
 	mill -i __.test
 
