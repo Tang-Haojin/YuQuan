@@ -96,6 +96,7 @@ class ID(implicit p: Parameters) extends YQModule {
   io.output.isSatp  := isSatp
   io.output.except  := except
   io.output.cause   := cause
+  io.output.pc      := pc
   io.gprsR.raddr    := VecInit(10.U, 0.U, 0.U)
   io.csrsR.rcsr     := VecInit(Seq.fill(RegConf.readCsrsPort)(0xFFF.U(12.W)))
 
@@ -250,8 +251,8 @@ class ID(implicit p: Parameters) extends YQModule {
     retire     := wireRetire
     except     := io.input.except
     cause      := io.input.cause
+    pc         := io.input.pc
     if (Debug) {
-      pc := io.input.pc
       rcsr := Mux(wireSpecial === csr, wireInstr(31, 20), 0xfff.U)
       clint := wireClint
       intr := wireIntr
@@ -274,7 +275,6 @@ class ID(implicit p: Parameters) extends YQModule {
   }
 
   if (Debug) {
-    io.output.debug.pc    := pc
     io.output.debug.rcsr  := rcsr
     io.output.debug.clint := clint
     io.output.debug.intr  := intr

@@ -76,6 +76,7 @@ class EX(implicit p: Parameters) extends YQModule {
   private val wireExit    = if (Debug) WireDefault(UInt(3.W), ExitReasons.non) else null
 
   io.output.rd      := rd
+  io.output.pc      := pc
   io.output.data    := data
   io.output.wcsr    := wcsr
   io.output.csrData := csrData
@@ -206,6 +207,7 @@ class EX(implicit p: Parameters) extends YQModule {
 
   when(io.lastVR.VALID && io.lastVR.READY) { // let's start working
     NVALID  := (io.input.op1_2 < mul) || (io.input.op1_2 > ruw)
+    pc      := io.input.pc
     rd      := wireRd
     data    := wireData
     wcsr    := io.input.wcsr
@@ -236,7 +238,6 @@ class EX(implicit p: Parameters) extends YQModule {
     wireIsWord := (io.input.special === word)
     if (Debug) {
       exit  := wireExit
-      pc    := io.input.debug.pc
       rcsr  := io.input.debug.rcsr
       clint := io.input.debug.clint
       intr  := io.input.debug.intr
@@ -257,7 +258,6 @@ class EX(implicit p: Parameters) extends YQModule {
 
   if (Debug) {
     io.output.debug.exit  := exit
-    io.output.debug.pc    := pc
     io.output.debug.rcsr  := rcsr
     io.output.debug.clint := clint
     io.output.debug.intr  := intr

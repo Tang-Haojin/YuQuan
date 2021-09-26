@@ -35,10 +35,10 @@ class EXOutput(implicit p: Parameters) extends YQBundle {
   val except  = Output(Bool())
   val cause   = Output(UInt(4.W))
   val fshTLB  = if (extensions.contains('S')) Output(Bool()) else null
+  val pc      = Output(UInt(valen.W))
   val debug   =
     if (Debug) new YQBundle {
       val exit  = Output(UInt(3.W))
-      val pc    = Output(UInt(valen.W))
       val rcsr  = Output(UInt(12.W))
       val clint = Output(Bool())
       val intr  = Output(Bool())
@@ -76,9 +76,9 @@ class IDOutput(implicit p: Parameters) extends YQBundle {
   val isSatp  = Output(Bool())
   val except  = Output(Bool())
   val cause   = Output(UInt(4.W))
+  val pc      = Output(UInt(valen.W))
   val debug   =
     if (Debug) new YQBundle {
-      val pc    = Output(UInt(valen.W))
       val rcsr  = Output(UInt(12.W))
       val clint = Output(Bool())
       val intr  = Output(Bool())

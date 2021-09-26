@@ -27,9 +27,9 @@ class MEM(implicit p: Parameters) extends YQModule {
   private val isSatp  = RegInit(0.B)
   private val isWfe   = RegInit(0.B)
   private val cause   = RegInit(0.U(4.W))
+  private val pc      = RegInit(0.U(valen.W))
   private val flush   = if (extensions.contains('S')) RegInit(0.B) else null
   private val exit    = if (Debug) RegInit(0.U(3.W)) else null
-  private val pc      = if (Debug) RegInit(0.U(valen.W)) else null
   private val rcsr    = if (Debug) RegInit(0xfff.U(12.W)) else null
   private val mmio    = if (Debug) RegInit(0.B) else null
   private val clint   = if (Debug) RegInit(0.B) else null
@@ -111,13 +111,14 @@ class MEM(implicit p: Parameters) extends YQModule {
     isPriv   := io.input.isPriv
     isSatp   := io.input.isSatp
     isWfe    := 0.B
+    when(isWfe) { csrData(0) := pc; csrData(2) := addr }
+    .otherwise { pc := io.input.pc }
     if (extensions.contains('S')) {
       wireFsh := io.input.fshTLB
       flush   := wireFsh
     }
     if (Debug) {
       exit  := io.input.debug.exit
-      pc    := io.input.debug.pc
       rcsr  := io.input.debug.rcsr
       mmio  := io.input.isMem && (io.input.addr <= DRAM.BASE.U && io.input.addr >= PLIC.BASE.U)
       clint := io.input.debug.clint
