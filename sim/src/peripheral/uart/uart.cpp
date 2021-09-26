@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <pthread.h>
 #include <svdpi.h>
+#include <string.h>
 
 #define FIFO_SIZE 1024
 static char fifo[FIFO_SIZE] = {0};
@@ -115,4 +116,9 @@ extern "C" void uart_reset() {
 
 extern "C" void uart_int(svBit *interrupt) {
   if (interrupt) *interrupt = receive_interrupt && (head != tail);
+}
+
+extern "C" void command_init(const char command[]) {
+  strcpy(fifo, command);
+  tail = strlen(command);
 }

@@ -92,11 +92,13 @@ int main(int argc, char **argv, char **env) {
 
   top->reset = 0;
   for (;!contextp->gotFinish();cycles++) {
+    if (cycles == 80000000)
+      command_init("usertests\n");
     contextp->timeInc(1);
     top->clock = !top->clock;
     top->eval();
 #ifdef TRACE
-    if (cycles >= 80000000)
+    if (cycles >= 2090000000)
       tfp->dump(contextp->time());
 #endif
 

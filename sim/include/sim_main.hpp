@@ -77,6 +77,7 @@ void *ram_init(char *img);
 extern bool scan_uart(_isRunning);
 void flash_init(char *img);
 void storage_init(char *img);
+void command_init(const char command[]);
 
 }
 
