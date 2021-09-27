@@ -79,10 +79,11 @@ class MEM(implicit p: Parameters) extends YQModule {
   io.output.isSatp := isSatp
 
   when(io.dmmu.pipelineResult.cpuResult.ready) {
-    NVALID := Mux(io.dmmu.pipelineResult.exception, 0.B, 1.B)
-    LREADY := 1.B
-    isMem  := 0.B
-    rw     := 0.B
+    NVALID    := Mux(io.dmmu.pipelineResult.exception, 0.B, 1.B)
+    LREADY    := 1.B
+    isMem     := 0.B
+    wireIsMem := 0.B
+    rw        := 0.B
     if (extensions.contains('S')) flush := 0.B
     when(!rw) { data := extRdata }
     when(io.dmmu.pipelineResult.exception) {
@@ -90,10 +91,11 @@ class MEM(implicit p: Parameters) extends YQModule {
       cause := io.dmmu.pipelineResult.cause
     }
   }.elsewhen(isWfe && (!io.input.except || io.input.cause =/= cause)) {
-    LREADY := 1.B
-    NVALID := 0.B // flush invalid instructions
-    isMem  := 0.B
-    rw     := 0.B
+    LREADY    := 1.B
+    NVALID    := 0.B // flush invalid instructions
+    isMem     := 0.B
+    wireIsMem := 0.B
+    rw        := 0.B
   }.elsewhen(io.lastVR.VALID && io.lastVR.READY) {
     rd       := io.input.rd
     wireAddr := io.input.addr
