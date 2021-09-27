@@ -17,6 +17,7 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
     val dcacheIO = Flipped(new CpuIO)
     val satp     = Input (UInt(xlen.W))
     val priv     = Input (UInt(2.W))
+    val sum      = Input (Bool())
   })
 
   private val idle::walking::writing::Nil = Enum(3)
@@ -38,6 +39,7 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
   private val (ifReady, memReady) = (RegInit(0.B), RegInit(0.B))
   private val (ifExcpt, memExcpt) = (RegInit(0.B), RegInit(0.B))
   private val (ifCause, memCause) = (RegInit(0.U(4.W)), RegInit(0.U(4.W)))
+  private val (isU, isS, isM) = (io.priv === "b00".U, io.priv === "b01".U, io.priv === "b11".U)
 
   when(ifDel) { ifDel := 0.B }; when(memDel) { memDel := 0.B }
 
@@ -94,15 +96,17 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
               .otherwise { MemRaiseException(Mux(isWrite, 7.U, 5.U)) } // load/store/amo access fault
             }
             level := level - 1.U
-          }.otherwise {
+          }.otherwise { // TODO: MXR
             stage := idle
             io.dcacheIO.cpuReq.valid := 0.B
             when((!newPte.w && !newPte.r && !newPte.x) || (newPte.w && !newPte.r)) { // this should be leaf, and that with w must have r
               when(current === ifWalking) { IfRaiseException(1.U) } // Instruction access fault
               .otherwise { MemRaiseException(Mux(isWrite, 7.U, 5.U)) } // load/store/amo access fault
-            }.elsewhen(current === ifWalking && !newPte.x) { IfRaiseException(1.U) } // Instruction access fault
-            .elsewhen(current === memWalking && !isWrite && !newPte.r) { MemRaiseException(5.U) } // load access fault
-            .elsewhen(current === memWalking && isWrite && !newPte.w) { MemRaiseException(7.U) } // store/amo access fault
+            }.elsewhen(current === ifWalking && (isU && !newPte.u || isS && newPte.u)) { IfRaiseException(12.U) } // Instruction page fault
+            .elsewhen(current === memWalking && (isU && !newPte.u || isS && newPte.u && !io.sum)) { MemRaiseException(Mux(isWrite, 15.U, 13.U)) } // load/store/amo page fault
+            .elsewhen(current === ifWalking && !newPte.x) { IfRaiseException(12.U) } // Instruction page fault
+            .elsewhen(current === memWalking && !isWrite && !newPte.r) { MemRaiseException(13.U) } // load page fault
+            .elsewhen(current === memWalking && isWrite && !newPte.w) { MemRaiseException(15.U) } // store/amo page fault
             .elsewhen(!newPte.a || (current === memWalking && isWrite && !newPte.d)) { stage := writing; ptePpn := pte.ppn }
             .otherwise { tlb.update(vaddr, newPte) }
           }

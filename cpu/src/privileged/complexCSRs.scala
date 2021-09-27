@@ -17,7 +17,7 @@ class MstatusBundle(implicit val p: Parameters) extends Bundle with CPUParams {
   val TW     = UInt(1.W)
   val TVM    = UInt(1.W)
   val MXR    = UInt(1.W)
-  val SUM    = UInt(1.W)
+  val SUM    = Bool()
   val MPRV   = UInt(1.W)
   val XS     = UInt(2.W)
   val FS     = UInt(2.W)

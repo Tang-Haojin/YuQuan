@@ -39,7 +39,9 @@ class IF(implicit p: Parameters) extends YQModule {
   private val wirePause  = WireDefault(Bool(), pause)
 
   private val isSatp = wireInstr(6, 0) === "b1110011".U && (
-                         wireInstr(31, 20) === csrsAddr.Satp ||
+                         wireInstr(31, 20) === csrsAddr.Satp    ||
+                         wireInstr(31, 20) === csrsAddr.Mstatus ||
+                         wireInstr(31, 20) === csrsAddr.Sstatus ||
                          (wireInstr(31, 25) === "b0001001".U && wireInstr(14, 7) === 0.U)
                        )
 
