@@ -50,7 +50,7 @@ class IF(implicit p: Parameters) extends YQModule {
   io.immu.pipelineReq.cpuReq.wmask := DontCare
   io.immu.pipelineReq.cpuReq.valid := io.nextVR.READY && !wirePause && !io.isPriv
   io.immu.pipelineReq.cpuReq.addr  := wireNewPC
-  io.immu.pipelineReq.reqLen       := 2.U
+  io.immu.pipelineReq.cpuReq.size  := 2.U // TODO: Compression instruction
   io.immu.pipelineReq.flush        := DontCare
 
   when(io.immu.pipelineResult.cpuResult.ready) {

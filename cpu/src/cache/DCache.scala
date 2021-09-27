@@ -30,6 +30,7 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
   private val addr       = RegInit(0.U(alen.W))
   private val reqData    = RegInit(0.U(xlen.W))
   private val reqRw      = RegInit(0.B)
+  private val reqSize    = RegInit(0.U(3.W))
   private val reqWMask   = RegInit(0.U((xlen / 8).W))
   private val addrOffset = addr(Offset - 1, 3)
   private val addrIndex  = WireDefault(UInt(Index.W), addr(Index + Offset - 1, Offset))
@@ -70,10 +71,9 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
   private val wireWay = WireDefault(UInt(log2Ceil(Associativity).W), way)
 
   private val isPeripheral = IsPeripheral(io.cpuIO.cpuReq.addr)
-  private val passThroughAxsize = RegInit(log2Ceil(32 / 8).U(3.W)) // FIXME: axsize should not be hardwired for peripheral
 
   private val wbBuffer    = WbBuffer(io.memIO, data(wireWay), tag(way) ## addrIndex ## 0.U(Offset.W))
-  private val passThrough = PassThrough(false)(io.memIO, wbBuffer.ready, addr, reqData, reqWMask, reqRw, passThroughAxsize)
+  private val passThrough = PassThrough(false)(io.memIO, wbBuffer.ready, addr, reqData, reqWMask, reqRw, reqSize)
 
   private val inBuffer = RegInit(VecInit(Seq.fill(BurstLen - 1)(0.U(xlen.W))))
 
@@ -109,11 +109,11 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
       addr      := io.cpuIO.cpuReq.addr
       reqData   := io.cpuIO.cpuReq.data
       reqRw     := io.cpuIO.cpuReq.rw
+      reqSize   := io.cpuIO.cpuReq.size
       reqWMask  := io.cpuIO.cpuReq.wmask
       addrIndex := io.cpuIO.cpuReq.addr(Index + Offset - 1, Offset)
       way       := rand
-      when(isPeripheral) { state := passing; passThroughAxsize := log2Ceil(32 / 8).U }
-      if (noCache) when(!isPeripheral) { passThroughAxsize := log2Ceil(64 / 8).U }
+      when(isPeripheral) { state := passing }
     }
     .elsewhen(io.wb.valid) { if (!noCache) { state := backall; addr := 0.U; way := 0.U; writingBackAll := 1.B } else io.wb.ready := 1.B }
   }
