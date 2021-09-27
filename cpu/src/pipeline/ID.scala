@@ -30,6 +30,7 @@ class ID(implicit p: Parameters) extends YQModule {
 
   private val NVALID  = RegInit(0.B)
   private val rd      = RegInit(0.U(5.W))
+  private val pc      = RegInit(0.U(valen.W))
   private val wcsr    = RegInit(VecInit(Seq.fill(RegConf.writeCsrsPort)(0xFFF.U(12.W))))
   private val op1_2   = RegInit(0.U(AluTypeWidth.W))
   private val op1_3   = RegInit(0.U(AluTypeWidth.W))
@@ -43,7 +44,6 @@ class ID(implicit p: Parameters) extends YQModule {
   private val isSatp  = RegInit(0.B)
   private val except  = RegInit(0.B)
   private val cause   = RegInit(0.U(4.W))
-  private val pc      = if (Debug) RegInit(0.U(valen.W)) else null
   private val rcsr    = if (Debug) RegInit(0xfff.U(12.W)) else null
   private val clint   = if (Debug) RegInit(0.B) else null
   private val intr    = if (Debug) RegInit(0.B) else null

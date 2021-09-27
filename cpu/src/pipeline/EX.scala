@@ -37,6 +37,7 @@ class EX(implicit p: Parameters) extends YQModule {
   private val writebackDCache  = RegInit(0.B)
 
   private val rd      = RegInit(0.U(5.W))
+  private val pc      = RegInit(0.U(valen.W))
   private val data    = RegInit(0.U(xlen.W))
   private val wcsr    = RegInit(VecInit(Seq.fill(RegConf.writeCsrsPort)(0xFFF.U(12.W))))
   private val csrData = RegInit(VecInit(Seq.fill(RegConf.writeCsrsPort)(0.U(xlen.W))))
@@ -56,7 +57,6 @@ class EX(implicit p: Parameters) extends YQModule {
   private val cause   = RegInit(0.U(4.W))
   private val fshTLB  = if (extensions.contains('S')) RegInit(0.B) else null
   private val exit    = if (Debug) RegInit(0.U(3.W)) else null
-  private val pc      = if (Debug) RegInit(0.U(valen.W)) else null
   private val rcsr    = if (Debug) RegInit(0xfff.U(12.W)) else null
   private val clint   = if (Debug) RegInit(0.B) else null
   private val intr    = if (Debug) RegInit(0.B) else null
