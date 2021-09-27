@@ -107,7 +107,7 @@ int main(int argc, char **argv, char **env) {
       real_int_handler();
     }
 #ifdef TRACE
-    if (cycles >= 103000000)
+    if (cycles >= 7173500000UL)
       tfp->dump(contextp->time());
 #endif
 
@@ -121,9 +121,10 @@ int main(int argc, char **argv, char **env) {
         diff_reg = spike_pc;
         goto reg_diff;
       }
-      if (!top->io_wbIntr && !top->io_wbClint && !top->io_exit && top->io_wbRcsr != 0xBFF &&
-          top->io_wbRcsr != 0xBFE && top->io_wbRcsr != 0x344 && top->io_wbRcsr != 0x301 &&
-          !in_pmpaddr(top->io_wbRcsr) && top->io_wbRcsr != 0xC01 && !top->io_wbMMIO) {
+      bool skip = top->io_wbIntr || top->io_wbClint || top->io_exit || top->io_wbRcsr == 0xBFF ||
+                  top->io_wbRcsr == 0xBFE || top->io_wbRcsr == 0x344 || top->io_wbRcsr == 0x301 ||
+                  in_pmpaddr(top->io_wbRcsr) || top->io_wbRcsr == 0xC01 || top->io_wbMMIO;
+      if (!skip) {
         difftest_exec(1);
         size_t diff_regs[50];
         difftest_regcpy(diff_regs, DIFFTEST_TO_DUT);
@@ -146,6 +147,8 @@ int main(int argc, char **argv, char **env) {
           goto reg_diff;
         }
       } else {
+        if (skip && !top->io_wbIntr)
+          difftest_exec(1);
         size_t tmp[50];
         difftest_regcpy(tmp, DIFFTEST_TO_DUT);
         memcpy(tmp, gprs, 32 * sizeof(size_t));
@@ -158,7 +161,7 @@ int main(int argc, char **argv, char **env) {
         tmp[scause] = top->io_scause;
         tmp[mie] = top->io_mie;
         tmp[mscratch] = top->io_mscratch;
-        if (top->io_wbIntr) tmp[priv] = top->io_priv;
+        tmp[priv] = top->io_priv;
         tmp[32] = top->io_wbIntr ? (top->io_priv == 0b11 ? tmp[mtvec] : tmp[stvec]) : pc + 4;
         difftest_regcpy(tmp, DIFFTEST_TO_REF);
       }
