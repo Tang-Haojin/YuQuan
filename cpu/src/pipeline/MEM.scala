@@ -33,7 +33,6 @@ class MEM(implicit p: Parameters) extends YQModule {
   private val exit    = if (Debug) RegInit(0.U(3.W)) else null
   private val rcsr    = if (Debug) RegInit(0xfff.U(12.W)) else null
   private val mmio    = if (Debug) RegInit(0.B) else null
-  private val clint   = if (Debug) RegInit(0.B) else null
   private val intr    = if (Debug) RegInit(0.B) else null
 
   private val offset   = addr(axSize - 1, 0)
@@ -124,8 +123,7 @@ class MEM(implicit p: Parameters) extends YQModule {
     if (Debug) {
       exit  := io.input.debug.exit
       rcsr  := io.input.debug.rcsr
-      mmio  := io.input.isMem && (io.input.addr <= DRAM.BASE.U && io.input.addr >= PLIC.BASE.U)
-      clint := io.input.debug.clint
+      mmio  := io.input.isMem && (io.input.addr < DRAM.BASE.U && io.input.addr >= PLIC.BASE.U || io.input.addr >= CLINT.BASE.U && io.input.addr < (CLINT.BASE + CLINT.SIZE).U)
       intr  := io.input.debug.intr
     }
     when(io.input.isMem) {
@@ -150,7 +148,6 @@ class MEM(implicit p: Parameters) extends YQModule {
     io.output.debug.pc    := pc
     io.output.debug.rcsr  := rcsr
     io.output.debug.mmio  := mmio
-    io.output.debug.clint := clint
     io.output.debug.intr  := intr
   }
 }

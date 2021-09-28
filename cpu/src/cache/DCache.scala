@@ -10,14 +10,15 @@ import cpu.tools._
 
 class DCache(implicit p: Parameters) extends YQModule with CacheParams {
   val io = IO(new YQBundle {
-    val cpuIO = new CpuIO
-    val memIO = new AXI_BUNDLE
-    val wb    = Flipped(Irrevocable(Bool()))
+    val cpuIO   = new CpuIO
+    val memIO   = new AXI_BUNDLE
+    val clintIO = Flipped(new cpu.component.ClintIO)
+    val wb      = Flipped(Irrevocable(Bool()))
   })
 
   private val rand = MaximalPeriodGaloisLFSR(2)
 
-  private val idle::compare::writeback::allocate::passing::backall::Nil = Enum(6)
+  private val idle::compare::writeback::allocate::passing::backall::clint::Nil = Enum(7)
   private val state = RegInit(UInt(3.W), idle)
   private val received = RegInit(0.U(LogBurstLen.W))
   private val backAllInnerState = RegInit(0.U(1.W))
@@ -71,6 +72,10 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
   private val wireWay = WireDefault(UInt(log2Ceil(Associativity).W), way)
 
   private val isPeripheral = IsPeripheral(io.cpuIO.cpuReq.addr)
+  private val isClint      = IsClint     (io.cpuIO.cpuReq.addr)
+  io.clintIO.addr  := isClint.address
+  io.clintIO.wdata := reqData
+  io.clintIO.wen   := state === clint && reqRw
 
   private val wbBuffer    = WbBuffer(io.memIO, data(wireWay), tag(way) ## addrIndex ## 0.U(Offset.W))
   private val passThrough = PassThrough(false)(io.memIO, wbBuffer.ready, addr, reqData, reqWMask, reqRw, reqSize)
@@ -114,6 +119,7 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
       addrIndex := io.cpuIO.cpuReq.addr(Index + Offset - 1, Offset)
       way       := rand
       when(isPeripheral) { state := passing }
+      when(isClint)      { state := clint   }
     }
     .elsewhen(io.wb.valid) { if (!noCache) { state := backall; addr := 0.U; way := 0.U; writingBackAll := 1.B } else io.wb.ready := 1.B }
   }
@@ -187,6 +193,11 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
       writingBackAll    := 0.B
       ramDirty.reset
     }
+  }
+  when(state === clint) {
+    hit   := 1.B
+    state := idle
+    io.cpuIO.cpuResult.data := io.clintIO.rdata
   }
 
   when(readBack) {

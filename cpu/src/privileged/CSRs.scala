@@ -55,9 +55,6 @@ trait CSRsAddr extends CPUParams {
   val Mcountinhibit = 0x320.U
   val Mhpmevent     = (n: UInt) => 0x320.U + n
 
-  val Mtime         = 0xBFF.U // Customized
-  val Mtimecmp      = 0xBFE.U // Customized
-
   val Cycle         = 0xC00.U
   val Time          = 0xC01.U
   val Instret       = 0xC02.U
@@ -100,6 +97,8 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
     val newPriv     = Input (UInt(2.W))
     val satp        = Output(UInt(xlen.W))
     val sum         = Output(Bool())
+    val mtime       = Input (UInt(64.W))
+    val mtip        = Input (Bool())
     val debug       = if (Debug) new Bundle {
       val priv     = Output(UInt(2.W))
       val mstatus  = Output(UInt(xlen.W))
@@ -149,8 +148,6 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
 
   private val mip = RegInit(new MipBundle, 0.U.asTypeOf(new MipBundle))
   private val mie = RegInit(new MieBundle, 0.U.asTypeOf(new MieBundle))
-  private val mtime = RegInit(0.U(64.W))
-  private val mtimecmp = RegInit(0.U(64.W))
 
   private val sstatus    = new Sstatus(mstatus)
   private val sie        = new Sie(mie)
@@ -167,7 +164,6 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
   io.currentPriv := currentPriv
 
   mcycle := mcycle + 1.U
-  mtime  := mtime + 1.U
   when(io.retire) { minstret := minstret + 1.U }
 
   for (i <- 0 until RegConf.writeCsrsPort) {
@@ -188,8 +184,6 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
         when(io.csrsW.wcsr(i) === Mtvec) { mtvec := io.csrsW.wdata(i)(xlen - 1, 2) ## Mux(io.csrsW.wdata(i)(1), mtvec(1, 0), io.csrsW.wdata(i)(1, 0)) }
         when(io.csrsW.wcsr(i) === Mip) { mip := io.csrsW.wdata(i) }
         when(io.csrsW.wcsr(i) === Mie) { mie := io.csrsW.wdata(i) }
-        when(io.csrsW.wcsr(i) === Mtime) { mtime := io.csrsW.wdata(i) }
-        when(io.csrsW.wcsr(i) === Mtimecmp) { mtimecmp := io.csrsW.wdata(i) }
         when(io.csrsW.wcsr(i) === Mcycle) { if (xlen != 32) mcycle := io.csrsW.wdata(i) else mcycle(31, 0) := io.csrsW.wdata(i) }
         when(io.csrsW.wcsr(i) === Minstret) { if (xlen != 32) minstret := io.csrsW.wdata(i) else minstret(31, 0) := io.csrsW.wdata(i) }
         when(io.csrsW.wcsr(i) >= Mhpmcounter(3.U) && io.csrsW.wcsr(i) <= Mhpmcounter(31.U)) {} // Do nothing.
@@ -209,9 +203,9 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
         when(io.csrsW.wcsr(i) === Sscratch) { sscratch := io.csrsW.wdata(i) }
         when(io.csrsW.wcsr(i) === Sepc) { sepc := io.csrsW.wdata(i)(xlen - 1, 2) ## 0.U(2.W) }
         when(io.csrsW.wcsr(i) === Scause) { scause := io.csrsW.wdata(i)(xlen - 1) ## io.csrsW.wdata(i)(3, 0) }
-        when(io.csrsW.wcsr(i) === Stval) { stval := io.csrsW.wdata(i) } // TODO: set the value when exception is arised
+        when(io.csrsW.wcsr(i) === Stval) { stval := io.csrsW.wdata(i) }
         when(io.csrsW.wcsr(i) === Sip) { sip := io.csrsW.wdata(i) }
-        when(io.csrsW.wcsr(i) === Satp) { satp := io.csrsW.wdata(i) } // TODO: support paging
+        when(io.csrsW.wcsr(i) === Satp) { satp := io.csrsW.wdata(i) }
         when(io.csrsW.wcsr(i) === Mideleg) { if (extensions.contains('S')) mideleg := io.csrsW.wdata(i) }
         when(io.csrsW.wcsr(i) === Medeleg) { if (extensions.contains('S')) medeleg := io.csrsW.wdata(i) }
 
@@ -236,12 +230,10 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
     when(io.csrsR.rcsr(i) === Mtvec) { io.csrsR.rdata(i) := mtvec }
     when(io.csrsR.rcsr(i) === Mip) { io.csrsR.rdata(i) := { val data = WireDefault(new MipBundle, mip)
       data.WPRI_0 := 0.U; data.WPRI_1 := 0.B; data.WPRI_2 := 0.B; data.WPRI_3 := 0.B
-      data.MEIP := io.eip; data.MTIP := (mtime > mtimecmp); data.SEIP := mip.SEIP || io.eip
+      data.MEIP := io.eip; data.MTIP := io.mtip; data.SEIP := mip.SEIP || io.eip
       data.asUInt
     }}
     when(io.csrsR.rcsr(i) === Mie) { io.csrsR.rdata(i) := mie.asUInt }
-    when(io.csrsR.rcsr(i) === Mtime || io.csrsR.rcsr(i) === Time) { io.csrsR.rdata(i) := mtime }
-    when(io.csrsR.rcsr(i) === Mtimecmp) { io.csrsR.rdata(i) := mtimecmp }
     when(io.csrsR.rcsr(i) === Mcycle || io.csrsR.rcsr(i) === Cycle) { io.csrsR.rdata(i) := mcycle }
     when(io.csrsR.rcsr(i) === Minstret || io.csrsR.rcsr(i) === Instret) { io.csrsR.rdata(i) := minstret }
     when(io.csrsR.rcsr(i) >= Mhpmcounter(3.U) && io.csrsR.rcsr(i) <= Mhpmcounter(31.U)) { io.csrsR.rdata(i) := 0.U }
@@ -266,13 +258,14 @@ class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
     when(io.csrsR.rcsr(i) === Satp) { io.csrsR.rdata(i) := satp }
     when(io.csrsR.rcsr(i) === Mideleg) { if (extensions.contains('S')) io.csrsR.rdata(i) := mideleg.asUInt }
     when(io.csrsR.rcsr(i) === Medeleg) { if (extensions.contains('S')) io.csrsR.rdata(i) := medeleg }
+    when(io.csrsR.rcsr(i) === Time) { io.csrsR.rdata(i) := io.mtime }
 
     if (xlen == 32) {
       when((io.csrsR.rcsr(i) === Pmpcfg1) || (io.csrsR.rcsr(i) === Pmpcfg3)) { io.csrsR.rdata(i) := 0.U }
       when(io.csrsR.rcsr(i) === Mcycleh || io.csrsR.rcsr(i) === Cycleh) { io.csrsR.rdata(i) := mcycle(63, 32) }
       when(io.csrsR.rcsr(i) === Minstreth || io.csrsR.rcsr(i) === Instreth) { io.csrsR.rdata(i) := minstret(63, 32) }
       when(io.csrsR.rcsr(i) >= Mhpmcounterh(3.U) && io.csrsR.rcsr(i) <= Mhpmcounterh(31.U)) { io.csrsR.rdata(i) := 0.U }
-      when(io.csrsR.rcsr(i) === Timeh) { io.csrsR.rdata(i) := mtime(63, 32) }
+      when(io.csrsR.rcsr(i) === Timeh) { io.csrsR.rdata(i) := io.mtime(63, 32) }
     }
   }
 

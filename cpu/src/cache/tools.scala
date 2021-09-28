@@ -235,3 +235,19 @@ object ICacheMemIODefault {
    */
   def apply(memIO: AXI_BUNDLE, arValid: Bool, arAddr: UInt, rReady: Bool)(implicit p: Parameters): ICacheMemIODefault = new ICacheMemIODefault(memIO, arValid, arAddr, rReady)
 }
+
+class IsClint(addr: UInt)(implicit p: Parameters) {
+  private val Clint = p(CLINT_MMAP)
+  val isClint = addr === Clint.MTIME.U || addr === Clint.MTIMECMP(0).U
+  val address = RegEnable(addr === Clint.MTIMECMP(0).U, 0.B, isClint)
+}
+
+object IsClint {
+  /** Construct an [[IsClint]]
+   * @param addr The address that to be examined
+   */
+  def apply(addr: UInt)(implicit p: Parameters): IsClint = new IsClint(addr)
+
+  import scala.language.implicitConversions
+  implicit def getResult(x: IsClint): Bool = x.isClint
+}

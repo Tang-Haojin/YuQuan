@@ -39,6 +39,7 @@ class CPU(implicit p: Parameters) extends YQModule {
   private val moduleICache = ICache(p.alter(cache.CacheConfig.f))
   private val moduleDCache = DCache(p.alter(cache.CacheConfig.f))
   private val moduleMMU    = Module(new MMU()(p.alter(cache.CacheConfig.f)))
+  private val moduleClint  = Module(new Clint)
 
   private val moduleIF  = Module(new IF)
   private val moduleID  = Module(new ID)
@@ -90,15 +91,16 @@ class CPU(implicit p: Parameters) extends YQModule {
   moduleEX.io.nextVR  <> moduleMEM.io.lastVR
   moduleMEM.io.nextVR <> moduleWB.io.lastVR
 
-  moduleMMU.io.icacheIO <> moduleICache.io.cpuIO
-  moduleMMU.io.dcacheIO <> moduleDCache.io.cpuIO
-  moduleMMU.io.ifIO     <> moduleIF.io.immu
-  moduleMMU.io.memIO    <> moduleMEM.io.dmmu
-  moduleMMU.io.satp     <> moduleCSRs.io.satp
-  moduleMMU.io.priv     <> moduleCSRs.io.currentPriv
-  moduleMMU.io.sum      <> moduleCSRs.io.sum
-  moduleEX.io.invIch    <> moduleICache.io.inv
-  moduleEX.io.wbDch     <> moduleDCache.io.wb
+  moduleMMU.io.icacheIO  <> moduleICache.io.cpuIO
+  moduleMMU.io.dcacheIO  <> moduleDCache.io.cpuIO
+  moduleMMU.io.ifIO      <> moduleIF.io.immu
+  moduleMMU.io.memIO     <> moduleMEM.io.dmmu
+  moduleMMU.io.satp      <> moduleCSRs.io.satp
+  moduleMMU.io.priv      <> moduleCSRs.io.currentPriv
+  moduleMMU.io.sum       <> moduleCSRs.io.sum
+  moduleEX.io.invIch     <> moduleICache.io.inv
+  moduleEX.io.wbDch      <> moduleDCache.io.wb
+  moduleClint.io.clintIO <> moduleDCache.io.clintIO
 
   moduleBypass.io.request <> moduleGPRs.io.gprsR
   moduleBypass.io.idOut.valid  := moduleID.io.nextVR.VALID
@@ -134,6 +136,8 @@ class CPU(implicit p: Parameters) extends YQModule {
   moduleCSRs.io.changePriv  <> moduleWB.io.isPriv
   moduleCSRs.io.newPriv     <> moduleWB.io.priv
   moduleCSRs.io.currentPriv <> moduleID.io.currentPriv
+  moduleCSRs.io.mtime       <> moduleClint.io.mtime
+  moduleCSRs.io.mtip        <> moduleClint.io.mtip
 
   if (Debug) {
     io.debug.exit     := moduleWB.io.debug.exit
@@ -144,7 +148,6 @@ class CPU(implicit p: Parameters) extends YQModule {
     io.debug.wbRcsr   := moduleWB.io.debug.rcsr
     io.debug.gprs     := moduleGPRs.io.debug.gprs
     io.debug.wbMMIO   := moduleWB.io.debug.mmio
-    io.debug.wbClint  := moduleWB.io.debug.clint
     io.debug.wbIntr   := moduleWB.io.debug.intr
     io.debug.priv     := moduleCSRs.io.currentPriv
     io.debug.mstatus  := moduleCSRs.io.debug.mstatus

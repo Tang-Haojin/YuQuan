@@ -12,7 +12,6 @@ class DEBUG(implicit val p: Parameters) extends Bundle with UtilsParams {
   val wbRd     = Output(UInt(5.W))
   val wbRcsr   = Output(UInt(12.W))
   val wbMMIO   = Output(Bool())
-  val wbClint  = Output(Bool())
   val wbIntr   = Output(Bool())
   val gprs     = Output(Vec(32, UInt(xlen.W)))
   val priv     = Output(UInt(2.W))

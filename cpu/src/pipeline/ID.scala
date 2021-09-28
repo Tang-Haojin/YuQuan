@@ -46,7 +46,6 @@ class ID(implicit p: Parameters) extends YQModule {
   private val except  = RegInit(0.B)
   private val cause   = RegInit(0.U(4.W))
   private val rcsr    = if (Debug) RegInit(0xfff.U(12.W)) else null
-  private val clint   = if (Debug) RegInit(0.B) else null
   private val intr    = if (Debug) RegInit(0.B) else null
 
   private val num = RegInit(VecInit(Seq.fill(4)(0.U(xlen.W))))
@@ -74,7 +73,6 @@ class ID(implicit p: Parameters) extends YQModule {
   private val wireRetire  = WireDefault(Bool(), 1.B)
   private val wireBlocked = WireDefault(Bool(), blocked)
   private val wireIsSatp  = WireDefault(0.B)
-  private val wireClint   = if (Debug) WireDefault(0.B) else null
   private val wireIntr    = if (Debug) WireDefault(0.B) else null
 
   private val alu1_2   = Module(new SimpleALU)
@@ -133,43 +131,10 @@ class ID(implicit p: Parameters) extends YQModule {
 
   wireRd := Mux(decoded(7) === 1.U, wireInstr(11, 7), 0.U)
 
-  private val isClint = Module(new IsCLINT)
-  isClint.io.addr_in := wireDataRs1 + wireImm
-
   io.jmpBch := 0.B; io.jbAddr := 0.U
   private val adder0 = WireDefault(UInt(valen.W), io.input.pc)
   private val jbaddr = adder0 + wireImm(valen - 1, 0)
 
-  when(decoded(8) === ld && isClint.io.addr_out =/= 0xFFF.U) {
-    io.csrsR.rcsr(0) := isClint.io.addr_out
-    wireNum(0) := MuxLookup(decoded(6), 0.U, Seq(
-      0.U -> Fill(xlen - 8 , csrr( 7)) ## csrr( 7, 0),
-      1.U -> Fill(xlen - 16, csrr(15)) ## csrr(15, 0),
-      2.U -> Fill(xlen - 32, csrr(31)) ## csrr(31, 0),
-      3.U ->                              csrr       ,
-      4.U -> Fill(xlen - 8 ,      0.B) ## csrr( 7, 0),
-      5.U -> Fill(xlen - 16,      0.B) ## csrr(15, 0),
-      6.U -> Fill(xlen - 32,      0.B) ## csrr(31, 0)
-    ))
-    wireNum(1) := non; wireNum(2) := non; wireNum(3)  := non
-    wireOp1_2  := non; wireOp1_3  := non; wireSpecial := non
-    if (Debug) wireClint := 1.B
-  }
-  when(decoded(8) === st && isClint.io.addr_out =/= 0xFFF.U) {
-    io.csrsR.rcsr(0) := isClint.io.addr_out
-    wireIsWcsr := 1.B
-    wireCsr(0) := isClint.io.addr_out
-    wireNum(1) := MuxLookup(decoded(6), 0.U, Seq(
-      0.U -> csrr(xlen - 1,  8) ## wireDataRs2( 7, 0),
-      1.U -> csrr(xlen - 1, 16) ## wireDataRs2(15, 0),
-      2.U -> csrr(xlen - 1, 32) ## wireDataRs2(31, 0),
-      3.U ->                       wireDataRs2
-    ))
-    wireNum(0) := non; wireNum(2) := non; wireNum(3)  := non
-    wireOp1_2  := non; wireOp1_3  := 0.U; wireSpecial := csr
-    wireIsWcsr := 1.B
-    if (Debug) wireClint := 1.B
-  }
   when(decoded(8) === jump || (decoded(8) === branch && wireData === 1.U)) {
     io.jmpBch := 1.B
     io.jbAddr := jbaddr
@@ -263,7 +228,6 @@ class ID(implicit p: Parameters) extends YQModule {
     pc         := io.input.pc
     if (Debug) {
       rcsr := Mux(wireSpecial === csr, wireInstr(31, 20), 0xfff.U)
-      clint := wireClint
       intr := wireIntr
     }
   }.otherwise {
@@ -286,7 +250,6 @@ class ID(implicit p: Parameters) extends YQModule {
 
   if (Debug) {
     io.output.debug.rcsr  := rcsr
-    io.output.debug.clint := clint
     io.output.debug.intr  := intr
     io.output.debug.priv  := newPriv
   }

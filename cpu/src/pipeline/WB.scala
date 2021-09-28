@@ -24,7 +24,6 @@ class WB(implicit p: Parameters) extends YQModule {
       val rd    = Output(UInt(5.W))
       val rcsr  = Output(UInt(12.W))
       val mmio  = Output(Bool())
-      val clint = Output(Bool())
       val intr  = Output(Bool())
     } else null
   })
@@ -34,7 +33,6 @@ class WB(implicit p: Parameters) extends YQModule {
   private val rd     = if (Debug) RegInit(0.U(5.W)) else null
   private val rcsr   = if (Debug) RegInit(0xfff.U(12.W)) else null
   private val mmio   = if (Debug) RegInit(0.B) else null
-  private val clint  = if (Debug) RegInit(0.B) else null
   private val intr   = if (Debug) RegInit(0.B) else null
 
   io.gprsW.wen   := 0.B
@@ -61,7 +59,6 @@ class WB(implicit p: Parameters) extends YQModule {
       rd    := io.input.rd
       rcsr  := io.input.debug.rcsr
       mmio  := io.input.debug.mmio
-      clint := io.input.debug.clint
       intr  := io.input.debug.intr
     }
   }
@@ -72,7 +69,6 @@ class WB(implicit p: Parameters) extends YQModule {
     io.debug.rd    := rd
     io.debug.rcsr  := rcsr
     io.debug.mmio  := mmio
-    io.debug.clint := clint
     io.debug.intr  := intr
   }
 }

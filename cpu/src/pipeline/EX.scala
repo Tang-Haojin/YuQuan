@@ -59,7 +59,6 @@ class EX(implicit p: Parameters) extends YQModule {
   private val fshTLB  = if (extensions.contains('S')) RegInit(0.B) else null
   private val exit    = if (Debug) RegInit(0.U(3.W)) else null
   private val rcsr    = if (Debug) RegInit(0xfff.U(12.W)) else null
-  private val clint   = if (Debug) RegInit(0.B) else null
   private val intr    = if (Debug) RegInit(0.B) else null
 
   private val wireRd      = WireDefault(UInt(5.W), io.input.rd)
@@ -227,7 +226,6 @@ class EX(implicit p: Parameters) extends YQModule {
     if (Debug) {
       exit  := wireExit
       rcsr  := io.input.debug.rcsr
-      clint := io.input.debug.clint
       intr  := io.input.debug.intr
     }
   }.elsewhen(io.nextVR.READY && io.nextVR.VALID) {
@@ -247,7 +245,6 @@ class EX(implicit p: Parameters) extends YQModule {
   if (Debug) {
     io.output.debug.exit  := exit
     io.output.debug.rcsr  := rcsr
-    io.output.debug.clint := clint
     io.output.debug.intr  := intr
   }
 }
