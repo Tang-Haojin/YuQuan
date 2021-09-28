@@ -32,6 +32,7 @@ class ID(implicit p: Parameters) extends YQModule {
   private val rd      = RegInit(0.U(5.W))
   private val pc      = RegInit(0.U(valen.W))
   private val wcsr    = RegInit(VecInit(Seq.fill(RegConf.writeCsrsPort)(0xFFF.U(12.W))))
+  private val isWcsr  = RegInit(0.B)
   private val op1_2   = RegInit(0.U(AluTypeWidth.W))
   private val op1_3   = RegInit(0.U(AluTypeWidth.W))
   private val special = RegInit(0.U(5.W))
@@ -56,6 +57,7 @@ class ID(implicit p: Parameters) extends YQModule {
   private val wireSpecial = WireDefault(UInt(5.W), decoded(8))
   private val wireType    = WireDefault(7.U(3.W))
   private val wireRd      = Wire(UInt(5.W))
+  private val wireIsWcsr  = WireDefault(0.B)
   private val wireCsr     = WireDefault(VecInit(Seq.fill(RegConf.writeCsrsPort)(0xFFF.U(12.W))))
   private val wireOp1_2   = WireDefault(UInt(AluTypeWidth.W), decoded(5))
   private val wireOp1_3   = WireDefault(UInt(AluTypeWidth.W), decoded(6))
@@ -83,6 +85,7 @@ class ID(implicit p: Parameters) extends YQModule {
 
   io.nextVR.VALID   := NVALID
   io.output.rd      := rd
+  io.output.isWcsr  := isWcsr
   io.output.wcsr    := wcsr
   io.output.num     := num
   io.output.op1_2   := op1_2
@@ -154,6 +157,7 @@ class ID(implicit p: Parameters) extends YQModule {
   }
   when(decoded(8) === st && isClint.io.addr_out =/= 0xFFF.U) {
     io.csrsR.rcsr(0) := isClint.io.addr_out
+    wireIsWcsr := 1.B
     wireCsr(0) := isClint.io.addr_out
     wireNum(1) := MuxLookup(decoded(6), 0.U, Seq(
       0.U -> csrr(xlen - 1,  8) ## wireDataRs2( 7, 0),
@@ -163,6 +167,7 @@ class ID(implicit p: Parameters) extends YQModule {
     ))
     wireNum(0) := non; wireNum(2) := non; wireNum(3)  := non
     wireOp1_2  := non; wireOp1_3  := 0.U; wireSpecial := csr
+    wireIsWcsr := 1.B
     if (Debug) wireClint := 1.B
   }
   when(decoded(8) === jump || (decoded(8) === branch && wireData === 1.U)) {
@@ -175,6 +180,7 @@ class ID(implicit p: Parameters) extends YQModule {
     io.jbAddr := jbaddr(valen - 1, 1) ## 0.B
   }
   when(decoded(8) === csr) {
+    wireIsWcsr := 1.B
     io.csrsR.rcsr(0) := wireCsr(0)
     wireCsr(0) := wireInstr(31, 20)
     when(wireCsr(0) === csrsAddr.Satp) { wireIsSatp := 1.B }
@@ -191,6 +197,7 @@ class ID(implicit p: Parameters) extends YQModule {
     when(io.currentPriv =/= 3.U) { wireExcept(2) := 1.B } // illegal instruction
     .otherwise {
       io.csrsR.rcsr(0) := csrsAddr.Mepc
+      wireIsWcsr := 1.B
       wireCsr(0) := csrsAddr.Mstatus
       wireNum(0) := io.csrsR.rdata(1)
       wirePriv   := io.csrsR.rdata(1).asTypeOf(new MstatusBundle).MPP
@@ -202,6 +209,7 @@ class ID(implicit p: Parameters) extends YQModule {
     when((io.currentPriv =/= 3.U && io.currentPriv =/= 1.U) || io.csrsR.rdata(1).asTypeOf(new MstatusBundle).TSR) { wireExcept(2) := 1.B } // illegal instruction
     .otherwise {
       io.csrsR.rcsr(0) := csrsAddr.Sepc
+      wireIsWcsr := 1.B
       wireCsr(0) := csrsAddr.Mstatus
       wireNum(0) := io.csrsR.rdata(1)
       wirePriv   := io.csrsR.rdata(1).asTypeOf(new MstatusBundle).SPP
@@ -236,6 +244,7 @@ class ID(implicit p: Parameters) extends YQModule {
   when(io.lastVR.VALID && io.lastVR.READY) { // let's start working
     NVALID     := 1.B
     rd         := wireRd
+    isWcsr     := wireIsWcsr
     wcsr       := wireCsr
     num        := wireNum
     op1_2      := wireOp1_2
@@ -261,6 +270,7 @@ class ID(implicit p: Parameters) extends YQModule {
     when(io.isWait && io.nextVR.READY && amoStat === idle) {
       NVALID  := 0.B
       rd      := 0.U
+      isWcsr  := 0.B
       wcsr    := VecInit(Seq.fill(RegConf.writeCsrsPort)(0xFFF.U(12.W)))
       num     := VecInit(Seq.fill(4)(0.U))
       op1_2   := 0.U
@@ -328,6 +338,7 @@ class ID(implicit p: Parameters) extends YQModule {
         io.jmpBch := 1.B
         wirePriv  := tmpNewPriv
         wireSpecial := exception
+        wireIsWcsr := 1.B
         wireRd := 0.U
         wireCsr := VecInit(Xepc, Xcause, Xtval, csrsAddr.Mstatus)
         wireNum := VecInit(io.input.pc, code, Mux(badAddr, io.input.pc, 0.U), mstat)

@@ -22,6 +22,7 @@ object ExitReasons {
 class EXOutput(implicit p: Parameters) extends YQBundle {
   val rd      = Output(UInt(5.W))
   val data    = Output(UInt(xlen.W))
+  val isWcsr  = Output(Bool())
   val wcsr    = Output(Vec(RegConf.writeCsrsPort, UInt(12.W)))
   val csrData = Output(Vec(RegConf.writeCsrsPort, UInt(xlen.W)))
   val isMem   = Output(Bool())
@@ -65,6 +66,7 @@ case class RVInstr()(implicit val p: Parameters) extends CPUParams {
 
 class IDOutput(implicit p: Parameters) extends YQBundle {
   val rd      = Output(UInt(5.W))
+  val isWcsr  = Output(Bool())
   val wcsr    = Output(Vec(RegConf.writeCsrsPort, UInt(12.W)))
   val num     = Output(Vec(4, UInt(xlen.W)))
   val op1_2   = Output(UInt(AluTypeWidth.W))
@@ -132,6 +134,7 @@ class IFOutput(implicit p: Parameters) extends YQBundle {
 class MEMOutput(implicit p: Parameters) extends YQBundle {
   val rd      = Output(UInt(5.W))
   val data    = Output(UInt(xlen.W))
+  val isWcsr  = Output(Bool())
   val wcsr    = Output(Vec(RegConf.writeCsrsPort, UInt(12.W)))
   val csrData = Output(Vec(RegConf.writeCsrsPort, UInt(xlen.W)))
   val retire  = Output(Bool())

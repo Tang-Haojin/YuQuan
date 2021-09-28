@@ -17,8 +17,9 @@ class MEM(implicit p: Parameters) extends YQModule {
   private val addr     = RegInit(0.U(valen.W))
   private val extType  = RegInit(0.U(3.W))
 
-  private val rd      = RegInit(0.U(5.W));    io.output.rd   := rd
-  private val data    = RegInit(0.U(xlen.W)); io.output.data := data
+  private val rd      = RegInit(0.U(5.W));    io.output.rd     := rd
+  private val data    = RegInit(0.U(xlen.W)); io.output.data   := data
+  private val isWcsr  = RegInit(0.B);         io.output.isWcsr := isWcsr
   private val wcsr    = RegInit(VecInit(Seq.fill(RegConf.writeCsrsPort)(0xFFF.U(12.W)))); io.output.wcsr    := wcsr
   private val csrData = RegInit(VecInit(Seq.fill(RegConf.writeCsrsPort)(0.U(xlen.W))));   io.output.csrData := csrData
   private val retire  = RegInit(0.B)
@@ -105,6 +106,7 @@ class MEM(implicit p: Parameters) extends YQModule {
     addr     := wireAddr
     data     := wireData
     mask     := wireMask
+    isWcsr   := io.input.isWcsr
     wcsr     := io.input.wcsr
     retire   := wireRetr
     csrData  := io.input.csrData

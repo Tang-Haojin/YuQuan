@@ -22,9 +22,9 @@ class BypassCsr(implicit p: Parameters) extends YQModule {
     val isWait  = Output(Bool())
     val isPriv  = Output(Bool())
   })
-  private val id  = (!io.idIO.bits.isPriv  && io.idIO.bits.wcsr.asUInt().andR())  || !io.idIO.valid
-  private val ex  = (!io.exIO.bits.isPriv  && io.exIO.bits.wcsr.asUInt().andR())  || !io.exIO.valid
-  private val mem = (!io.memIO.bits.isPriv && io.memIO.bits.wcsr.asUInt().andR()) || !io.memIO.valid
+  private val id  = (!io.idIO.bits.isPriv  && !io.idIO.bits.isWcsr)  || !io.idIO.valid
+  private val ex  = (!io.exIO.bits.isPriv  && !io.exIO.bits.isWcsr)  || !io.exIO.valid
+  private val mem = (!io.memIO.bits.isPriv && !io.memIO.bits.isWcsr) || !io.memIO.valid
   io.isWait := Mux(id && ex && mem, 0.B, 1.B)
   io.isPriv := io.idIO.bits.isPriv && io.idIO.valid || io.exIO.bits.isPriv && io.exIO.valid || io.memIO.bits.isPriv && io.memIO.valid
 }

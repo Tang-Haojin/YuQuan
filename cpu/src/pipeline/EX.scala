@@ -39,6 +39,7 @@ class EX(implicit p: Parameters) extends YQModule {
   private val rd      = RegInit(0.U(5.W))
   private val pc      = RegInit(0.U(valen.W))
   private val data    = RegInit(0.U(xlen.W))
+  private val isWcsr  = RegInit(0.B)
   private val wcsr    = RegInit(VecInit(Seq.fill(RegConf.writeCsrsPort)(0xFFF.U(12.W))))
   private val csrData = RegInit(VecInit(Seq.fill(RegConf.writeCsrsPort)(0.U(xlen.W))))
   private val isMem   = RegInit(0.B)
@@ -78,6 +79,7 @@ class EX(implicit p: Parameters) extends YQModule {
   io.output.rd      := rd
   io.output.pc      := pc
   io.output.data    := data
+  io.output.isWcsr  := isWcsr
   io.output.wcsr    := wcsr
   io.output.csrData := csrData
   io.output.isMem   := isMem
@@ -108,21 +110,6 @@ class EX(implicit p: Parameters) extends YQModule {
       1.U -> (newValue | io.input.num(1)),
       2.U -> (newValue & ~io.input.num(1))
     ))
-  }
-  when(io.input.special === inv) {
-    wireCsrData(0) := io.input.num(0)
-    wireCsrData(1) := 2.U
-    wireCsrData(2) := io.input.num(2)
-    wireCsrData(3) := Cat(
-      io.input.num(3)(xlen - 1, 13),
-      "b11".U,
-      io.input.num(3)(10, 8),
-      io.input.num(3)(3), // MIE
-      io.input.num(3)(6, 4),
-      0.B,
-      io.input.num(3)(2, 0)
-    )
-    if (Debug) printf("Invalid Instruction!\n")
   }
   when(io.input.special === mret) {
     wireCsrData(0) := Cat(
@@ -210,6 +197,7 @@ class EX(implicit p: Parameters) extends YQModule {
     pc      := io.input.pc
     rd      := wireRd
     data    := wireData
+    isWcsr  := io.input.isWcsr
     wcsr    := io.input.wcsr
     csrData := wireCsrData
     isMem   := wireIsMem
