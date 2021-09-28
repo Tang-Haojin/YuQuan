@@ -37,7 +37,6 @@ class MultiTop(implicit p: Parameters) extends YQModule {
   wallaceTree.io.input(17) := 1.B ## op_1(65) ## 0.U(31.W) ## op_1(33) ## 0.U(32.W)
 
   private val part_sum = RegInit(VecInit(Seq.fill(2)(0.U(128.W))))
-  private val cla = new CLA_95
 
   private val out_valid = RegInit(0.B)
 
@@ -45,15 +44,14 @@ class MultiTop(implicit p: Parameters) extends YQModule {
   io.output.valid := out_valid
   io.input.ready  := isFree
 
-  when(io.input.fire()) {
+  when(io.input.fire) {
+    val res = wallaceTree.io.output(0)(33, 0) +& wallaceTree.io.output(1)(33, 0)
     isFree   := 0.B
     stage    := 1.U
     data_in  := io.input.bits.data
     sign_in  := io.input.bits.sign
-    cla.input(0) := 0.B ## wallaceTree.io.output(0)(33, 0) ## 0.U(60.W)
-    cla.input(1) := 0.B ## wallaceTree.io.output(1)(33, 0) ## 0.U(60.W)
-    lo_34    := cla.output(93, 60)
-    lo_34_in := cla.output(94)
+    lo_34    := res(33, 0)
+    lo_34_in := res(34)
     part_sum(0) := wallaceTree.io.output(0)(108, 34) ## 0.U(34.W)
     part_sum(1) := wallaceTree.io.output(1)(108, 34) ## 0.U(34.W)
   }
@@ -74,11 +72,10 @@ class MultiTop(implicit p: Parameters) extends YQModule {
   }
 
   when(stage === 2.U) {
+    val res = part_sum(0)(127, 34) + part_sum(1)(127, 34)
     stage := 0.U
-    cla.input(0) := 0.B ## part_sum(0)(127, 34)
-    cla.input(1) := 0.B ## part_sum(1)(127, 34)
-    hi_94 := cla.output(93, 0)
-    io.output.bits := cla.output(93, 0) ## lo_34
+    hi_94 := res
+    io.output.bits := res ## lo_34
     io.output.valid := 1.B
     out_valid := 1.B
   }
