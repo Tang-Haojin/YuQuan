@@ -12,11 +12,16 @@ import cache._
 import utils._
 
 class CPU(implicit p: Parameters) extends YQModule {
-  override val desiredName = if (IsYsyx) modulePrefix.dropRight(1) else modulePrefix + this.getClass().getSimpleName()
+  override val desiredName = if (IsYsyx) modulePrefix.dropRight(1) else if (IsZmb) "SimTop" else modulePrefix + this.getClass().getSimpleName()
   val io = IO(new YQBundle {
     val master    = new AXI_BUNDLE
-    val slave     = Flipped(new AXI_BUNDLE)
-    val interrupt = Input(Bool())
+    val slave     = if (!IsZmb) Flipped(new AXI_BUNDLE) else null
+    val interrupt = if (!IsZmb) Input(Bool())           else null
+//--------------------------these are useless------------------------┐
+    val logCtrl   = if (!IsZmb) null else Input(new zmb.LogCtrl)  // | these
+    val perfInfo  = if (!IsZmb) null else Input(new zmb.PerfInfo) // | are
+    val uart      = if (!IsZmb) null else       new zmb.Uart      // | useless
+//--------------------------these are useless------------------------┘
     val debug     =
     if(Debug)       new DEBUG
     else            null
@@ -29,7 +34,7 @@ class CPU(implicit p: Parameters) extends YQModule {
   private val moduleBypass    = Module(new Bypass)
   private val moduleBypassCsr = Module(new BypassCsr)
   private val moduleAXIRMux   = Module(new AXIRMux)
-  private val moduleAXIWMux   = Module(new AXIWMux)
+  private val moduleAXIWMux   = if (useSlave) Module(new AXIWMux) else null
 
   private val moduleICache = ICache(p.alter(cache.CacheConfig.f))
   private val moduleDCache = DCache(p.alter(cache.CacheConfig.f))
@@ -49,19 +54,26 @@ class CPU(implicit p: Parameters) extends YQModule {
   moduleAXIRMux.io.axiRdIn1 <> moduleDCache.io.memIO.r
   moduleAXIRMux.io.axiRdOut <> io.master.r
 
-  moduleAXIWMux.io.axiWaIn0 <> moduleDCache.io.memIO.aw
-  moduleAXIWMux.io.axiWdIn0 <> moduleDCache.io.memIO.w
-  moduleAXIWMux.io.axiWrIn0 <> moduleDCache.io.memIO.b
+  if (useSlave && !IsZmb) {
+    moduleAXIWMux.io.axiWaIn0 <> moduleDCache.io.memIO.aw
+    moduleAXIWMux.io.axiWdIn0 <> moduleDCache.io.memIO.w
+    moduleAXIWMux.io.axiWrIn0 <> moduleDCache.io.memIO.b
 
-  io.master.aw <> moduleAXIWMux.io.axiWaOut
-  io.master.w  <> moduleAXIWMux.io.axiWdOut
-  io.master.b  <> moduleAXIWMux.io.axiWrOut
+    io.master.aw <> moduleAXIWMux.io.axiWaOut
+    io.master.w  <> moduleAXIWMux.io.axiWdOut
+    io.master.b  <> moduleAXIWMux.io.axiWrOut
 
-  io.slave.ar <> DontCare
-  io.slave.r  <> DontCare
-  io.slave.aw <> moduleAXIWMux.io.axiWaIn1
-  io.slave.w  <> moduleAXIWMux.io.axiWdIn1
-  io.slave.b  <> moduleAXIWMux.io.axiWrIn1
+    io.slave.ar <> DontCare
+    io.slave.r  <> DontCare
+    io.slave.aw <> moduleAXIWMux.io.axiWaIn1
+    io.slave.w  <> moduleAXIWMux.io.axiWdIn1
+    io.slave.b  <> moduleAXIWMux.io.axiWrIn1
+  } else {
+    io.master.aw <> moduleDCache.io.memIO.aw
+    io.master.w  <> moduleDCache.io.memIO.w
+    io.master.b  <> moduleDCache.io.memIO.b
+    if (!IsZmb) io.slave <> DontCare
+  }
 
   moduleID.io.gprsR <> moduleBypass.io.receive
   moduleID.io.csrsR <> moduleCSRs.io.csrsR
@@ -117,7 +129,7 @@ class CPU(implicit p: Parameters) extends YQModule {
   moduleEX.io.seip := moduleCSRs.io.bareSEIP
   moduleEX.io.ueip := moduleCSRs.io.bareUEIP
 
-  moduleCSRs.io.eip         <> io.interrupt
+  moduleCSRs.io.eip         <> (if (IsZmb) 0.B else io.interrupt)
   moduleCSRs.io.retire      <> moduleWB.io.retire
   moduleCSRs.io.changePriv  <> moduleWB.io.isPriv
   moduleCSRs.io.newPriv     <> moduleWB.io.priv
@@ -144,5 +156,10 @@ class CPU(implicit p: Parameters) extends YQModule {
     io.debug.scause   := moduleCSRs.io.debug.scause
     io.debug.mie      := moduleCSRs.io.debug.mie
     io.debug.mscratch := moduleCSRs.io.debug.mscratch
+  }
+  if (IsZmb) {
+    io.logCtrl  <> DontCare
+    io.perfInfo <> DontCare
+    io.uart     <> DontCare
   }
 }

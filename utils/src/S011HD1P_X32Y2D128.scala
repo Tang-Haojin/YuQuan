@@ -12,26 +12,25 @@ class S011HD1P_X32Y2D128(bits: Int = 128, wordDepth: Int = 64) extends BlackBox 
     val A   = Input (UInt(log2Ceil(wordDepth).W))
     val D   = Input (UInt(bits.W))
   })
-  this.setInline("S011HD1P_X32Y2D128.v", s"""
-    |module S011HD1P_X32Y2D128 (
-    |  output reg [${bits - 1}:0]                Q,
-    |  input                                     CLK,
-    |  input                                     CEN,
-    |  input                                     WEN,
-    |  input      [${log2Ceil(wordDepth) - 1}:0] A,
-    |  input      [${bits - 1}:0]                D
-    |);
-    |
-    |  reg [${bits - 1}:0] ram [0:${wordDepth - 1}];
-    |  always @(posedge CLK) begin
-    |    if (!CEN && !WEN) begin
-    |      ram[A] <= D;
-    |    end
-    |    Q <= !CEN && WEN ? ram[A] : {${bits / 32}{32'hdead_feed}};
-    |  end
-    |
-    |endmodule
-    |""".stripMargin)
+  override val desiredName = s"S011HD1P_X32Y${wordDepth / 32}D${bits}"
+  this.setInline(s"${desiredName}.v",
+  s"""|module ${desiredName}(
+      |  output reg [${bits - 1}:0]                Q,
+      |  input                                     CLK,
+      |  input                                     CEN,
+      |  input                                     WEN,
+      |  input      [${log2Ceil(wordDepth) - 1}:0] A,
+      |  input      [${bits - 1}:0]                D
+      |);
+      |  reg [${bits - 1}:0] ram [0:${wordDepth - 1}];
+      |  always @(posedge CLK) begin
+      |    if (!CEN && !WEN) begin
+      |      ram[A] <= D;
+      |    end
+      |    Q <= !CEN && WEN ? ram[A] : {${bits / 32}{32'hdead_feed}};
+      |  end
+      |endmodule
+      |""".stripMargin)
 }
 
 object S011HD1P_X32Y2D128 {

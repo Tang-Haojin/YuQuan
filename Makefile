@@ -71,7 +71,7 @@ $(shell wget $(site)/$(BIN)-$(ISA)-nemu.bin -O $(binFile) || rm $(binFile))
 endif
 endif
 
-SIMBIN = $(filter-out yield rtthread fw_payload xv6,$(shell cd $(pwd)/sim/bin && ls *-$(ISA)-nemu.bin | grep -oP ".*(?=-$(ISA)-nemu.bin)"))
+SIMBIN = $(filter-out yield rtthread fw_payload xv6 xv6-full,$(shell cd $(pwd)/sim/bin && ls *-$(ISA)-nemu.bin | grep -oP ".*(?=-$(ISA)-nemu.bin)"))
 
 ifneq ($(mainargs),)
 CFLAGS += '-Dmainargs=$(mainargs)'
@@ -131,7 +131,21 @@ simall: $(LIB_SPIKE) verilate
 		else                   printf "[$$x] \33[1;31mfail\33[0m\n"; fi; \
 	done
 
+zmb:
+	mill -i __.cpu.runMain Elaborate -td $(BUILD_DIR)/zmb zmb
+	@cat $(BUILD_DIR)/zmb/SimTop.v >>$(BUILD_DIR)/zmb/`cd $(BUILD_DIR)/zmb/ && ls S011HD1P_X32Y*`
+	@mv -f $(BUILD_DIR)/zmb/`cd $(BUILD_DIR)/zmb/ && ls S011HD1P_X32Y*` $(BUILD_DIR)/zmb/SimTop.v
+	@cp $(BUILD_DIR)/zmb/SimTop.v $(BUILD_DIR)/zmb/riscv_cpu.v
+	@sed -i -e 's/io_master_/io_memAXI_0_/g' $(BUILD_DIR)/zmb/SimTop.v
+	@sed -i -e 's/module SimTop/module riscv_cpu/g' $(BUILD_DIR)/zmb/riscv_cpu.v
+	@sed -i -e 's/io_master_/io_mem_/g' $(BUILD_DIR)/zmb/riscv_cpu.v
+	@sed -i -e 's/io_perfInfo_dump,/io_meip/g' $(BUILD_DIR)/zmb/riscv_cpu.v
+	@sed -i '/io_logCtrl/d' $(BUILD_DIR)/zmb/riscv_cpu.v
+	@sed -i '/io_perfInfo/d' $(BUILD_DIR)/zmb/riscv_cpu.v
+	@sed -i '/io_uart/d' $(BUILD_DIR)/zmb/riscv_cpu.v
+	
+
 $(LIB_DIR)/librv64spike.so:
 	@cd $(pwd)/difftest/difftest && make -j && cd build && ln -sf riscv64-spike-so librv64spike.so
 
-.PHONY: test verilog help compile bsp reformat checkformat ysyxcheck clean clean-all verilate sim simall $(LIB_DIR)/librv64spike.so
+.PHONY: test verilog help compile bsp reformat checkformat ysyxcheck clean clean-all verilate sim simall zmb $(LIB_DIR)/librv64spike.so

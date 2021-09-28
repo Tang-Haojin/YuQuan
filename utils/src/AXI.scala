@@ -41,7 +41,7 @@ class AXI_BUNDLE_A(identifier: String)(implicit val p: Parameters, valName: ValN
   val qos    = UInt((4*useqos).W)
   val region = UInt((4*useregion).W)
   val user   = UInt(usrlen.W)
-  this.getElements.foreach( x => {
+  if (axirename) this.getElements.foreach( x => {
     val name: String = "io_" + valName.name + "_" + identifier + x.computeName(None, None).get.drop(3)
     if (x.isInstanceOf[UInt]) forceName(x.asInstanceOf[UInt], name)
     if (x.isInstanceOf[Bool]) forceName(x.asInstanceOf[Bool], name)
@@ -57,7 +57,7 @@ class AXI_BUNDLE_W(implicit p: Parameters, valName: ValName) extends ReadyValidI
   val strb = UInt((p(XLEN)/8).W)
   val last = Bool()
   val user = UInt(p(USRLEN).W)
-  this.getElements.foreach( x => {
+  if (p(AXIRENAME)) this.getElements.foreach( x => {
     val name: String = "io_" + valName.name + "_w" + x.computeName(None, None).get.drop(3)
     if (x.isInstanceOf[UInt]) forceName(x.asInstanceOf[UInt], name)
     if (x.isInstanceOf[Bool]) forceName(x.asInstanceOf[Bool], name)
@@ -69,7 +69,7 @@ class AXI_BUNDLE_B(implicit p: Parameters, valName: ValName) extends ReadyValidI
   val id   = UInt(p(IDLEN).W)
   val resp = UInt(2.W)
   val user = UInt(p(USRLEN).W)
-  this.getElements.foreach( x => {
+  if (p(AXIRENAME)) this.getElements.foreach( x => {
     val name: String = "io_" + valName.name + "_b" + x.computeName(None, None).get.drop(3)
     if (x.isInstanceOf[UInt]) forceName(x.asInstanceOf[UInt], name)
     if (x.isInstanceOf[Bool]) forceName(x.asInstanceOf[Bool], name)
@@ -83,7 +83,7 @@ class AXI_BUNDLE_R(implicit p: Parameters, valName: ValName) extends ReadyValidI
   val resp = UInt(2.W)
   val last = Bool()
   val user = UInt(p(USRLEN).W)
-  this.getElements.foreach( x => {
+  if (p(AXIRENAME)) this.getElements.foreach( x => {
     val name: String = "io_" + valName.name + "_r" + x.computeName(None, None).get.drop(3)
     if (x.isInstanceOf[UInt]) forceName(x.asInstanceOf[UInt], name)
     if (x.isInstanceOf[Bool]) forceName(x.asInstanceOf[Bool], name)
@@ -96,7 +96,7 @@ class AXI_BUNDLE(implicit val p: Parameters, valName: ValName) extends Bundle wi
   val w  = new AXI_BUNDLE_W
   val b  = Flipped(new AXI_BUNDLE_B)
   val r  = Flipped(new AXI_BUNDLE_R)
-  this.getElements.asInstanceOf[Seq[ReadyValidIO[Bundle]]].foreach( x => {
+  if (axirename) this.getElements.asInstanceOf[Seq[ReadyValidIO[Bundle]]].foreach( x => {
     forceName(x.ready, "io_" + valName.name + x.computeName(None, None).get.drop(2) + "ready")
     forceName(x.valid, "io_" + valName.name + x.computeName(None, None).get.drop(2) + "valid")
   })

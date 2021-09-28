@@ -22,6 +22,7 @@ object YQConfig {
     case USECACHE      => 0
     case USELOCK       => 0
     case USEREGION     => 0
+    case AXIRENAME     => true
     case MODULE_PREFIX => s"ysyx_210153_"
     case CLINT_MMAP    => new CLINT
     case DRAM_MMAP     => new DRAM
@@ -34,9 +35,27 @@ object YQConfig {
     case ILEN          => 32 // base instruction set supported only
     case REG_CONF      => new RegConf
     case IS_YSYX       => true
+    case IS_ZMB        => false
     case NO_CACHE      => false
     case TLB_ENTRIES   => 16
     case VALEN         => 64
+    case USESLAVE      => false
+  }
+
+  val zmb: PartialFunction[Any,Any] = {
+    case AXIRENAME => false
+    case ALEN      => 64
+    case IDLEN     => 4
+    case USRLEN    => 1
+    case USEQOS    => 1
+    case USEPROT   => 1
+    case USECACHE  => 1
+    case USELOCK   => 1
+    case USEREGION => 1
+    case USEFLASH  => false
+    case IS_YSYX   => false
+    case IS_ZMB    => true
+    case MODULE_PREFIX => s""
   }
 
   class CLINT extends MMAP {
@@ -70,6 +89,8 @@ case object IALIGN       extends Field[Int]
 case object ILEN         extends Field[Int]
 case object REG_CONF     extends Field[YQConfig.RegConf]
 case object IS_YSYX      extends Field[Boolean]
+case object IS_ZMB       extends Field[Boolean]
 case object NO_CACHE     extends Field[Boolean]
 case object TLB_ENTRIES  extends Field[Int]
 case object VALEN        extends Field[Int]
+case object USESLAVE     extends Field[Boolean]

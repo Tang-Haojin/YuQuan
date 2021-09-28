@@ -6,5 +6,4 @@ object Elaborate extends App {
   if (args.contains("UART"))     p = p.alterPartial({ case sim.ISREALUART  => true })
 
   (new chisel3.stage.ChiselStage).execute(args.take(2), Seq(chisel3.stage.ChiselGeneratorAnnotation(() => new sim.cpu.TestTop)))
-  // (new chisel3.stage.ChiselStage).execute(args, Seq(chisel3.stage.ChiselGeneratorAnnotation(() => new cpu.function.mul.MultiTop)))
 }
