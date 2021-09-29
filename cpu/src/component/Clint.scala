@@ -1,6 +1,9 @@
 package cpu.component
 
 import chisel3._
+import chipsalliance.rocketchip.config._
+
+import cpu.tools._
 
 class ClintIO extends Bundle {
   val wen   = Input (Bool())
@@ -9,7 +12,7 @@ class ClintIO extends Bundle {
   val wdata = Input (UInt(64.W))
 }
 
-class Clint extends Module {
+class Clint(implicit p: Parameters) extends YQModule {
   val io = IO(new Bundle {
     val clintIO = new ClintIO
     val mtime   = Output(UInt(64.W))
