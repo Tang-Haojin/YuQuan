@@ -99,24 +99,6 @@ class ALU(implicit p: Parameters) extends YQModule {
   when(io.input.bits.word) { io.output.bits := (Fill(32, result(31)) ## result(31, 0)).asSInt }
 }
 
-class SimpleALU(implicit p: Parameters) extends YQModule {
-  val io = IO(new YQBundle {
-    val op  = Input (UInt(AluTypeWidth.W))
-    val a   = Input (SInt(xlen.W))
-    val b   = Input (SInt(xlen.W))
-    val res = Output(SInt(xlen.W))
-  })
-  val (lessthan, ulessthan, equal) = (io.a < io.b, io.a.asUInt < io.b.asUInt, io.a === io.b)
-  io.res := MuxLookup(io.op, io.a, Seq(
-    lts -> (0.U((xlen - 1).W) ## lessthan).asSInt,
-    ltu -> (0.U((xlen - 1).W) ## ulessthan).asSInt,
-    equ -> (0.U((xlen - 1).W) ## equal).asSInt,
-    neq -> (0.U((xlen - 1).W) ## !equal).asSInt,
-    ges -> (0.U((xlen - 1).W) ## !lessthan).asSInt,
-    geu -> (0.U((xlen - 1).W) ## !ulessthan).asSInt
-  ))
-}
-
 object Operators {
   var operators = Enum(32)
   val err::add::sub::and::or::xor::sll::sra::Nil = operators.take(8)

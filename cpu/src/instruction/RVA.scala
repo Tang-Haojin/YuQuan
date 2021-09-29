@@ -37,29 +37,29 @@ case class RVA()(implicit val p: Parameters) extends CPUParams {
   def AMOMAXU_D = if(xlen!=32) BitPat("b11100??_?????_?????_011_?????_0101111") else RVI().ERR
 
   val table = Array(
-    //               |Type|num1 |num2 |num3 |num4 |op1_2|op1_3| WB |Special|
-    LR_W      -> List(0.U , non , non , rs1 , non , lr  , 2.U , 1.U,  amo  ),
-    SC_W      -> List(0.U , rs2 , non , rs1 , non , sc  , 2.U , 1.U,  amo  ),
-    AMOSWAP_W -> List(0.U , rs2 , tmp , rs1 , non , non , 2.U , 1.U,  amo  ),
-    AMOADD_W  -> List(0.U , rs2 , tmp , rs1 , non , add , 2.U , 1.U,  amo  ),
-    AMOXOR_W  -> List(0.U , rs2 , tmp , rs1 , non , xor , 2.U , 1.U,  amo  ),
-    AMOAND_W  -> List(0.U , rs2 , tmp , rs1 , non , and , 2.U , 1.U,  amo  ),
-    AMOOR_W   -> List(0.U , rs2 , tmp , rs1 , non , or  , 2.U , 1.U,  amo  ),
-    AMOMIN_W  -> List(0.U , rs2 , tmp , rs1 , non , min , 2.U , 1.U,  amo  ),
-    AMOMAX_W  -> List(0.U , rs2 , tmp , rs1 , non , max , 2.U , 1.U,  amo  ),
-    AMOMINU_W -> List(0.U , rs2 , tmp , rs1 , non , minu, 2.U , 1.U,  amo  ),
-    AMOMAXU_W -> List(0.U , rs2 , tmp , rs1 , non , maxu, 2.U , 1.U,  amo  ),
+    //               |Type|num1 |num2 |num3 |num4 |op1_2| WB |Special|
+    LR_W      -> List(0.U , non , non , rs1 , non , lr  , 1.U,  amo  ),
+    SC_W      -> List(0.U , rs2 , non , rs1 , non , sc  , 1.U,  amo  ),
+    AMOSWAP_W -> List(0.U , rs2 , tmp , rs1 , non , non , 1.U,  amo  ),
+    AMOADD_W  -> List(0.U , rs2 , tmp , rs1 , non , add , 1.U,  amo  ),
+    AMOXOR_W  -> List(0.U , rs2 , tmp , rs1 , non , xor , 1.U,  amo  ),
+    AMOAND_W  -> List(0.U , rs2 , tmp , rs1 , non , and , 1.U,  amo  ),
+    AMOOR_W   -> List(0.U , rs2 , tmp , rs1 , non , or  , 1.U,  amo  ),
+    AMOMIN_W  -> List(0.U , rs2 , tmp , rs1 , non , min , 1.U,  amo  ),
+    AMOMAX_W  -> List(0.U , rs2 , tmp , rs1 , non , max , 1.U,  amo  ),
+    AMOMINU_W -> List(0.U , rs2 , tmp , rs1 , non , minu, 1.U,  amo  ),
+    AMOMAXU_W -> List(0.U , rs2 , tmp , rs1 , non , maxu, 1.U,  amo  ),
 
-    LR_D      -> List(0.U , non , non , rs1 , non , lr  , 3.U , 1.U,  amo  ),
-    SC_D      -> List(0.U , rs2 , non , rs1 , non , sc  , 3.U , 1.U,  amo  ),
-    AMOSWAP_D -> List(0.U , rs2 , tmp , rs1 , non , non , 3.U , 1.U,  amo  ),
-    AMOADD_D  -> List(0.U , rs2 , tmp , rs1 , non , add , 3.U , 1.U,  amo  ),
-    AMOXOR_D  -> List(0.U , rs2 , tmp , rs1 , non , xor , 3.U , 1.U,  amo  ),
-    AMOAND_D  -> List(0.U , rs2 , tmp , rs1 , non , and , 3.U , 1.U,  amo  ),
-    AMOOR_D   -> List(0.U , rs2 , tmp , rs1 , non , or  , 3.U , 1.U,  amo  ),
-    AMOMIN_D  -> List(0.U , rs2 , tmp , rs1 , non , min , 3.U , 1.U,  amo  ),
-    AMOMAX_D  -> List(0.U , rs2 , tmp , rs1 , non , max , 3.U , 1.U,  amo  ),
-    AMOMINU_D -> List(0.U , rs2 , tmp , rs1 , non , minu, 3.U , 1.U,  amo  ),
-    AMOMAXU_D -> List(0.U , rs2 , tmp , rs1 , non , maxu, 3.U , 1.U,  amo  )
+    LR_D      -> List(0.U , non , non , rs1 , non , lr  , 1.U,  amo  ),
+    SC_D      -> List(0.U , rs2 , non , rs1 , non , sc  , 1.U,  amo  ),
+    AMOSWAP_D -> List(0.U , rs2 , tmp , rs1 , non , non , 1.U,  amo  ),
+    AMOADD_D  -> List(0.U , rs2 , tmp , rs1 , non , add , 1.U,  amo  ),
+    AMOXOR_D  -> List(0.U , rs2 , tmp , rs1 , non , xor , 1.U,  amo  ),
+    AMOAND_D  -> List(0.U , rs2 , tmp , rs1 , non , and , 1.U,  amo  ),
+    AMOOR_D   -> List(0.U , rs2 , tmp , rs1 , non , or  , 1.U,  amo  ),
+    AMOMIN_D  -> List(0.U , rs2 , tmp , rs1 , non , min , 1.U,  amo  ),
+    AMOMAX_D  -> List(0.U , rs2 , tmp , rs1 , non , max , 1.U,  amo  ),
+    AMOMINU_D -> List(0.U , rs2 , tmp , rs1 , non , minu, 1.U,  amo  ),
+    AMOMAXU_D -> List(0.U , rs2 , tmp , rs1 , non , maxu, 1.U,  amo  )
   )
 }

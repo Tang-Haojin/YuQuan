@@ -14,7 +14,7 @@ case class Zifencei()(implicit val p: Parameters) extends CPUParams {
   def FENCE_I = BitPat("b???????_?????_?????_001_?????_0001111")
 
   val table = Array(
-    //             |    Type    |num1 |num2 |num3 |num4 |op1_2|op1_3| WB |     Special        |
-    FENCE_I -> List(InstrTypes.i , non , non , non , non , non , non , 0.U, ExecSpecials.fencei)
+    //             |    Type    |num1 |num2 |num3 |num4 |op1_2| WB |     Special        |
+    FENCE_I -> List(InstrTypes.i , non , non , non , non , non, 0.U, ExecSpecials.fencei)
   )
 }

@@ -104,10 +104,10 @@ class EX(implicit p: Parameters) extends YQModule {
     val newValue = WireDefault(new MipBundle, oldValue)
     if (extensions.contains('S')) newValue.SEIP := Mux(io.input.wcsr(0) === csrsAddr().Mip, io.seip, oldValue.SEIP)
     if (extensions.contains('U')) newValue.UEIP := Mux(io.input.wcsr(0) === csrsAddr().Mip || io.input.wcsr(0) === csrsAddr().Sip, io.ueip, oldValue.UEIP)
-    wireCsrData(0) := MuxLookup(io.input.op1_3, 0.U, Seq(
-      0.U -> (io.input.num(1)),
-      1.U -> (newValue | io.input.num(1)),
-      2.U -> (newValue & ~io.input.num(1))
+    wireCsrData(0) := MuxLookup(io.input.op1_3(1, 0), 0.U, Seq(
+      1.U -> (io.input.num(1)),
+      2.U -> (newValue | io.input.num(1)),
+      3.U -> (newValue & ~io.input.num(1))
     ))
   }
   when(io.input.special === mret) {
