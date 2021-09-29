@@ -10,9 +10,10 @@ import cpu.tools._
 
 class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   val io = IO(new YQBundle {
-    val cpuIO = new CpuIO(32)
-    val memIO = new AXI_BUNDLE
-    val inv   = Flipped(Irrevocable(Bool()))
+    val cpuIO  = new CpuIO(32)
+    val memIO  = new AXI_BUNDLE
+    val inv    = Flipped(Irrevocable(Bool()))
+    val jmpBch = Input (Bool())
   })
 
   private val rand = MaximalPeriodGaloisLFSR(2)
@@ -121,6 +122,12 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
         when(isPeripheral) { state := passing }
       }
     }
+  }
+
+  when(io.jmpBch) {
+    passThrough.valid := 0.B
+    hit := 1.B
+    state := idle
   }
 }
 

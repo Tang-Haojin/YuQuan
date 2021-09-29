@@ -98,7 +98,6 @@ class IDIO(implicit p: Parameters) extends YQBundle {
   val isWait      = Input (Bool())
   val currentPriv = Input (UInt(2.W))
   val isAmo       = Output(Bool())
-  val ifIsPriv    = Output(Bool())
 }
 
 class EXIO(implicit p: Parameters) extends YQBundle {

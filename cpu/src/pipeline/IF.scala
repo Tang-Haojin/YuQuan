@@ -69,13 +69,18 @@ class IF(implicit p: Parameters) extends YQModule {
     when(!io.nextVR.READY) { NVALID := 1.B }
   }
 
+  when(io.jmpBch) {
+    when(io.immu.pipelineResult.cpuResult.ready) {
+      pc        := io.jbAddr
+      wireNewPC := io.jbAddr
+    }.otherwise {
+      pc := io.jbAddr - 4.U
+    }
+  }
+
   when(io.nextVR.READY && io.nextVR.VALID) {
     pause  := 0.B
     except := 0.B
     when(!io.immu.pipelineResult.cpuResult.ready) { NVALID := 0.B }
-    when(io.jmpBch) {
-      wireNewPC := io.jbAddr
-      pc        := io.jbAddr
-    }
   }
 }

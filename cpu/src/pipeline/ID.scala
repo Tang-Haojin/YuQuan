@@ -45,6 +45,9 @@ class ID(implicit p: Parameters) extends YQModule {
   private val isSatp  = RegInit(0.B)
   private val except  = RegInit(0.B)
   private val cause   = RegInit(0.U(4.W))
+  private val jmpBch  = RegInit(0.B)
+  private val jbAddr  = RegInit(0.U(valen.W))
+  private val jbPend  = RegInit(0.B)
   private val rcsr    = if (Debug) RegInit(0xfff.U(12.W)) else null
   private val intr    = if (Debug) RegInit(0.B) else null
 
@@ -66,12 +69,14 @@ class ID(implicit p: Parameters) extends YQModule {
   private val wireDataRs1 = WireDefault(UInt(xlen.W), io.gprsR.rdata(0))
   private val wireDataRs2 = WireDefault(UInt(xlen.W), io.gprsR.rdata(1))
   private val wireExcept  = WireDefault(VecInit(Seq.fill(32)(0.B)))
-  private val wirePriv    = WireDefault(UInt(2.W), newPriv)
+  private val wirePriv    = WireDefault(UInt(2.W), io.currentPriv)
   private val wireIsPriv  = WireDefault(0.B)
   private val wireAmoStat = WireDefault(UInt(1.W), amoStat)
   private val wireRetire  = WireDefault(Bool(), 1.B)
   private val wireBlocked = WireDefault(Bool(), blocked)
   private val wireIsSatp  = WireDefault(0.B)
+  private val wireJmpBch  = WireDefault(0.B)
+  private val wireJbAddr  = WireDefault(0.U(valen.W))
   private val wireIntr    = if (Debug) WireDefault(0.B) else null
 
   private val (lessthan, ulessthan, equal) = (wireNum(0).asSInt < wireNum(1).asSInt, wireNum(0) < wireNum(1), wireNum(0) === wireNum(1))
@@ -93,7 +98,6 @@ class ID(implicit p: Parameters) extends YQModule {
   io.output.special := special
   io.output.retire  := retire
   io.isAmo          := amoStat =/= idle
-  io.ifIsPriv       := wireIsPriv
   io.output.priv    := newPriv
   io.output.isPriv  := isPriv
   io.output.isSatp  := isSatp
@@ -133,16 +137,16 @@ class ID(implicit p: Parameters) extends YQModule {
 
   wireRd := Mux(decoded(6) === 1.U, wireInstr(11, 7), 0.U)
 
-  io.jmpBch := 0.B; io.jbAddr := 0.U
-  private val jbaddr = Mux(decoded(7) === jalr, wireDataRs1(valen - 1, 0), io.input.pc) + wireImm(valen - 1, 0)
+  io.jmpBch := jmpBch; io.jbAddr := jbAddr
+  private val tmpJbaddr = Mux(decoded(7) === jalr, wireDataRs1(valen - 1, 0), io.input.pc) + wireImm(valen - 1, 0)
 
   when(decoded(7) === jump || (decoded(7) === branch && willBranch === 1.U)) {
-    io.jmpBch := 1.B
-    io.jbAddr := jbaddr
+    wireJmpBch := 1.B
+    wireJbAddr := tmpJbaddr
   }
   when(decoded(7) === jalr) {
-    io.jmpBch := 1.B
-    io.jbAddr := jbaddr(valen - 1, 1) ## 0.B
+    wireJmpBch := 1.B
+    wireJbAddr := tmpJbaddr(valen - 1, 1) ## 0.B
   }
   when(decoded(7) === csr) {
     wireIsWcsr := 1.B
@@ -166,8 +170,8 @@ class ID(implicit p: Parameters) extends YQModule {
       wireCsr(0) := csrsAddr.Mstatus
       wireNum(0) := io.csrsR.rdata(1)
       wirePriv   := io.csrsR.rdata(1).asTypeOf(new MstatusBundle).MPP
-      io.jmpBch  := 1.B
-      io.jbAddr  := io.csrsR.rdata(0)(valen - 1, 2) ## 0.U(2.W)
+      wireJmpBch := 1.B
+      wireJbAddr := io.csrsR.rdata(0)(valen - 1, 2) ## 0.U(2.W)
     }
   }
   if (extensions.contains('S')) when(decoded(7) === sret) {
@@ -178,8 +182,8 @@ class ID(implicit p: Parameters) extends YQModule {
       wireCsr(0) := csrsAddr.Mstatus
       wireNum(0) := io.csrsR.rdata(1)
       wirePriv   := io.csrsR.rdata(1).asTypeOf(new MstatusBundle).SPP
-      io.jmpBch  := 1.B
-      io.jbAddr  := io.csrsR.rdata(0)(valen - 1, 2) ## 0.U(2.W)
+      wireJmpBch := 1.B
+      wireJbAddr := io.csrsR.rdata(0)(valen - 1, 2) ## 0.U(2.W)
     }
   }
   if (extensions.contains('S')) when(decoded(7) === sfence) { wireIsSatp := 1.B }
@@ -226,6 +230,8 @@ class ID(implicit p: Parameters) extends YQModule {
     except     := io.input.except
     cause      := io.input.cause
     pc         := io.input.pc
+    when(jbPend) { jbPend := 0.B; NVALID := 0.B; blocked := blocked; amoStat := amoStat; isSatp := isSatp }
+    .elsewhen(wireJmpBch) { jmpBch := 1.B; jbPend := 1.B; jbAddr := wireJbAddr }
     if (Debug) {
       rcsr := Mux(wireSpecial === csr, wireInstr(31, 20), 0xfff.U)
       intr := wireIntr
@@ -247,6 +253,8 @@ class ID(implicit p: Parameters) extends YQModule {
       isSatp  := 0.B
     }
   }
+  
+  when(jmpBch) { jmpBch := 0.B }
 
   if (Debug) {
     io.output.debug.rcsr  := rcsr
@@ -298,14 +306,14 @@ class ID(implicit p: Parameters) extends YQModule {
         val Xtvec   = MuxLookup(wirePriv, csrsAddr.Mtvec,  Seq("b01".U -> csrsAddr.Stvec,  "b00".U -> csrsAddr.Utvec ))
         Seq(0,1,12).foreach(i => when(wireExcept(i)) { badAddr := 1.B })
         io.csrsR.rcsr(5) := Xtvec
-        io.jmpBch := 1.B
-        wirePriv  := tmpNewPriv
+        wireJmpBch := 1.B
+        wirePriv := tmpNewPriv
         wireSpecial := exception
         wireIsWcsr := 1.B
         wireRd := 0.U
         wireCsr := VecInit(Xepc, Xcause, Xtval, csrsAddr.Mstatus)
         wireNum := VecInit(io.input.pc, code, Mux(badAddr, io.input.pc, 0.U), mstat)
-        io.jbAddr := xtvec(valen - 1, 2) ## 0.U(2.W) + Mux(isInt && xtvec(0), code(3, 0) ## 0.U(2.W), 0.U)
+        wireJbAddr := xtvec(valen - 1, 2) ## 0.U(2.W) + Mux(isInt && xtvec(0), code(3, 0) ## 0.U(2.W), 0.U)
       }
     }
   }

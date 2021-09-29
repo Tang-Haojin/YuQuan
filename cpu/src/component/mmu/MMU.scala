@@ -17,6 +17,7 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
     val dcacheIO = Flipped(new CpuIO)
     val satp     = Input (UInt(xlen.W))
     val priv     = Input (UInt(2.W))
+    val jmpBch   = Input (Bool())
     val sum      = Input (Bool())
   })
 
@@ -172,7 +173,16 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
   }
 
   when(ifDel && ifExcpt) { ifDel := 0.B; ifCause := 0.U; ifExcpt := 0.B }
-  when(memDel && memExcpt) { memDel := 0.B; memCause := 0.U; memExcpt := 0.B }
+  when(memDel && memExcpt) {
+    when(!io.jmpBch) { memDel := 0.B; memCause := 0.U; memExcpt := 0.B }
+    .otherwise       { memDel := 1.B }
+  }
+
+  when(io.jmpBch && stage =/= idle && current === ifWalking) {
+    stage := idle
+    io.ifIO.pipelineResult.cpuResult.ready := 1.B
+    io.dcacheIO.cpuReq.valid := 0.B
+  }
 
   private case class IfRaiseException(cause: UInt, isPtw: Boolean = true) {
     if (isPtw) stage := idle
