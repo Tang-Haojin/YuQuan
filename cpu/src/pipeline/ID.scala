@@ -66,8 +66,6 @@ class ID(implicit p: Parameters) extends YQModule {
   private val wireImm     = WireDefault(0.U(xlen.W))
   private val wireRs1     = WireDefault(UInt(5.W), wireInstr(19, 15))
   private val wireRs2     = WireDefault(UInt(5.W), wireInstr(24, 20))
-  private val wireDataRs1 = WireDefault(UInt(xlen.W), io.gprsR.rdata(0))
-  private val wireDataRs2 = WireDefault(UInt(xlen.W), io.gprsR.rdata(1))
   private val wireExcept  = WireDefault(VecInit(Seq.fill(32)(0.B)))
   private val wirePriv    = WireDefault(UInt(2.W), io.currentPriv)
   private val wireIsPriv  = WireDefault(0.B)
@@ -115,10 +113,11 @@ class ID(implicit p: Parameters) extends YQModule {
 
   for (i <- 1 to 4) when(decoded(i) === NumTypes.rs1) { io.gprsR.raddr(0) := wireRs1 }
   .elsewhen(decoded(i) === NumTypes.rs2) { io.gprsR.raddr(1) := wireRs2 }
+  when(wireInstr(6, 2) === "b11001".U) { io.gprsR.raddr(2) := wireRs1 }
 
   for (i <- wireNum.indices) wireNum(i) := MuxLookup(decoded(i + 1), 0.U, Seq(
-    NumTypes.rs1  -> wireDataRs1,
-    NumTypes.rs2  -> wireDataRs2,
+    NumTypes.rs1  -> io.gprsR.rdata(0),
+    NumTypes.rs2  -> io.gprsR.rdata(1),
     NumTypes.imm  -> wireImm,
     NumTypes.four -> 4.U,
     NumTypes.pc   -> io.input.pc,
@@ -126,19 +125,21 @@ class ID(implicit p: Parameters) extends YQModule {
     NumTypes.csr  -> io.csrsR.rdata(0)
   ))
 
-  wireImm := MuxLookup(decoded.head, 0.U, Seq(
+  private val immMap = Map(
     i -> Fill(xlen - 12, wireInstr(31)) ## wireInstr(31, 20),
     u -> Fill(xlen - 32, wireInstr(31)) ## wireInstr(31, 12) ## 0.U(12.W),
     j -> Cat(Fill(xlen - 20, wireInstr(31)), wireInstr(19, 12), wireInstr(20), wireInstr(30, 21), 0.B),
     s -> Fill(xlen - 12, wireInstr(31)) ## wireInstr(31, 25) ## wireInstr(11, 7),
     b -> Cat(Fill(xlen - 12, wireInstr(31)), wireInstr(7), wireInstr(30, 25), wireInstr(11, 8), 0.B),
     c -> 0.U((xlen - 5).W) ## wireInstr(19, 15)
-  ))
+  )
+  wireImm := MuxLookup(decoded.head, 0.U, immMap.toSeq)
 
   wireRd := Mux(decoded(6) === 1.U, wireInstr(11, 7), 0.U)
 
   io.jmpBch := jmpBch; io.jbAddr := jbAddr
-  private val tmpJbaddr = Mux(decoded(7) === jalr, wireDataRs1(valen - 1, 0), io.input.pc) + wireImm(valen - 1, 0)
+  private val jbOffset = MuxLookup(wireInstr(3, 2), immMap(j), Seq("b01".U -> immMap(i), "b00".U -> immMap(b)))
+  private val tmpJbaddr = Mux(wireInstr(6, 2) === "b11001".U, io.gprsR.rdata(2)(valen - 1, 0), io.input.pc) + jbOffset(valen - 1, 0)
 
   when(decoded(7) === jump || (decoded(7) === branch && willBranch === 1.U)) {
     wireJmpBch := 1.B
