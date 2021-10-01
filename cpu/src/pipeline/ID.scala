@@ -188,11 +188,7 @@ class ID(implicit p: Parameters) extends YQModule {
     }
   }
   if (extensions.contains('S')) when(decoded(7) === sfence) { wireIsSatp := 1.B }
-  when(io.input.except) { wireExcept(io.input.cause) := 1.B }
-
-  private val handleExcept = HandleException()
-
-  if (extensions.contains('A')) when(!handleExcept.fire && decoded(7) === amo && amoStat === idle && wireOp1_2 =/= Operators.lr && wireOp1_2 =/= Operators.sc) {
+  if (extensions.contains('A')) when(decoded(7) === amo && amoStat === idle && wireOp1_2 =/= Operators.lr && wireOp1_2 =/= Operators.sc) {
     wireAmoStat := loading
     wireSpecial := ld
     wireRetire  := 0.B
@@ -208,6 +204,9 @@ class ID(implicit p: Parameters) extends YQModule {
       rd      := 0.U
     }
   }
+
+  when(io.input.except) { wireExcept(io.input.cause) := 1.B }
+  HandleException()
 
   io.lastVR.READY := io.nextVR.READY && !io.isWait && !blocked && amoStat === idle && !isSatp
 
@@ -225,7 +224,7 @@ class ID(implicit p: Parameters) extends YQModule {
     newPriv    := wirePriv
     isPriv     := wireIsPriv
     blocked    := wireBlocked
-    isSatp     := Mux(io.nextVR.READY && io.nextVR.VALID, 0.B, wireIsSatp)
+    isSatp     := wireIsSatp
     if (extensions.contains('A')) amoStat := wireAmoStat
     retire     := wireRetire
     except     := io.input.except
@@ -264,7 +263,7 @@ class ID(implicit p: Parameters) extends YQModule {
   }
 
   private case class HandleException() {
-    val fire = WireDefault(0.B)
+    private val fire = WireDefault(0.B)
     private val code = WireDefault(0.U(xlen.W))
     private val intCode = WireDefault("b1111".U(4.W))
     private val isInt = intCode =/= "b1111".U
@@ -315,6 +314,7 @@ class ID(implicit p: Parameters) extends YQModule {
         wireCsr := VecInit(Xepc, Xcause, Xtval, csrsAddr.Mstatus)
         wireNum := VecInit(io.input.pc, code, Mux(badAddr, io.input.pc, 0.U), mstat)
         wireJbAddr := xtvec(valen - 1, 2) ## 0.U(2.W) + Mux(isInt && xtvec(0), code(3, 0) ## 0.U(2.W), 0.U)
+        wireIsSatp := 0.B; wireBlocked := 0.B; wireAmoStat := amoStat; wireRetire := 1.B
       }
     }
   }
