@@ -79,7 +79,9 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   if (!noCache) when(state === compare) {
     ARVALID := 1.B
     state   := allocate
-    way     := rand
+    hit := VecInit(Seq.tabulate(Associativity)(i => valid(i) && tag(i) === addrTag)).asUInt.orR
+    grp := Mux1H(Seq.tabulate(Associativity)(i => (valid(i) && tag(i) === addrTag) -> i.U))
+    way := MuxLookup(0.B, rand, valid zip Seq.tabulate(Associativity)(_.U))
     when(hit) {
       state := idle
       ARVALID := 0.B
@@ -88,9 +90,6 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
         when(isPeripheral) { state := passing }
       }
     }
-    for (i <- 0 until Associativity)
-      when(valid(i.U)) { when(tag(i.U) === addrTag) { hit := 1.B; grp := i.U } }
-      .otherwise       { way := i.U }
   }
   if (!noCache) when(state === allocate) {
     when(io.memIO.r.fire) {
