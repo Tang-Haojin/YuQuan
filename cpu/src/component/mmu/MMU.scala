@@ -93,16 +93,16 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
         when(newPte.v) {
           when(level =/= 0.U) {
             when(newPte.w | newPte.r | newPte.x) {
-              when(current === ifWalking) { IfRaiseException(1.U) } // Instruction access fault
-              .otherwise { MemRaiseException(Mux(isWrite, 7.U, 5.U)) } // load/store/amo access fault
+              when(current === ifWalking) { IfRaiseException(12.U) } // Instruction page fault
+              .otherwise { MemRaiseException(Mux(isWrite, 15.U, 13.U)) } // load/store/amo page fault
             }
             level := level - 1.U
           }.otherwise { // TODO: MXR
             stage := idle
             io.dcacheIO.cpuReq.valid := 0.B
             when((!newPte.w && !newPte.r && !newPte.x) || (newPte.w && !newPte.r)) { // this should be leaf, and that with w must have r
-              when(current === ifWalking) { IfRaiseException(1.U) } // Instruction access fault
-              .otherwise { MemRaiseException(Mux(isWrite, 7.U, 5.U)) } // load/store/amo access fault
+              when(current === ifWalking) { IfRaiseException(12.U) } // Instruction page fault
+              .otherwise { MemRaiseException(Mux(isWrite, 15.U, 13.U)) } // load/store/amo page fault
             }.elsewhen(current === ifWalking && (isU && !newPte.u || isS && newPte.u)) { IfRaiseException(12.U) } // Instruction page fault
             .elsewhen(current === memWalking && (isU && !newPte.u || isS && newPte.u && !io.sum)) { MemRaiseException(Mux(isWrite, 15.U, 13.U)) } // load/store/amo page fault
             .elsewhen(current === ifWalking && !newPte.x) { IfRaiseException(12.U) } // Instruction page fault
