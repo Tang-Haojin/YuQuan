@@ -17,6 +17,7 @@ class IF(implicit p: Parameters) extends YQModule {
     val jmpBch = Input(Bool())
     val jbAddr = Input(UInt(valen.W))
     val isPriv = Input(Bool())
+    val isSatp = Input(Bool())
   })
 
   private class csrsAddr(implicit val p: Parameters) extends CPUParams with cpu.privileged.CSRsAddr
@@ -48,7 +49,7 @@ class IF(implicit p: Parameters) extends YQModule {
   io.immu.pipelineReq.cpuReq.data  := DontCare
   io.immu.pipelineReq.cpuReq.rw    := DontCare
   io.immu.pipelineReq.cpuReq.wmask := DontCare
-  io.immu.pipelineReq.cpuReq.valid := io.nextVR.READY && !wirePause && !io.isPriv
+  io.immu.pipelineReq.cpuReq.valid := io.nextVR.READY && !wirePause && !io.isPriv && !io.isSatp
   io.immu.pipelineReq.cpuReq.addr  := wireNewPC
   io.immu.pipelineReq.cpuReq.size  := 2.U // TODO: Compression instruction
   io.immu.pipelineReq.flush        := DontCare

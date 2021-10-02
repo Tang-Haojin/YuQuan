@@ -134,7 +134,6 @@ class ID(implicit p: Parameters) extends YQModule {
     c -> 0.U((xlen - 5).W) ## wireInstr(19, 15)
   )
   wireImm := MuxLookup(decoded.head, 0.U, immMap.toSeq)
-
   wireRd := Mux(decoded(6) === 1.U, wireInstr(11, 7), 0.U)
 
   io.jmpBch := jmpBch; io.jbAddr := jbAddr
@@ -208,7 +207,7 @@ class ID(implicit p: Parameters) extends YQModule {
   when(io.input.except) { wireExcept(io.input.cause) := 1.B }
   HandleException()
 
-  io.lastVR.READY := io.nextVR.READY && !io.isWait && !blocked && amoStat === idle && !isSatp
+  io.lastVR.READY := io.nextVR.READY && !io.isWait && !blocked && amoStat === idle
 
   when(io.lastVR.VALID && io.lastVR.READY) { // let's start working
     NVALID     := 1.B
@@ -287,24 +286,23 @@ class ID(implicit p: Parameters) extends YQModule {
         // All other types of exceptions prior to these must not have happened, as the mem-access
         // action can not have been acted if any other exceptions had occurred in previous id level.
         Seq(5,7,13,15,4,6).foreach(i => when(wireExcept(i)) { fire := 1.B; code := i.U })
-        when(io.currentPriv <= "b01".U) { tmpNewPriv := Mux(medeleg(code), "b01".U, "b11".U) }
+        when(!io.currentPriv(1)) { tmpNewPriv := Mux(medeleg(code), "b01".U, "b11".U) }
       }.elsewhen(isInt) {
         fire := 1.B
         code := 1.B ## 0.U((xlen - 5).W) ## intCode
-        when(io.currentPriv <= "b01".U) { tmpNewPriv := Mux(mideleg(intCode), "b01".U, "b11".U) }
+        when(!io.currentPriv(1)) { tmpNewPriv := Mux(mideleg(intCode), "b01".U, "b11".U) }
         if (Debug) wireIntr := 1.B
       }.otherwise {
         Seq(24,3,8,9,11,0,2,1,12,25).foreach(i => when(wireExcept(i)) { fire := 1.B; code := i.U }) // 24 for watchpoint, and 25 for breakpoint
-        when(io.currentPriv <= "b01".U) { tmpNewPriv := Mux(medeleg(code), "b01".U, "b11".U) } // TODO: user interrupt
+        when(!io.currentPriv(1)) { tmpNewPriv := Mux(medeleg(code), "b01".U, "b11".U) } // TODO: user interrupt
       }
       when(io.lastVR.VALID && fire) {
         val mstat   = io.csrsR.rdata(1)(xlen - 1) ## io.currentPriv ## wirePriv ## io.csrsR.rdata(1)(xlen - 6, 0)
-        val badAddr = WireDefault(0.B)
+        val badAddr = wireExcept(0) | wireExcept(1) | wireExcept(12)
         val Xepc    = MuxLookup(wirePriv, csrsAddr.Mepc,   Seq("b01".U -> csrsAddr.Sepc,   "b00".U -> csrsAddr.Uepc  ))
         val Xcause  = MuxLookup(wirePriv, csrsAddr.Mcause, Seq("b01".U -> csrsAddr.Scause, "b00".U -> csrsAddr.Ucause))
         val Xtval   = MuxLookup(wirePriv, csrsAddr.Mtval,  Seq("b01".U -> csrsAddr.Stval,  "b00".U -> csrsAddr.Utval ))
         val Xtvec   = MuxLookup(wirePriv, csrsAddr.Mtvec,  Seq("b01".U -> csrsAddr.Stvec,  "b00".U -> csrsAddr.Utvec ))
-        Seq(0,1,12).foreach(i => when(wireExcept(i)) { badAddr := 1.B })
         io.csrsR.rcsr(5) := Xtvec
         wireJmpBch := 1.B
         wirePriv := tmpNewPriv

@@ -40,7 +40,7 @@ class MEM(implicit p: Parameters) extends YQModule {
   private val wireOff = io.input.addr(axSize - 1, 0)
 
   private val NVALID  = RegInit(0.B); io.nextVR.VALID := NVALID
-  private val LREADY  = RegInit(1.B); io.lastVR.READY := LREADY && io.nextVR.READY && !isSatp
+  private val LREADY  = RegInit(1.B); io.lastVR.READY := LREADY && io.nextVR.READY
 
   private val isMem = RegInit(0.B); private val wireIsMem = WireDefault(Bool(), isMem)
   private val rw    = RegInit(0.B); private val wireRw    = WireDefault(Bool(), rw)

@@ -180,7 +180,7 @@ class EX(implicit p: Parameters) extends YQModule {
     is(inv)  { wireExit := ExitReasons.inv  }
   }
 
-  io.lastVR.READY := io.nextVR.READY && alu.io.input.ready && !invalidateICache && !writebackDCache && scState === idle && !isSatp
+  io.lastVR.READY := io.nextVR.READY && alu.io.input.ready && !invalidateICache && !writebackDCache && scState === idle
 
   import Operators.{mul, ruw}
   when(alu.io.output.fire && ((op >= mul) && (op <= ruw))) {
