@@ -61,7 +61,7 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   io.cpuIO.cpuResult.ready := hit
   io.cpuIO.cpuResult.data  := wordData(addrOffset)
 
-  when(io.cpuIO.cpuReq.valid) {
+  when(io.cpuIO.cpuReq.valid && state =/= allocate) {
     addr      := io.cpuIO.cpuReq.addr
     addrIndex := io.cpuIO.cpuReq.addr(Index + Offset - 1, Offset)
   }
@@ -123,11 +123,7 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
     }
   }
 
-  when(io.jmpBch) {
-    passThrough.valid := 0.B
-    hit := 1.B
-    state := idle
-  }
+  when(io.jmpBch && state =/= allocate) { ARVALID := 0.B; state := idle; passThrough.valid := 0.B }
 }
 
 object ICache {

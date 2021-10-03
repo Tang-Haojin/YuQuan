@@ -22,23 +22,26 @@ class IF(implicit p: Parameters) extends YQModule {
 
   private class csrsAddr(implicit val p: Parameters) extends CPUParams with cpu.privileged.CSRsAddr
   private val csrsAddr = new csrsAddr
-
   private val MEMBase = if (UseFlash) SPIFLASH.BASE else DRAM.BASE
+
   private val instr   = RegInit(0x00000013.U(32.W))
+  private val regPC   = RegInit(MEMBase.U(valen.W))
   private val pc      = RegInit(MEMBase.U(valen.W))
   private val NVALID  = RegInit(0.B)
   private val except  = RegInit(0.B)
   private val cause   = RegInit(0.U(4.W))
   private val pause   = RegInit(0.B)
 
-  private val wireInstr  = WireDefault(UInt(32.W), instr);       io.output.instr  := wireInstr
-  private val wirePC     = WireDefault(UInt(valen.W), pc - 4.U); io.output.pc     := wirePC
-  private val wireNVALID = WireDefault(Bool(), NVALID);          io.nextVR.VALID  := wireNVALID
-  private val wireNewPC  = WireDefault(UInt(valen.W), pc)
-  private val wireExcept = WireDefault(Bool(), except);          io.output.except := wireExcept
-  private val wireCause  = WireDefault(UInt(4.W), cause);        io.output.cause  := wireCause
-  private val wirePause  = WireDefault(Bool(), pause)
+  private val wirePC    = WireDefault(UInt(valen.W), regPC)
+  private val wirePause = WireDefault(Bool(), pause)
 
+  io.output.instr  := instr
+  io.output.pc     := pc
+  io.output.except := except
+  io.output.cause  := cause
+  io.nextVR.VALID  := NVALID
+
+  private val wireInstr = io.immu.pipelineResult.cpuResult.data
   private val isSatp = wireInstr(6, 0) === "b1110011".U && (
                          wireInstr(31, 20) === csrsAddr.Satp    ||
                          wireInstr(31, 20) === csrsAddr.Mstatus ||
@@ -50,38 +53,35 @@ class IF(implicit p: Parameters) extends YQModule {
   io.immu.pipelineReq.cpuReq.rw    := DontCare
   io.immu.pipelineReq.cpuReq.wmask := DontCare
   io.immu.pipelineReq.cpuReq.valid := io.nextVR.READY && !wirePause && !io.isPriv && !io.isSatp
-  io.immu.pipelineReq.cpuReq.addr  := wireNewPC
+  io.immu.pipelineReq.cpuReq.addr  := wirePC
   io.immu.pipelineReq.cpuReq.size  := 2.U // TODO: Compression instruction
   io.immu.pipelineReq.flush        := DontCare
 
-  when(io.immu.pipelineResult.cpuResult.ready) {
-    wireInstr  := io.immu.pipelineResult.cpuResult.data
-    instr      := wireInstr
-    pc         := pc + 4.U
-    wirePC     := pc
-    wireNewPC  := pc + 4.U
-    wireNVALID := 1.B
-    wireExcept := io.immu.pipelineResult.exception
-    except     := wireExcept
-    wireCause  := io.immu.pipelineResult.cause
-    cause      := wireCause
-    wirePause  := isSatp
-    pause      := wirePause
-    when(!io.nextVR.READY) { NVALID := 1.B }
-  }
-
-  when(io.jmpBch) {
-    when(io.immu.pipelineResult.cpuResult.ready) {
-      pc        := io.jbAddr
-      wireNewPC := io.jbAddr
-    }.otherwise {
-      pc := io.jbAddr - 4.U
-    }
-  }
-
-  when(io.nextVR.READY && io.nextVR.VALID) {
+  when(io.immu.pipelineResult.cpuResult.ready && (!io.nextVR.VALID || io.nextVR.READY)) {
+    NVALID    := 1.B
+    instr     := io.immu.pipelineResult.cpuResult.data
+    pc        := regPC
+    wirePC    := regPC + 4.U
+    regPC     := regPC + 4.U
+    except    := io.immu.pipelineResult.exception
+    cause     := io.immu.pipelineResult.cause
+    wirePause := isSatp
+    pause     := wirePause
+  }.elsewhen(io.nextVR.READY && io.nextVR.VALID) {
     pause  := 0.B
     except := 0.B
-    when(!io.immu.pipelineResult.cpuResult.ready) { NVALID := 0.B }
+    instr  := 0x00000013.U
+    NVALID := 0.B
+  }
+
+  when(io.immu.pipelineResult.cpuResult.ready && io.immu.pipelineResult.exception && io.immu.pipelineResult.fromMem) {
+    except := 1.B
+    cause  := io.immu.pipelineResult.cause
+    when(io.jmpBch) { pc := io.jbAddr }
+  }
+
+  when(io.jmpBch && regPC =/= io.jbAddr) {
+    regPC  := io.jbAddr
+    wirePC := io.jbAddr
   }
 }

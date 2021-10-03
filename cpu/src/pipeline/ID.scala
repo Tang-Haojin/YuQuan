@@ -210,31 +210,33 @@ class ID(implicit p: Parameters) extends YQModule {
   io.lastVR.READY := io.nextVR.READY && !io.isWait && !blocked && amoStat === idle
 
   when(io.lastVR.VALID && io.lastVR.READY) { // let's start working
-    NVALID     := 1.B
-    rd         := wireRd
-    isWcsr     := wireIsWcsr
-    wcsr       := wireCsr
-    num        := wireNum
-    op1_2      := wireOp1_2
-    op1_3      := wireInstr(14, 12)
-    special    := wireSpecial
-    instr      := wireInstr
-    wireIsPriv := wirePriv =/= io.currentPriv
-    newPriv    := wirePriv
-    isPriv     := wireIsPriv
-    blocked    := wireBlocked
-    isSatp     := wireIsSatp
-    if (extensions.contains('A')) amoStat := wireAmoStat
-    retire     := wireRetire
-    except     := io.input.except
-    cause      := io.input.cause
-    pc         := io.input.pc
-    when(jbPend) { jbPend := 0.B; NVALID := 0.B; blocked := blocked; amoStat := amoStat; isSatp := isSatp }
-    .elsewhen(wireJmpBch) { jmpBch := 1.B; jbPend := 1.B; jbAddr := wireJbAddr }
-    if (Debug) {
-      rcsr := Mux(wireSpecial === csr, wireInstr(31, 20), 0xfff.U)
-      intr := wireIntr
-    }
+    when(!jbPend || jbPend && jbAddr === io.input.pc) {
+      NVALID     := 1.B
+      rd         := wireRd
+      isWcsr     := wireIsWcsr
+      wcsr       := wireCsr
+      num        := wireNum
+      op1_2      := wireOp1_2
+      op1_3      := wireInstr(14, 12)
+      special    := wireSpecial
+      instr      := wireInstr
+      wireIsPriv := wirePriv =/= io.currentPriv
+      newPriv    := wirePriv
+      isPriv     := wireIsPriv
+      blocked    := wireBlocked
+      isSatp     := wireIsSatp
+      if (extensions.contains('A')) amoStat := wireAmoStat
+      retire     := wireRetire
+      except     := io.input.except
+      cause      := io.input.cause
+      pc         := io.input.pc
+      jbPend     := 0.B
+      when(wireJmpBch && wireJbAddr =/= io.input.pc + 4.U) { jmpBch := 1.B; jbPend := 1.B; jbAddr := wireJbAddr }
+      if (Debug) {
+        rcsr := Mux(wireSpecial === csr, wireInstr(31, 20), 0xfff.U)
+        intr := wireIntr
+      }
+    }.otherwise { NVALID := 0.B }
   }.otherwise {
     when(io.isWait && io.nextVR.READY && amoStat === idle) {
       NVALID  := 0.B

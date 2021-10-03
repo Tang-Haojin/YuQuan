@@ -95,7 +95,7 @@ int main(int argc, char **argv, char **env) {
   top->reset = 0;
   for (;!contextp->gotFinish();cycles++) {
 #ifdef mainargs
-    if (cycles == 80000000)
+    if (cycles == 110000000)
       command_init(to_string(mainargs) "\n");
 #endif
     contextp->timeInc(1);
@@ -107,7 +107,7 @@ int main(int argc, char **argv, char **env) {
       real_int_handler();
     }
 #ifdef TRACE
-    if (cycles >= 46600000)
+    if (cycles >= 141800000)
       tfp->dump(contextp->time());
 #endif
 

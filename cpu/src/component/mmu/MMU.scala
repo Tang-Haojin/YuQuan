@@ -50,8 +50,10 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
 
   io.ifIO.pipelineResult.cause      := 0.U
   io.ifIO.pipelineResult.exception  := 0.B
+  io.ifIO.pipelineResult.fromMem    := 0.B
   io.memIO.pipelineResult.cause     := 0.U
   io.memIO.pipelineResult.exception := 0.B
+  io.memIO.pipelineResult.fromMem   := DontCare
 
   io.ifIO.pipelineReq.cpuReq        <> io.icacheIO.cpuReq
   io.ifIO.pipelineResult.cpuResult  <> io.icacheIO.cpuResult
@@ -62,6 +64,7 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
     io.ifIO.pipelineResult.cpuResult.ready := ifReady
     io.ifIO.pipelineResult.exception := ifExcpt
     io.ifIO.pipelineResult.cause := ifCause
+    io.ifIO.pipelineResult.fromMem := memExcpt
   }
   when(memDel) {
     io.memIO.pipelineResult.cpuResult.ready := memReady
@@ -180,7 +183,7 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
 
   when(io.jmpBch && stage =/= idle && current === ifWalking) {
     stage := idle
-    io.ifIO.pipelineResult.cpuResult.ready := 1.B
+    io.ifIO.pipelineResult.cpuResult.ready := 0.B
     io.dcacheIO.cpuReq.valid := 0.B
   }
 
