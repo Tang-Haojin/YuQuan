@@ -20,6 +20,7 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   private val idle::compare::allocate::passing::Nil = Enum(4)
   private val state = RegInit(UInt(2.W), idle)
   private val received = RegInit(0.U(LogBurstLen.W))
+  private val willDrop = RegInit(0.B)
 
   private val addr       = RegInit(0.U(alen.W))
   private val addrOffset = addr(Offset - 1, 2)
@@ -108,22 +109,23 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
     }
   }
   when(state === passing) {
-    hit := passThrough.finish
+    hit := Mux(willDrop || io.jmpBch, 0.B, passThrough.finish)
     passThrough.valid := 1.B
     io.cpuIO.cpuResult.data := passThrough.rdata(31, 0)
     when(addr(2)) {
       io.cpuIO.cpuResult.data := passThrough.rdata(63, 32)
     }
-    when(hit) {
+    when(passThrough.finish) {
       state := idle
+      willDrop := 0.B
       when(io.cpuIO.cpuReq.valid) {
         state := (if (noCache) idle else compare)
         when(isPeripheral) { state := passing }
       }
-    }
+    }.elsewhen(io.jmpBch && !passThrough.ready) { willDrop := 1.B }
   }
 
-  when(io.jmpBch && state =/= allocate) { ARVALID := 0.B; state := idle; passThrough.valid := 0.B }
+  when(io.jmpBch && state <= compare) { ARVALID := 0.B; state := idle }
 }
 
 object ICache {
