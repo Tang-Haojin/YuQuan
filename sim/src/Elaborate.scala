@@ -1,5 +1,5 @@
 object Elaborate extends App {
-  implicit var p = (new sim.SimConfig).asInstanceOf[chipsalliance.rocketchip.config.Parameters]
+  implicit var p = (new sim.SimConfig).alter(cpu.cache.CacheConfig.f).alterPartial({ case cpu.GEN_NAME => "ysyx" })
 
   if (args.contains("CHIPLINK")) p = p.alterPartial({ case sim.USECHIPLINK => true })
   if (args.contains("FLASH"))    p = p.alterPartial({ case cpu.USEFLASH    => true })

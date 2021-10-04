@@ -1,7 +1,5 @@
-import chipsalliance.rocketchip.config._
 object Elaborate extends App {
-  implicit var p = (new cpu.YQConfig).asInstanceOf[chipsalliance.rocketchip.config.Parameters]
+  implicit private val p = cpu.YQConfig().alter(cpu.cache.CacheConfig.f).alterPartial({ case cpu.GEN_NAME => if (args.contains("zmb")) "zmb" else "ysyx" })
 
-  if (args.contains("zmb")) p = p.alterPartial(cpu.YQConfig.zmb)
   (new chisel3.stage.ChiselStage).execute(args, Seq(chisel3.stage.ChiselGeneratorAnnotation(() => new cpu.CPU)))
 }

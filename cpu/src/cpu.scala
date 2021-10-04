@@ -36,9 +36,9 @@ class CPU(implicit p: Parameters) extends YQModule {
   private val moduleAXIRMux   = Module(new AXIRMux)
   private val moduleAXIWMux   = if (useSlave) Module(new AXIWMux) else null
 
-  private val moduleICache = ICache(p.alter(cache.CacheConfig.f))
-  private val moduleDCache = DCache(p.alter(cache.CacheConfig.f))
-  private val moduleMMU    = Module(new MMU()(p.alter(cache.CacheConfig.f)))
+  private val moduleICache = ICache()
+  private val moduleDCache = DCache()
+  private val moduleMMU    = Module(new MMU)
   private val moduleClint  = Module(new Clint)
 
   private val moduleIF  = Module(new IF)

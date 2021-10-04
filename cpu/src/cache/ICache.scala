@@ -129,7 +129,7 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
 }
 
 object ICache {
-  def apply(implicit p: Parameters): ICache = {
+  def apply()(implicit p: Parameters): ICache = {
     val t = Module(new ICache)
     t.io.memIO.aw := DontCare
     t.io.memIO.w  := DontCare

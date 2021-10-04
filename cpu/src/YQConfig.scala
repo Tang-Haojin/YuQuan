@@ -14,48 +14,32 @@ object YQConfig {
     case XLEN          => 64
     case AxSIZE        => log2Ceil(here(XLEN) / 8)
     case EXTENSIONS    => List('I', 'M', 'S', 'A', 'U')
-    case ALEN          => 32
+    case ALEN          => site(GEN_NAME) match { case "ysyx" => 32; case "zmb" => 64 }
     case IDLEN         => 4
-    case USRLEN        => 0
-    case USEQOS        => 0
-    case USEPROT       => 0
-    case USECACHE      => 0
-    case USELOCK       => 0
-    case USEREGION     => 0
-    case AXIRENAME     => true
-    case MODULE_PREFIX => s"ysyx_210153_"
+    case USRLEN        => site(GEN_NAME) match { case "ysyx" => 0; case "zmb" => 1 }
+    case USEQOS        => site(GEN_NAME) match { case "ysyx" => 0; case "zmb" => 1 }
+    case USEPROT       => site(GEN_NAME) match { case "ysyx" => 0; case "zmb" => 1 }
+    case USECACHE      => site(GEN_NAME) match { case "ysyx" => 0; case "zmb" => 1 }
+    case USELOCK       => site(GEN_NAME) match { case "ysyx" => 0; case "zmb" => 1 }
+    case USEREGION     => site(GEN_NAME) match { case "ysyx" => 0; case "zmb" => 1 }
+    case AXIRENAME     => site(GEN_NAME) match { case "ysyx" => true; case "zmb" => false }
+    case MODULE_PREFIX => site(GEN_NAME) match { case "ysyx" => "ysyx_210153_"; case "zmb" => "" }
     case CLINT_MMAP    => new CLINT
     case DRAM_MMAP     => new DRAM
     case PLIC_MMAP     => new PeripheralConfig.PLIC
     case ALUTYPEWIDTH  => 6
-    case USEFLASH      => true
+    case USEFLASH      => site(GEN_NAME) match { case "ysyx" => true; case "zmb" => false }
     case SPIFLASH_MMAP => new PeripheralConfig.SPIFLASH
     case ENABLE_DEBUG  => false
     case IALIGN        => 32 // compressed instructions are not implemented yet
     case ILEN          => 32 // base instruction set supported only
     case REG_CONF      => new RegConf
-    case IS_YSYX       => true
-    case IS_ZMB        => false
+    case IS_YSYX       => site(GEN_NAME) match { case "ysyx" => true; case "zmb" => false }
+    case IS_ZMB        => site(GEN_NAME) match { case "ysyx" => false; case "zmb" => true }
     case NO_CACHE      => false
     case TLB_ENTRIES   => 16
     case VALEN         => 64
     case USESLAVE      => false
-  }
-
-  val zmb: PartialFunction[Any,Any] = {
-    case AXIRENAME => false
-    case ALEN      => 64
-    case IDLEN     => 4
-    case USRLEN    => 1
-    case USEQOS    => 1
-    case USEPROT   => 1
-    case USECACHE  => 1
-    case USELOCK   => 1
-    case USEREGION => 1
-    case USEFLASH  => false
-    case IS_YSYX   => false
-    case IS_ZMB    => true
-    case MODULE_PREFIX => s""
   }
 
   class CLINT extends MMAP {
@@ -79,6 +63,7 @@ object YQConfig {
   def apply(): YQConfig = new YQConfig
 }
 
+case object GEN_NAME     extends Field[String]
 case object EXTENSIONS   extends Field[List[Char]]
 case object CLINT_MMAP   extends Field[YQConfig.CLINT]
 case object DRAM_MMAP    extends Field[YQConfig.DRAM]

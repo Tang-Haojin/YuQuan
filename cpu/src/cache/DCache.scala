@@ -207,5 +207,5 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
 }
 
 object DCache {
-  def apply(implicit p: Parameters): DCache = Module(new DCache)
+  def apply()(implicit p: Parameters): DCache = Module(new DCache)
 }
