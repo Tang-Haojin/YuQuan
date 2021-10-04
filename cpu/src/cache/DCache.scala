@@ -124,9 +124,13 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
     .elsewhen(io.wb.valid) { if (!noCache) { state := backall; addr := 0.U; way := 0.U; writingBackAll := 1.B } else io.wb.ready := 1.B }
   }
   if (!noCache) when(state === compare) {
-    for (i <- 0 until Associativity)
-      when(valid(i.U)) { when(tag(i.U) === addrTag) { hit      := 1.B; grp     := i.U } }
-      .otherwise       { way := i.U; when(!hit)     { useEmpty := 1.B; wireWay := i.U } }
+    hit := VecInit(Seq.tabulate(Associativity)(i => valid(i) && tag(i) === addrTag)).asUInt.orR
+    grp := Mux1H(Seq.tabulate(Associativity)(i => (valid(i) && tag(i) === addrTag) -> i.U))
+    when(!hit) {
+      useEmpty := !valid.asUInt.andR
+      wireWay  := MuxLookup(0.B, way, valid zip Seq.tabulate(Associativity)(_.U))
+    }
+    way := wireWay
     when(hit) {
       state := idle
       when(reqRw === 1.U) {
