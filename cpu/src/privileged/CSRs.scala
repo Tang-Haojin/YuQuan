@@ -2,12 +2,11 @@ package cpu.privileged
 
 import chisel3._
 import chisel3.util._
-
+import chipsalliance.rocketchip.config._
 
 import utils.Convert._
-import chipsalliance.rocketchip.config._
-import cpu.tools._
 import cpu.CPUParams
+import cpu.tools._
 
 class CSRsW(implicit p: Parameters) extends YQBundle {
   val wen   = Input(Vec(RegConf.writeCsrsPort, Bool()))
@@ -84,7 +83,7 @@ trait CSRsAddr extends CPUParams {
   val Uip           = 0x044.U
 }
 
-class M_CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
+class CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
   val io = IO(new YQBundle {
     val csrsW       = new CSRsW
     val csrsR       = new CSRsR

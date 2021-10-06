@@ -30,7 +30,7 @@ class CPU(implicit p: Parameters) extends YQModule {
   dontTouch(io)
 
   private val moduleGPRs      = Module(new GPRs)
-  private val moduleCSRs      = Module(new cpu.privileged.M_CSRs)
+  private val moduleCSRs      = Module(new cpu.privileged.CSRs)
   private val moduleBypass    = Module(new Bypass)
   private val moduleBypassCsr = Module(new BypassCsr)
   private val moduleAXIRMux   = Module(new AXIRMux)
