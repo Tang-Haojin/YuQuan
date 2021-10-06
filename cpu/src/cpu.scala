@@ -102,6 +102,7 @@ class CPU(implicit p: Parameters) extends YQModule {
   moduleEX.io.invIch     <> moduleICache.io.inv
   moduleEX.io.wbDch      <> moduleDCache.io.wb
   moduleID.io.jmpBch     <> moduleICache.io.jmpBch
+  moduleID.io.mtip       <> moduleClint.io.mtip
   moduleClint.io.clintIO <> moduleDCache.io.clintIO
 
   moduleBypass.io.request <> moduleGPRs.io.gprsR

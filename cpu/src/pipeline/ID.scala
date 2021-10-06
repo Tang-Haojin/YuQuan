@@ -26,7 +26,8 @@ class ID(implicit p: Parameters) extends YQModule {
   private val mideleg = io.csrsR.rdata(3).asTypeOf(new MidelegBundle)
   private val medeleg = io.csrsR.rdata(4).asTypeOf(new MieBundle)
   private val xtvec   = io.csrsR.rdata(5)
-  private val mip     = io.csrsR.rdata(7).asTypeOf(new MipBundle)
+  private val mip     = WireDefault(new MipBundle, io.csrsR.rdata(7).asTypeOf(new MipBundle))
+  mip.MTIP := io.mtip
 
   private val NVALID  = RegInit(0.B)
   private val rd      = RegInit(0.U(5.W))
@@ -55,7 +56,7 @@ class ID(implicit p: Parameters) extends YQModule {
 
   private val decoded = ListLookup(io.input.instr, List(7.U, 0.U, 0.U, 0.U, 0.U, 0.U, 0.U, inv), RVInstr().table)
 
-  private val wireInstr   = WireDefault(UInt(32.W), io.input.instr)
+  private val wireInstr   = io.input.instr
   private val wireSpecial = WireDefault(UInt(5.W), decoded(7))
   private val wireType    = WireDefault(7.U(3.W))
   private val wireRd      = Wire(UInt(5.W))
@@ -102,7 +103,7 @@ class ID(implicit p: Parameters) extends YQModule {
   io.output.except  := except
   io.output.cause   := cause
   io.output.pc      := pc
-  io.gprsR.raddr    := VecInit(10.U, 0.U, 0.U)
+  io.gprsR.raddr    := VecInit(0.U, 0.U, 0.U)
   io.csrsR.rcsr     := VecInit(Seq.fill(RegConf.readCsrsPort)(0xFFF.U(12.W)))
 
   io.csrsR.rcsr(1) := csrsAddr.Mstatus
@@ -295,7 +296,7 @@ class ID(implicit p: Parameters) extends YQModule {
         when(!io.currentPriv(1)) { tmpNewPriv := Mux(mideleg(intCode), "b01".U, "b11".U) }
         if (Debug) wireIntr := 1.B
       }.otherwise {
-        Seq(24,3,8,9,11,0,2,1,12,25).foreach(i => when(wireExcept(i)) { fire := 1.B; code := i.U }) // 24 for watchpoint, and 25 for breakpoint
+        Seq(/*24,*/3,8,9,11,0,2,1,12/*,25*/).foreach(i => when(wireExcept(i)) { fire := 1.B; code := i.U }) // 24 for watchpoint, and 25 for breakpoint
         when(!io.currentPriv(1)) { tmpNewPriv := Mux(medeleg(code), "b01".U, "b11".U) } // TODO: user interrupt
       }
       when(io.lastVR.VALID && fire) {
