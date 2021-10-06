@@ -34,5 +34,5 @@ class Vaddr(implicit p: Parameters) extends YQBundle {
 
 object Vaddr {
   import language.implicitConversions
-  implicit def Vaddr2UInt(x: Vaddr): UInt = Fill(x.xlen - 3 * 9 - 12, x.vpn(2)(8)) ## x.asUInt()
+  implicit def Vaddr2UInt(x: Vaddr): UInt = x.asUInt()
 }
