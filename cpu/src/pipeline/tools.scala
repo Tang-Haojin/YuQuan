@@ -122,10 +122,13 @@ class MEMIO(implicit p: Parameters) extends YQBundle {
 
 // IF
 class IFOutput(implicit p: Parameters) extends YQBundle {
-  val instr  = Output(UInt(32.W))
-  val pc     = Output(UInt(valen.W))
-  val except = Output(Bool())
-  val cause  = Output(UInt(4.W))
+  val instr     = Output(UInt(32.W))
+  val instrCode = Output(UInt(7.W))
+  val rs        = Output(Vec(2, UInt(5.W)))
+  val rd        = Output(UInt(5.W))
+  val pc        = Output(UInt(valen.W))
+  val except    = Output(Bool())
+  val cause     = Output(UInt(4.W))
 }
 
 // MEM

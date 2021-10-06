@@ -65,8 +65,8 @@ class ID(implicit p: Parameters) extends YQModule {
   private val wireOp1_2   = WireDefault(UInt(AluTypeWidth.W), decoded(5))
   private val wireNum     = WireDefault(VecInit(Seq.fill(4)(0.U(xlen.W))))
   private val wireImm     = WireDefault(0.U(xlen.W))
-  private val wireRs1     = WireDefault(UInt(5.W), wireInstr(19, 15))
-  private val wireRs2     = WireDefault(UInt(5.W), wireInstr(24, 20))
+  private val wireRs1     = WireDefault(UInt(5.W), io.input.rs(0))
+  private val wireRs2     = WireDefault(UInt(5.W), io.input.rs(1))
   private val wireExcept  = WireDefault(VecInit(Seq.fill(32)(0.B)))
   private val wirePriv    = WireDefault(UInt(2.W), io.currentPriv)
   private val wireIsPriv  = WireDefault(0.B)
@@ -114,7 +114,7 @@ class ID(implicit p: Parameters) extends YQModule {
 
   for (i <- 1 to 4) when(decoded(i) === NumTypes.rs1) { io.gprsR.raddr(0) := wireRs1 }
   .elsewhen(decoded(i) === NumTypes.rs2) { io.gprsR.raddr(1) := wireRs2 }
-  when(wireInstr(6, 2) === "b11001".U) { io.gprsR.raddr(2) := wireRs1 }
+  when(io.input.instrCode(6, 2) === "b11001".U) { io.gprsR.raddr(2) := wireRs1 }
 
   for (i <- wireNum.indices) wireNum(i) := MuxLookup(decoded(i + 1), 0.U, Seq(
     NumTypes.rs1  -> io.gprsR.rdata(0),
@@ -135,11 +135,11 @@ class ID(implicit p: Parameters) extends YQModule {
     c -> 0.U((xlen - 5).W) ## wireInstr(19, 15)
   )
   wireImm := MuxLookup(decoded.head, 0.U, immMap.toSeq)
-  wireRd := Mux(decoded(6) === 1.U, wireInstr(11, 7), 0.U)
+  wireRd := Mux(decoded(6) === 1.U, io.input.rd, 0.U)
 
   io.jmpBch := jmpBch; io.jbAddr := jbAddr
-  private val jbOffset = MuxLookup(wireInstr(3, 2), immMap(j), Seq("b01".U -> immMap(i), "b00".U -> immMap(b)))
-  private val tmpJbaddr = Mux(wireInstr(6, 2) === "b11001".U, io.gprsR.rdata(2)(valen - 1, 0), io.input.pc) + jbOffset(valen - 1, 0)
+  private val jbOffset = MuxLookup(io.input.instrCode(3, 2), immMap(j), Seq("b01".U -> immMap(i), "b00".U -> immMap(b)))
+  private val tmpJbaddr = Mux(io.input.instrCode(6, 2) === "b11001".U, io.gprsR.rdata(2)(valen - 1, 0), io.input.pc) + jbOffset(valen - 1, 0)
 
   when(decoded(7) === jump || (decoded(7) === branch && willBranch === 1.U)) {
     wireJmpBch := 1.B
