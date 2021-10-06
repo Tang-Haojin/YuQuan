@@ -56,8 +56,8 @@ class ALU(implicit p: Parameters) extends YQModule {
   when(!multiTop.io.input.ready) { io.output.valid := multiTop.io.output.valid }
   when(!divTop.io.input.ready) { io.output.valid := divTop.io.output.valid }
 
-  private val shiftness = WireDefault(UInt(6.W), if (xlen == 64) b(5, 0) else b(4, 0)); when(io.input.bits.word) { shiftness := b(4, 0) }
-  private val sl = WireDefault(UInt(xlen.W), VecInit(Seq.tabulate(xlen)(x => if (x == 0) a.asUInt else a(xlen - x - 1, 0) ## 0.U(x.W)))(shiftness))
+  private val shiftness = if (xlen != 32) Mux(io.input.bits.word, b(4, 0), b(5, 0)) else b(4, 0)
+  private val sl = a.asUInt() << shiftness
   private val (lessthan, ulessthan, equal) = (a < b, a.asUInt < b.asUInt, a === b)
   private var operates = Seq(
     add  -> (a + b),
@@ -65,7 +65,7 @@ class ALU(implicit p: Parameters) extends YQModule {
     and  -> (a & b),
     or   -> (a | b),
     xor  -> (a ^ b),
-    sll  -> (sl.asSInt),
+    sll  -> (sl(xlen - 1, 0).asSInt),
     sra  -> (a >> (if (xlen == 64) b(5, 0) else b(4, 0))),
     srl  -> ((a.asUInt >> (if (xlen == 64) b(5, 0) else b(4, 0))).asSInt),
     lts  -> (0.U((xlen - 1).W) ## lessthan).asSInt,
