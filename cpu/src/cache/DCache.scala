@@ -88,7 +88,7 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
 
   private val byteData = WireDefault(VecInit((0 until BlockSize).map { i =>
     if (noCache) 0.U else data(grp)(i * 8 + 7, i * 8)
-  })); val byteDatas = byteData.asUInt()
+  })); private val byteDatas = byteData.asUInt()
 
   private val wdata     = io.memIO.r.bits.data ## inBuffer.asUInt
   private val vecWvalid = VecInit(Seq.fill(Associativity)(1.U))
