@@ -18,7 +18,7 @@ class DivTop(implicit p: Parameters) extends YQModule {
     })
   })
 
-  private val idle::busy::ending::Nil = Enum(3)
+  private val idle::skipping::busy::ending::Nil = Enum(4)
   private val state = RegInit(UInt(2.W), idle)
 
   private val  A = RegInit(0.U((2 * xlen + 1).W))
@@ -29,18 +29,17 @@ class DivTop(implicit p: Parameters) extends YQModule {
   private val dividendSign = RegInit(0.B)
   private val divisorSign  = RegInit(0.B)
 
-  io.input.ready  := 1.B
-  io.output.valid := 0.B
+  io.input.ready  := state === idle
+  io.output.valid := state === ending
   io.output.bits.quotient  := Mux(dividendSign ^ divisorSign, -lo, lo)
   io.output.bits.remainder := Mux(dividendSign, -hi(xlen, 1), hi(xlen, 1))
   when(state === idle) {
 	  when(io.input.fire) {
       dividendSign := 0.B
       divisorSign  := 0.B
-      state := busy
+      state := skipping
       A     := io.input.bits.dividend ## 0.B
       d     := io.input.bits.divisor
-      n     := (xlen - 1).U
       when(io.input.bits.divisor === 0.U) {
         A     := io.input.bits.dividend ## 0.B ## Fill(xlen, 1.B)
         state := ending
@@ -52,15 +51,17 @@ class DivTop(implicit p: Parameters) extends YQModule {
       }
     }
   }
+  when(state === skipping) {
+    val skip = (xlen.U | Log2(d)) - Log2(A(xlen, 0))
+    val realSkip = Mux(skip > (xlen - 1).U, (xlen - 1).U, skip)
+    n := realSkip
+    A := A << realSkip
+    state := busy
+  }
   when(state === busy) {
-    io.input.ready := 0.B
     A := Mux(hi >= d, hi(xlen - 1, 0) - d(xlen - 1, 0), hi(xlen - 1, 0)) ## lo ## (hi >= d)
-    n := n - 1.U
-    when(n === 0.U) { state := ending }
+    n := n + 1.U
+    when(n === (xlen - 1).U) { state := ending }
   }
-  when(state === ending) {
-    io.input.ready  := 0.B
-    io.output.valid := 1.B
-    when(io.output.fire) { state := idle }
-  }
+  when(state === ending) { when(io.output.fire) { state := idle } }
 }
