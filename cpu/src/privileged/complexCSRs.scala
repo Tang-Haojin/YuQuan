@@ -96,7 +96,7 @@ class MieBundle(implicit val p: Parameters) extends Bundle with CPUParams {
 
   def apply(x: Int): Bool = asUInt()(x)
   def apply(x: Int, y: Int): UInt = asUInt()(x, y)
-  def apply(x: UInt): Bool = VecInit(Seq.tabulate(xlen)(asUInt()(_)))(x)
+  def apply(x: UInt): Bool = VecInit(Seq.tabulate(12)(asUInt()(_)))(x)
 }
 
 class MidelegBundle(implicit val p: Parameters) extends Bundle with CPUParams {
@@ -118,7 +118,14 @@ class MidelegBundle(implicit val p: Parameters) extends Bundle with CPUParams {
 
   def apply(x: Int): Bool = asUInt()(x)
   def apply(x: Int, y: Int): UInt = asUInt()(x, y)
-  def apply(x: UInt): Bool = VecInit(Seq.tabulate(xlen)(asUInt()(_)))(x)
+  def apply(x: UInt): Bool = VecInit(Seq.tabulate(12)(asUInt()(_)))(x)
+}
+
+class MedelegBundle(implicit val p: Parameters) extends Bundle with CPUParams {
+  val medeleg = UInt(xlen.W)
+  def apply(x: Int): Bool = asUInt()(x)
+  def apply(x: Int, y: Int): UInt = asUInt()(x, y)
+  def apply(x: UInt): Bool = VecInit(Seq.tabulate(16)(asUInt()(_)))(x)
 }
 
 class Sstatus(val mstatus: MstatusBundle)(implicit val p: Parameters) extends CPUParams {

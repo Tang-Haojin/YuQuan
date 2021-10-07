@@ -18,7 +18,7 @@ trait BaseScalaModule extends ScalaModule with ScalafmtModule {
     ivy"edu.berkeley.cs::chisel3:3.5.0-RC1"
   )
   override def scalacPluginIvyDeps = Agg(
-    ivy"edu.berkeley.cs:::chisel3-plugin:3.5.0-RC1",
+    ivy"edu.berkeley.cs:::chisel3-plugin:3.5.0-RC1"
   )
 }
 

@@ -24,7 +24,7 @@ class ID(implicit p: Parameters) extends YQModule {
   private val mstatus = io.csrsR.rdata(1).asTypeOf(new MstatusBundle)
   private val mie     = io.csrsR.rdata(2).asTypeOf(new MieBundle)
   private val mideleg = io.csrsR.rdata(3).asTypeOf(new MidelegBundle)
-  private val medeleg = io.csrsR.rdata(4).asTypeOf(new MieBundle)
+  private val medeleg = io.csrsR.rdata(4).asTypeOf(new MedelegBundle)
   private val xtvec   = io.csrsR.rdata(5)
   private val mip     = WireDefault(new MipBundle, io.csrsR.rdata(7).asTypeOf(new MipBundle))
   mip.MTIP := io.mtip

@@ -13,9 +13,9 @@ import cpu.tools._
 class MEM(implicit p: Parameters) extends YQModule {
   val io = IO(new MEMIO)
 
-  private val mask     = RegInit(0.U(8.W))
-  private val addr     = RegInit(0.U(valen.W))
-  private val extType  = RegInit(0.U(3.W))
+  private val mask    = RegInit(0.U(8.W))
+  private val addr    = RegInit(0.U(valen.W))
+  private val extType = RegInit(0.U(3.W))
 
   private val rd      = RegInit(0.U(5.W));    io.output.rd     := rd
   private val data    = RegInit(0.U(xlen.W)); io.output.data   := data
@@ -144,10 +144,10 @@ class MEM(implicit p: Parameters) extends YQModule {
   }
 
   if (Debug) {
-    io.output.debug.exit  := exit
-    io.output.debug.pc    := pc
-    io.output.debug.rcsr  := rcsr
-    io.output.debug.mmio  := mmio
-    io.output.debug.intr  := intr
+    io.output.debug.exit := exit
+    io.output.debug.pc   := pc
+    io.output.debug.rcsr := rcsr
+    io.output.debug.mmio := mmio
+    io.output.debug.intr := intr
   }
 }
