@@ -29,7 +29,7 @@ class Vaddr(implicit p: Parameters) extends YQBundle {
   val offset = UInt(12.W)
 
   def :=(that: UInt): Unit = this := that(valen - 1, 0).asTypeOf(new Vaddr)
-  def getHigher(): UInt = higher ## vpn(2)(9 - 1)
+  def getHigher: UInt = higher ## vpn(2)(9 - 1)
 }
 
 object Vaddr {

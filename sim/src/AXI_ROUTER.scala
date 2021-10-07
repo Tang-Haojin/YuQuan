@@ -92,28 +92,28 @@ class ROUTER(implicit val p: Parameters) extends RawModule with SimParams {
     AddDevice(spiflash, SPIFLASH, io.SpiIO )
     AddDevice(nemu_uart, NEMU_UART, io.Nemu_UartIO)
 
-    when(io.input.r.fire) {
+    when(io.input.r.fire()) {
       when(io.input.r.bits.last) {
         ARREADY := 1.B
         RVALID  := 0.B
       }
-    }.elsewhen(io.input.ar.fire) {
+    }.elsewhen(io.input.ar.fire()) {
       ARREADY := 0.B
       RVALID  := 1.B
       rdevice := wireRdevice
     }
 
-    when(io.input.aw.fire) {
+    when(io.input.aw.fire()) {
       AWREADY := 0.B
       wdevice := wireWdevice
     }
 
-    when(io.input.w.fire && io.input.w.bits.last) {
+    when(io.input.w.fire() && io.input.w.bits.last) {
       WREADY := 0.B
       BVALID := 1.B
     }
 
-    when(io.input.b.fire) {
+    when(io.input.b.fire()) {
       AWREADY := 1.B
       WREADY  := 1.B
       BVALID  := 0.B

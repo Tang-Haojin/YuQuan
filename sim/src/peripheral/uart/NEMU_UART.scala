@@ -35,10 +35,10 @@ class Nemu_Uart(implicit val p: Parameters) extends RawModule with SimParams {
 
     io.channel.r.bits.data := 0.U
 
-    when(io.channel.r.fire) {
+    when(io.channel.r.fire()) {
       RVALID  := 0.B
       ARREADY := 1.B
-    }.elsewhen(io.channel.ar.fire) {
+    }.elsewhen(io.channel.ar.fire()) {
       wireARADDR := io.channel.ar.bits.addr
       ARADDR  := wireARADDR
       RID     := io.channel.ar.bits.id
@@ -46,20 +46,20 @@ class Nemu_Uart(implicit val p: Parameters) extends RawModule with SimParams {
       RVALID  := 1.B
     }
 
-    when(io.channel.aw.fire) {
+    when(io.channel.aw.fire()) {
       AWADDR  := io.channel.aw.bits.addr
       BID     := io.channel.aw.bits.id
       AWREADY := 0.B
       WREADY  := 1.B
     }
 
-    when(io.channel.w.fire) {
+    when(io.channel.w.fire()) {
       printf("%c", io.channel.w.bits.data(7, 0))
       WREADY := 0.B
       BVALID := 1.B
     }
 
-    when(io.channel.b.fire) {
+    when(io.channel.b.fire()) {
       AWREADY := 1.B
       BVALID  := 0.B
     }

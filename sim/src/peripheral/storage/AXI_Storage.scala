@@ -106,7 +106,7 @@ class Storage(implicit p: Parameters) extends YQRawModule {
     storage_write.io.data  := io.channel.w.bits.data
     storage_write.io.mask  := io.channel.w.bits.strb
 
-    when(io.channel.r.fire) {
+    when(io.channel.r.fire()) {
       when(ARLEN === 0.U) {
         RVALID         := 0.B
         ARREADY        := 1.B
@@ -116,7 +116,7 @@ class Storage(implicit p: Parameters) extends YQRawModule {
         ARADDR     := wireARADDR
         ARLEN      := ARLEN - 1.U
       }
-    }.elsewhen(io.channel.ar.fire) {
+    }.elsewhen(io.channel.ar.fire()) {
       RID        := io.channel.ar.bits.id
       wireARADDR := io.channel.ar.bits.addr(alen - 1, axSize) ## 0.U(axSize.W) - SPIFLASH.BASE.U
       ARADDR     := wireARADDR
@@ -126,7 +126,7 @@ class Storage(implicit p: Parameters) extends YQRawModule {
       ARLEN      := io.channel.ar.bits.len
     }
 
-    when(io.channel.aw.fire) {
+    when(io.channel.aw.fire()) {
       AWADDR  := io.channel.aw.bits.addr(alen - 1, axSize) ## 0.U(axSize.W) - SPIFLASH.BASE.U
       BID     := io.channel.aw.bits.id
       AWREADY := 0.B
@@ -135,7 +135,7 @@ class Storage(implicit p: Parameters) extends YQRawModule {
       AWLEN   := io.channel.aw.bits.len
     }
 
-    when(io.channel.w.fire) {
+    when(io.channel.w.fire()) {
       storage_write.io.wen := 1.B
       when(AWLEN === 0.U) {
         WREADY  := 0.B
@@ -146,7 +146,7 @@ class Storage(implicit p: Parameters) extends YQRawModule {
       }
     }
 
-    when(io.channel.b.fire) {
+    when(io.channel.b.fire()) {
       AWREADY := 1.B
       BVALID := 0.B
     }

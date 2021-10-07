@@ -17,6 +17,6 @@ class PTE extends Bundle {
   val r    = Bool()
   val v    = Bool()
 
-  def ppn(): UInt = ppn2 ## ppn1 ## ppn0
+  def ppn: UInt = ppn2 ## ppn1 ## ppn0
   def :=(that: UInt): Unit = this := that.asTypeOf(new PTE)
 }

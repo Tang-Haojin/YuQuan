@@ -46,10 +46,10 @@ class Plic(implicit val p: Parameters) extends RawModule with PeripheralParams {
 
     io.channel.r.bits.data := VecInit((0 until 8).map { i => RDATA << (8 * i) })(offset)
     
-    when(io.channel.r.fire) {
+    when(io.channel.r.fire()) {
       RVALID  := 0.B
       ARREADY := 1.B
-    }.elsewhen(io.channel.ar.fire) {
+    }.elsewhen(io.channel.ar.fire()) {
       RID   := io.channel.ar.bits.id
       RDATA := 0.U
       offset := io.channel.ar.bits.addr
@@ -65,13 +65,13 @@ class Plic(implicit val p: Parameters) extends RawModule with PeripheralParams {
       when(io.channel.ar.bits.addr === PLIC.SIc(0).U) { when(io.inter(10)) { RDATA := 10.U } }
     }
 
-    when(io.channel.aw.fire) {
+    when(io.channel.aw.fire()) {
       WADDR   := io.channel.aw.bits.addr
       BID     := io.channel.aw.bits.id
       AWREADY := 0.B
     }
 
-    when(io.channel.w.fire) {
+    when(io.channel.w.fire()) {
       WDATA  := VecInit((0 until 8).map { i => io.channel.w.bits.data >> (8 * i) })(WADDR)
       WSTRB  := VecInit((0 until 8).map { i => io.channel.w.bits.strb >> i })(WADDR)
       WREADY := 0.B
@@ -88,7 +88,7 @@ class Plic(implicit val p: Parameters) extends RawModule with PeripheralParams {
       when(WADDR === PLIC.SIpt(0).U) { sipt(0) := WDATA }
     }
 
-    when(io.channel.b.fire) {
+    when(io.channel.b.fire()) {
       BVALID := 0.B
     }
 

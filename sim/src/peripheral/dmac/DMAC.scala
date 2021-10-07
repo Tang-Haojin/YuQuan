@@ -25,9 +25,9 @@ class DMAC(implicit val p: Parameters) extends RawModule with SimParams {
     val regFree       = RegInit(1.B)
 
     val fifo = Module(new YQueue(UInt(xlen.W), 8))
-    fifo.io.enq.valid := io.toDevice.r.fire
+    fifo.io.enq.valid := io.toDevice.r.fire()
     fifo.io.enq.bits  := io.toDevice.r.bits.data
-    fifo.io.deq.ready := io.toCPU.w.fire
+    fifo.io.deq.ready := io.toCPU.w.fire()
 
     val toDevice = new ToDevice(io.toDevice, fifo.io, regDeviceAddr)
     val toCPU    = new ToCPU(io.toCPU, toDevice, fifo.io, regFree, regCpuAddr)
@@ -56,24 +56,24 @@ private class FromCPU(fromCPU: AXI_BUNDLE, toDevice: ToDevice, toCPU: ToCPU, dev
     is(DMAC.DMAC_STATUS_REG.U) { wireRawRData := 0.U((xlen - 1).W) ## free }
   }
 
-  when(fromCPU.r.fire) {
+  when(fromCPU.r.fire()) {
     RVALID  := 0.B
     ARREADY := 1.B
-  }.elsewhen(fromCPU.ar.fire) {
+  }.elsewhen(fromCPU.ar.fire()) {
     RDATA   := wireRawRData
     RID     := fromCPU.ar.bits.id
     ARREADY := 0.B
     RVALID  := 1.B
   }
 
-  when(fromCPU.aw.fire) {
+  when(fromCPU.aw.fire()) {
     AWADDR  := fromCPU.aw.bits.addr
     BID     := fromCPU.aw.bits.id
     AWREADY := 0.B
     WREADY  := 1.B
   }
 
-  when(fromCPU.w.fire) {
+  when(fromCPU.w.fire()) {
     switch(AWADDR) {
       is(DMAC.DEVICE_ADDR_REG.U) { devAddr  := wireWData }
       is(DMAC.MEMORY_ADDR_REG.U) { cpuAddr  := wireWData }
@@ -91,7 +91,7 @@ private class FromCPU(fromCPU: AXI_BUNDLE, toDevice: ToDevice, toCPU: ToCPU, dev
     BVALID := 1.B
   }
 
-  when(fromCPU.b.fire) {
+  when(fromCPU.b.fire()) {
     AWREADY := 1.B
     BVALID  := 0.B
   }
@@ -111,12 +111,12 @@ private class ToCPU(toCPU: AXI_BUNDLE, toDevice: ToDevice, fifo: QueueIO[UInt], 
   val len = RegInit(0.U(32.W))
   val wireWLAST = WireDefault(0.B)
 
-  when(toCPU.aw.fire) {
+  when(toCPU.aw.fire()) {
     AWVALID := 0.B
     BREADY  := 1.B
   }
 
-  when(toCPU.w.fire) {
+  when(toCPU.w.fire()) {
     when(len === 0.U) {
       WVALID    := 0.B
       BREADY    := 1.B
@@ -124,7 +124,7 @@ private class ToCPU(toCPU: AXI_BUNDLE, toDevice: ToDevice, fifo: QueueIO[UInt], 
     }.otherwise { len := len - 1.U }
   }
 
-  when(toCPU.b.fire) {
+  when(toCPU.b.fire()) {
     BREADY := 0.B
     free   := 1.B
   }
@@ -168,9 +168,9 @@ private class ToDevice(toDevice: AXI_BUNDLE, fifo: QueueIO[UInt], devAddr: UInt)
 
   val len = RegInit(0.U(32.W))
 
-  when(toDevice.r.fire) {
+  when(toDevice.r.fire()) {
     when(toDevice.r.bits.last) { RREADY := 0.B }
-  }.elsewhen(toDevice.ar.fire) {
+  }.elsewhen(toDevice.ar.fire()) {
     ARVALID := 0.B
     RREADY  := 1.B
   }

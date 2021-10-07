@@ -106,10 +106,10 @@ class Uart16550(implicit val p: Parameters) extends RawModule with PeripheralPar
     io.interrupt := uregs.io.int_o
     when(uregs.io.wb_we_i) { uregs.io.wb_addr_i := AWADDR }
 
-    when(io.channel.r.fire) {
+    when(io.channel.r.fire()) {
       RVALID  := 0.B
       ARREADY := 1.B
-    }.elsewhen(io.channel.ar.fire) {
+    }.elsewhen(io.channel.ar.fire()) {
       uregs.io.wb_re_i := 1.B
       wireARADDR := io.channel.ar.bits.addr
       ARADDR  := wireARADDR
@@ -118,14 +118,14 @@ class Uart16550(implicit val p: Parameters) extends RawModule with PeripheralPar
       RVALID  := 1.B
     }
 
-    when(io.channel.aw.fire) {
+    when(io.channel.aw.fire()) {
       AWADDR  := io.channel.aw.bits.addr
       BID     := io.channel.aw.bits.id
       AWREADY := 0.B
       WREADY  := 1.B
     }
 
-    when(io.channel.w.fire) {
+    when(io.channel.w.fire()) {
       uregs.io.wb_we_i := 1.B
       wireWdata := VecInit((0 until 8).map { i => io.channel.w.bits.data >> (8 * i) })(AWADDR)
       wdata     := wireWdata
@@ -133,7 +133,7 @@ class Uart16550(implicit val p: Parameters) extends RawModule with PeripheralPar
       BVALID    := 1.B
     }
 
-    when(io.channel.b.fire) {
+    when(io.channel.b.fire()) {
       AWREADY := 1.B
       BVALID  := 0.B
     }

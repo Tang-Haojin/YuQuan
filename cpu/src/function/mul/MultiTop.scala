@@ -44,7 +44,7 @@ class MultiTop(implicit p: Parameters) extends YQModule {
   io.output.valid := out_valid
   io.input.ready  := isFree
 
-  when(io.input.fire) {
+  when(io.input.fire()) {
     val res = wallaceTree.io.output(0)(33, 0) +& wallaceTree.io.output(1)(33, 0)
     isFree   := 0.B
     stage    := 1.U

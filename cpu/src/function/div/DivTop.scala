@@ -34,7 +34,7 @@ class DivTop(implicit p: Parameters) extends YQModule {
   io.output.bits.quotient  := Mux(dividendSign ^ divisorSign, -lo, lo)
   io.output.bits.remainder := Mux(dividendSign, -hi(xlen, 1), hi(xlen, 1))
   when(state === idle) {
-	  when(io.input.fire) {
+	  when(io.input.fire()) {
       dividendSign := 0.B
       divisorSign  := 0.B
       state := skipping
@@ -63,5 +63,5 @@ class DivTop(implicit p: Parameters) extends YQModule {
     n := n + 1.U
     when(n === (xlen - 1).U) { state := ending }
   }
-  when(state === ending) { when(io.output.fire) { state := idle } }
+  when(state === ending) { when(io.output.fire()) { state := idle } }
 }

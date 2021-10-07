@@ -93,7 +93,7 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
     }
   }
   if (!noCache) when(state === allocate) {
-    when(io.memIO.r.fire) {
+    when(io.memIO.r.fire()) {
       when(received === (BurstLen - 1).U) {
         received := 0.U
         state    := idle
@@ -103,7 +103,7 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
         received              := received + 1.U
         writeBuffer(received) := io.memIO.r.bits.data
       }
-    }.elsewhen(io.memIO.ar.fire) {
+    }.elsewhen(io.memIO.ar.fire()) {
       ARVALID := 0.B
       RREADY  := 1.B
     }

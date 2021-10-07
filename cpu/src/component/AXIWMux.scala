@@ -65,7 +65,7 @@ class AXIWMux(implicit p: Parameters) extends YQModule {
       io.axiWdIn1 <> io.axiWdOut
       io.axiWrIn1 <> io.axiWrOut
     }
-    when(io.axiWrOut.fire) {
+    when(io.axiWrOut.fire()) {
       regState := idle
     }
   }

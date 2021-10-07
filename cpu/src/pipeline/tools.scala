@@ -59,8 +59,12 @@ object NumTypes {
 }
 
 case class RVInstr()(implicit val p: Parameters) extends CPUParams {
-  val table = RVI().table ++ Zicsr().table ++ Privileged().table ++ (if (extensions.contains('M')) RVM().table else Nil) ++
-              Zifencei().table ++ (if (extensions.contains('A')) RVA().table else Nil)
+  val table = {
+    val a = RVI().table ++ Zicsr().table ++ Privileged().table ++ Zifencei().table
+    val b = if (extensions.contains('M')) a ++ RVM().table else a
+    val c = if (extensions.contains('A')) b ++ RVA().table else b
+    c
+  }
 }
 
 class IDOutput(implicit p: Parameters) extends YQBundle {

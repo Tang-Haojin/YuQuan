@@ -183,8 +183,8 @@ class UseSatp(val satp: SatpBundle = null) {
     satp.PPN := that.asUInt()(43, 0)
   }
   def asTypeOf[T <: Data](that: T) = satp.asTypeOf(that)
-  def mode(): UInt = satp.mode(1) ## 0.U(2.W) ## satp.mode(0)
-  def ppn(): UInt = satp.PPN
+  def mode: UInt = satp.mode(1) ## 0.U(2.W) ## satp.mode(0)
+  def ppn: UInt = satp.PPN
 }
 
 object UseSatp {
