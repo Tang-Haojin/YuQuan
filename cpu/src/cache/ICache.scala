@@ -111,10 +111,7 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   when(state === passing) {
     hit := Mux(willDrop || io.jmpBch, 0.B, passThrough.finish)
     passThrough.valid := !io.jmpBch
-    io.cpuIO.cpuResult.data := passThrough.rdata(31, 0)
-    when(addr(2)) {
-      io.cpuIO.cpuResult.data := passThrough.rdata(63, 32)
-    }
+    io.cpuIO.cpuResult.data := VecInit(Seq.tabulate(xlen / 32)(x => passThrough.rdata(x * 32 + 31, x * 32)))(if (xlen == 32) 0.U else addr(axSize - 1, 2))
     when(passThrough.finish) {
       state := idle
       willDrop := 0.B
