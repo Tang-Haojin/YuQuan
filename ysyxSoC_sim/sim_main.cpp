@@ -10,6 +10,10 @@
 
 #define ECHOFLAGS (ECHO | ECHOE | ECHOK | ECHONL)
 
+#ifndef _countof
+#define _countof(x) (sizeof(x) / sizeof((x)[0]))
+#endif
+
 extern "C" void flash_init(char *img);
 
 VerilatedContext *const contextp = new VerilatedContext;
@@ -22,7 +26,7 @@ static bool int_sig = false;
 
 void int_handler(int sig) {
   if (sig != SIGINT) {
-    if (write(STDERR_FILENO, "Wrong signal type\n", 19)) exit(EPERM);
+    if (write(STDERR_FILENO, "Wrong signal type\n", _countof("Wrong signal type\n"))) _exit(EPERM);
     else _exit(EIO);
   }
   int_sig = true;

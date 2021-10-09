@@ -15,7 +15,7 @@ static uint64_t no_commit = 0;
 
 void int_handler(int sig) {
   if (sig != SIGINT) {
-    if (write(STDERR_FILENO, "Wrong signal type\n", 19)) _exit(EPERM);
+    if (write(STDERR_FILENO, "Wrong signal type\n", _countof("Wrong signal type\n"))) _exit(EPERM);
     else _exit(EIO);
   }
   int_sig = true;

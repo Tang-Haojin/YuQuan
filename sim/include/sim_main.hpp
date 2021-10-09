@@ -17,6 +17,10 @@
 #define concat(x, y) concat_temp(x, y)
 #define MAP(c, f) c(f)
 
+#ifndef _countof
+#define _countof(x) (sizeof(x) / sizeof((x)[0]))
+#endif
+
 #define FMT_WORD "0x%016lx"
 typedef uint64_t word_t;
 typedef int64_t sword_t;
