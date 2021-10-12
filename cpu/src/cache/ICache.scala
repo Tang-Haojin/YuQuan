@@ -119,7 +119,7 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
         state := (if (noCache) idle else compare)
         when(isPeripheral) { state := passing }
       }
-    }.elsewhen(io.jmpBch && !passThrough.ready) { willDrop := 1.B }
+    }.elsewhen(io.jmpBch && (!passThrough.ready || !io.cpuIO.cpuReq.valid)) { willDrop := 1.B }
   }
 
   when(io.jmpBch && state <= compare) { ARVALID := 0.B; state := idle }
