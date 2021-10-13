@@ -98,7 +98,10 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
           when(leaf) { // TODO: MXR
             stage := idle
             io.dcacheIO.cpuReq.valid := 0.B
-            when((!newPte.w && !newPte.r && !newPte.x) || (newPte.w && !newPte.r)) { // this should be leaf, and that with w must have r
+            when((!newPte.w && !newPte.r && !newPte.x) ||                       // this should be a leaf
+                 (newPte.w && !newPte.r) ||                                     // that with w must have r
+                 (level === 2.U && (newPte.ppn(1) ## newPte.ppn(0)) =/= 0.U) || // misaligned gigapage
+                 (level === 1.U && newPte.ppn(0) =/= 0.U)) {                    // misaligned megapage
               when(current === ifWalking) { IfRaiseException(12.U) } // Instruction page fault
               .otherwise { MemRaiseException(Mux(isWrite, 15.U, 13.U)) } // load/store/amo page fault
             }.elsewhen(current === ifWalking && (isU && !newPte.u || isS && newPte.u)) { IfRaiseException(12.U) } // Instruction page fault
