@@ -31,8 +31,3 @@ class Vaddr(implicit p: Parameters) extends YQBundle {
   def :=(that: UInt): Unit = this := that(valen - 1, 0).asTypeOf(new Vaddr)
   def getHigher: UInt = higher ## vpn(2)(9 - 1)
 }
-
-object Vaddr {
-  import language.implicitConversions
-  implicit def Vaddr2UInt(x: Vaddr): UInt = x.asUInt()
-}

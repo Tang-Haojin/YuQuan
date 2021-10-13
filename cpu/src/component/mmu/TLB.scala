@@ -4,7 +4,6 @@ import chisel3._
 import chisel3.util._
 import chipsalliance.rocketchip.config._
 
-import utils._
 import cpu.tools._
 import cpu.cache._
 
@@ -16,42 +15,43 @@ class TlbEntryBundle extends Bundle {
   val u   = Bool()
   val g   = Bool()
   val d   = Bool()
-  val vpn = UInt(27.W)
+  val i   = UInt(2.W)
+  val vpn = Vec(3, UInt(9.W))
   val ppn = UInt(44.W)
 
-  def flush: Unit = getElements.foreach(_ := 0.U)
+  def flush: Unit = this := 0.U.asTypeOf(new TlbEntryBundle)
   def apply(x: Int): Bool = asUInt()(x)
   def apply(x: Int, y: Int): UInt = asUInt()(x, y)
 }
 
 class TLB(implicit val p: Parameters) extends CacheParams {
   private val tlbEntries = RegInit(VecInit(Seq.fill(TlbEntries)(0.U.asTypeOf(new TlbEntryBundle))))
-  private implicit class impTLB(x: UInt) {
-    def vpn: UInt = x(38, 12)
-  }
 
   def flush(): Unit = tlbEntries.foreach(_.flush)
-  def apply(x: Int ): TlbEntryBundle = tlbEntries(x)
-  def apply(x: UInt): TlbEntryBundle = tlbEntries(x)
-  def isHit(vaddr: UInt): Bool = tlbEntries(vaddr(TlbIndex - 1 + 12, 12)).v && vaddr.vpn === getVpn(vaddr)
-  def isDirty(vaddr: UInt): Bool = tlbEntries(vaddr(TlbIndex - 1 + 12, 12)).d
-
-  def getVpn(vaddr: UInt): UInt = tlbEntries(vaddr(TlbIndex - 1 + 12, 12)).vpn
-  def getPpn(vaddr: UInt): UInt = tlbEntries(vaddr(TlbIndex - 1 + 12, 12)).ppn
-
-  def setVpn(vaddr: UInt): Unit = tlbEntries(vaddr(TlbIndex - 1 + 12, 12)).vpn := vaddr(27 + 12 - 1, 12)
-  def setPpn(vaddr: UInt, paddr: UInt): Unit = tlbEntries(vaddr(TlbIndex - 1 + 12, 12)).ppn := paddr(44 + 12 - 1, 12)
-
-  def update(vaddr: UInt, pte: PTE): Unit = {
-    val tlbIndex = vaddr(TlbIndex - 1 + 12, 12)
-    setVpn(vaddr)
-    tlbEntries(tlbIndex).ppn := pte.ppn
-    tlbEntries(tlbIndex).v := 1.B
-    tlbEntries(tlbIndex).r := pte.r
-    tlbEntries(tlbIndex).g := pte.g
-    tlbEntries(tlbIndex).u := pte.u
-    tlbEntries(tlbIndex).w := pte.w
-    tlbEntries(tlbIndex).x := pte.x
-    tlbEntries(tlbIndex).d := pte.d
+  def getTlbE(vaddr: Vaddr): Vec[TlbEntryBundle] = VecInit(Seq.tabulate(3)(x => tlbEntries(vaddr.vpn(x)(TlbIndex - 1, 0))))
+  def isHitLevel(vaddr: Vaddr): Vec[Bool] = VecInit(Seq.tabulate(3)(x => getTlbE(vaddr)(x).v && (x match {
+    case 0 => vaddr.vpn.asUInt()           === getTlbE(vaddr)(0).vpn.asUInt()
+    case 1 => vaddr.vpn(2) ## vaddr.vpn(1) === getTlbE(vaddr)(1).vpn(2) ## getTlbE(vaddr)(1).vpn(1)
+    case 2 => vaddr.vpn(2)                 === getTlbE(vaddr)(2).vpn(2)
+  }) && getTlbE(vaddr)(x).i === x.U))
+  def isHit(vaddr: Vaddr): Bool = isHitLevel(vaddr).asUInt().orR()
+  def isDirty(vaddr: Vaddr): Bool = VecInit(Seq.tabulate(3)(x => isHitLevel(vaddr)(x) && getTlbE(vaddr)(x).d)).asUInt().orR()
+  def translate(vaddr: Vaddr): UInt = Mux1H(Seq(
+    isHitLevel(vaddr)(0) -> getTlbE(vaddr)(0).ppn                                         ## vaddr.offset,
+    isHitLevel(vaddr)(1) -> getTlbE(vaddr)(1).ppn(43, 9)                  ## vaddr.vpn(0) ## vaddr.offset,
+    isHitLevel(vaddr)(2) -> getTlbE(vaddr)(2).ppn(43, 18) ## vaddr.vpn(1) ## vaddr.vpn(0) ## vaddr.offset
+  ))
+  def update(vaddr: Vaddr, pte: PTE, level: UInt): Unit = {
+    val tlbEntry = tlbEntries(vaddr.vpn(level)(TlbIndex - 1, 0))
+    tlbEntry.vpn := vaddr.vpn
+    tlbEntry.ppn := pte.ppn
+    tlbEntry.v   := 1.B
+    tlbEntry.r   := pte.r
+    tlbEntry.g   := pte.g
+    tlbEntry.u   := pte.u
+    tlbEntry.w   := pte.w
+    tlbEntry.x   := pte.x
+    tlbEntry.d   := pte.d
+    tlbEntry.i   := level
   }
 }

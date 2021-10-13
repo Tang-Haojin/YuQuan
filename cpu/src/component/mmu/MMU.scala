@@ -73,8 +73,8 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
   }
 
   when(isSv39) {
-    io.icacheIO.cpuReq.addr := tlb.getPpn(ifVaddr) ## ifVaddr.offset
-    io.dcacheIO.cpuReq.addr := tlb.getPpn(memVaddr) ## memVaddr.offset
+    io.icacheIO.cpuReq.addr := tlb.translate(ifVaddr)
+    io.dcacheIO.cpuReq.addr := tlb.translate(memVaddr)
     when(!tlb.isHit(ifVaddr)) {
       ifDel := 1.B
       ifReady := 0.B
@@ -94,13 +94,8 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
       when(io.dcacheIO.cpuResult.ready) {
         pte := io.dcacheIO.cpuResult.data
         when(newPte.v) {
-          when(level =/= 0.U) {
-            when(newPte.w | newPte.r | newPte.x) {
-              when(current === ifWalking) { IfRaiseException(12.U) } // Instruction page fault
-              .otherwise { MemRaiseException(Mux(isWrite, 15.U, 13.U)) } // load/store/amo page fault
-            }
-            level := level - 1.U
-          }.otherwise { // TODO: MXR
+          val leaf = (level === 0.B) || newPte.w || newPte.r || newPte.x
+          when(leaf) { // TODO: MXR
             stage := idle
             io.dcacheIO.cpuReq.valid := 0.B
             when((!newPte.w && !newPte.r && !newPte.x) || (newPte.w && !newPte.r)) { // this should be leaf, and that with w must have r
@@ -111,9 +106,9 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
             .elsewhen(current === ifWalking && !newPte.x) { IfRaiseException(12.U) } // Instruction page fault
             .elsewhen(current === memWalking && !isWrite && !newPte.r) { MemRaiseException(13.U) } // load page fault
             .elsewhen(current === memWalking && isWrite && !newPte.w) { MemRaiseException(15.U) } // store/amo page fault
-            .elsewhen(!newPte.a || (current === memWalking && isWrite && !newPte.d)) { stage := writing; ptePpn := pte.ppn }
-            .otherwise { tlb.update(vaddr, newPte) }
-          }
+            .elsewhen(!newPte.a || (current === memWalking && isWrite && !newPte.d)) { stage := writing; ptePpn := Mux(level === 2.U, satp.ppn, pte.ppn) }
+            .otherwise { tlb.update(vaddr, newPte, level) }
+          }.otherwise { level := level - 1.U }
         }.otherwise {
           when(current === ifWalking) { IfRaiseException(12.U) } // Instruction page fault
           .otherwise { MemRaiseException(Mux(isWrite, 15.U, 13.U)) } // load/store/amo page fault
@@ -126,13 +121,16 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
       writingPte.a := 1.B
       writingPte.d := (current === memWalking && isWrite) | pte.d
       io.dcacheIO.cpuReq.valid := 1.B
-      io.dcacheIO.cpuReq.addr  := ptePpn ## vaddr.vpn(0) ## 0.U(3.W)
+      io.dcacheIO.cpuReq.addr  := MuxLookup(level, ptePpn ## vaddr.vpn(0), Seq(
+        1.U -> ptePpn(43, 9 ) ## vaddr.vpn(1) ## vaddr.vpn(0),
+        2.U -> ptePpn(43, 18) ## vaddr.vpn.asUInt()
+      )) ## 0.U(3.W)
       io.dcacheIO.cpuReq.rw    := 1.B
       io.dcacheIO.cpuReq.wmask := "b11111111".U
       io.dcacheIO.cpuReq.data  := writingPte.asUInt
       io.memIO.pipelineResult.cpuResult.ready := 0.B
       when(io.dcacheIO.cpuResult.ready) {
-        tlb.update(vaddr, writingPte)
+        tlb.update(vaddr, writingPte, level)
         io.dcacheIO.cpuReq.valid := 0.B
         stage := idle
       }
