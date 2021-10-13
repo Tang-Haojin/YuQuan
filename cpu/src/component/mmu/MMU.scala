@@ -183,6 +183,10 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
 
   when(io.jmpBch && stage =/= idle && current === ifWalking) {
     stage := idle
+    ifDel := 0.B
+    ifCause := 0.B
+    ifExcpt := 0.B
+    ifReady := 0.B
     io.ifIO.pipelineResult.cpuResult.ready := 0.B
     io.dcacheIO.cpuReq.valid := 0.B
   }
