@@ -192,7 +192,7 @@ class CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
         when(io.csrsW.wcsr(i) === Mscratch) { mscratch := io.csrsW.wdata(i) }
         when(io.csrsW.wcsr(i) === Mepc) { mepc := io.csrsW.wdata(i)(xlen - 1, 2) ## 0.U(2.W) }
         when(io.csrsW.wcsr(i) === Mcause) { mcause := io.csrsW.wdata(i)(xlen - 1) ## io.csrsW.wdata(i)(3, 0) }
-        when(io.csrsW.wcsr(i) === Mtval) {} // Do nothing. A simple implementation.
+        when(io.csrsW.wcsr(i) === Mtval) { mtval := io.csrsW.wdata(i) }
         when((io.csrsW.wcsr(i) === Pmpcfg0) || (io.csrsW.wcsr(i) === Pmpcfg2)) {} // Currently do nothing.
         when((io.csrsW.wcsr(i) >= Pmpaddr(0.U)) && (io.csrsW.wcsr(i) <= Pmpaddr(15.U))) {} // Currently do nothing.
         when(io.csrsW.wcsr(i) === Sstatus) { sstatus := io.csrsW.wdata(i) }
@@ -242,7 +242,7 @@ class CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
     when(io.csrsR.rcsr(i) === Mscratch) { io.csrsR.rdata(i) := mscratch }
     when(io.csrsR.rcsr(i) === Mepc) { io.csrsR.rdata(i) := mepc(xlen - 1, 2) ## 0.U(2.W) }
     when(io.csrsR.rcsr(i) === Mcause) { io.csrsR.rdata(i) := mcause(4) ## 0.U((xlen - 5).W) ## mcause(3, 0) }
-    when(io.csrsR.rcsr(i) === Mtval) { io.csrsR.rdata(i) := 0.U } // A simple implementation.
+    when(io.csrsR.rcsr(i) === Mtval) { io.csrsR.rdata(i) := mtval } // A simple implementation.
     when((io.csrsR.rcsr(i) === Pmpcfg0) || (io.csrsR.rcsr(i) === Pmpcfg2)) { io.csrsR.rdata(i) := 0.U }
     when((io.csrsR.rcsr(i) >= Pmpaddr(0.U)) && (io.csrsR.rcsr(i) <= Pmpaddr(15.U))) { io.csrsR.rdata(i) := 0.U }
     when(io.csrsR.rcsr(i) === Sstatus) { io.csrsR.rdata(i) := sstatus}
