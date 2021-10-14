@@ -27,13 +27,13 @@ class ALU(implicit p: Parameters) extends YQModule {
   io.output.bits := result
 
   private val isMul = (io.input.bits.op === mul) || (io.input.bits.op === mulh)
-  private val multiTop = Module(new MultiTop)
-  multiTop.io.input.bits.data(0) := a.asUInt
-  multiTop.io.input.bits.data(1) := b.asUInt
-  multiTop.io.input.bits.sign(0) := io.input.bits.sign(0)
-  multiTop.io.input.bits.sign(1) := io.input.bits.sign(1)
-  multiTop.io.input.valid  := isMul && io.input.valid
-  multiTop.io.output.ready := io.output.ready
+  private val mulTop = Module(new MulTop)
+  mulTop.io.input.bits.data(0) := a.asUInt
+  mulTop.io.input.bits.data(1) := b.asUInt
+  mulTop.io.input.bits.sign(0) := io.input.bits.sign(0)
+  mulTop.io.input.bits.sign(1) := io.input.bits.sign(1)
+  mulTop.io.input.valid  := isMul && io.input.valid
+  mulTop.io.output.ready := io.output.ready
 
   private val isDiv = (io.input.bits.op === div) || (io.input.bits.op === divw) || (io.input.bits.op === divu) || (io.input.bits.op === duw)
   private val isRem = (io.input.bits.op === rem) || (io.input.bits.op === remw) || (io.input.bits.op === remu) || (io.input.bits.op === ruw)
@@ -49,11 +49,11 @@ class ALU(implicit p: Parameters) extends YQModule {
   divTop.io.input.valid  := (isDiv || isRem) && io.input.valid
   divTop.io.output.ready := io.output.ready
 
-  io.input.ready  := multiTop.io.input.ready && divTop.io.input.ready
+  io.input.ready  := mulTop.io.input.ready && divTop.io.input.ready
   io.output.valid := 1.B
 
-  when(multiTop.io.input.fire() || divTop.io.input.fire()) { io.output.valid := 0.B }
-  when(!multiTop.io.input.ready) { io.output.valid := multiTop.io.output.valid }
+  when(mulTop.io.input.fire() || divTop.io.input.fire()) { io.output.valid := 0.B }
+  when(!mulTop.io.input.ready) { io.output.valid := mulTop.io.output.valid }
   when(!divTop.io.input.ready) { io.output.valid := divTop.io.output.valid }
 
   private val shiftness = if (xlen != 32) Mux(io.input.bits.word, b(4, 0), b(5, 0)) else b(4, 0)
@@ -74,12 +74,12 @@ class ALU(implicit p: Parameters) extends YQModule {
     neq  -> (0.U((xlen - 1).W) ## !equal).asSInt,
     ges  -> (0.U((xlen - 1).W) ## !lessthan).asSInt,
     geu  -> (0.U((xlen - 1).W) ## !ulessthan).asSInt,
-    mul  -> (multiTop.io.output.bits(xlen - 1, 0).asSInt),
+    mul  -> (mulTop.io.output.bits(xlen - 1, 0).asSInt),
     rem  -> (divTop.io.output.bits.remainder.asSInt),
     div  -> (divTop.io.output.bits.quotient.asSInt),
     remu -> (divTop.io.output.bits.remainder.asSInt),
     divu -> (divTop.io.output.bits.quotient.asSInt),
-    mulh -> (multiTop.io.output.bits(2 * xlen - 1, xlen).asSInt),
+    mulh -> (mulTop.io.output.bits(2 * xlen - 1, xlen).asSInt),
     max  -> Mux(lessthan, b, a),
     min  -> Mux(lessthan, a, b),
     maxu -> Mux(ulessthan, b, a),

@@ -5,8 +5,8 @@ import chisel3.util._
 import chipsalliance.rocketchip.config.Parameters
 import cpu.tools._
 
-class MultiTop(implicit p: Parameters) extends YQModule {
-  val io = IO(new MultiTopIO)
+class MulTop(implicit p: Parameters) extends YQModule {
+  val io = IO(new MulTopIO)
 
   private val isFree = RegInit(1.B)
   private val stage  = RegInit(0.U(2.W))
@@ -25,16 +25,16 @@ class MultiTop(implicit p: Parameters) extends YQModule {
   private val hi_94    = RegInit(0.U(94.W))
 
   private val boothSext = Module(new BoothSext(17, 64))
-  private val wallaceTree = Module(new Wallace_Improved(128))
+  private val walTree = Module(new WalImproved(128))
   boothSext.io.sign := sign(0)
   boothSext.io.op_0 := data(0)
   boothSext.io.input(0)   := op_1(1, 0) ## 0.B
-  wallaceTree.io.input(0) := boothSext.io.output(0) >> 2
+  walTree.io.input(0) := boothSext.io.output(0) >> 2
   for (i <- 1 until 17) {
     boothSext.io.input(i)   := op_1(2 * i + 1, 2 * i - 1)
-    wallaceTree.io.input(i) := boothSext.io.output(i) << 2 * (i - 1)
+    walTree.io.input(i) := boothSext.io.output(i) << 2 * (i - 1)
   }
-  wallaceTree.io.input(17) := 1.B ## op_1(65) ## 0.U(31.W) ## op_1(33) ## 0.U(32.W)
+  walTree.io.input(17) := 1.B ## op_1(65) ## 0.U(31.W) ## op_1(33) ## 0.U(32.W)
 
   private val part_sum = RegInit(VecInit(Seq.fill(2)(0.U(128.W))))
 
@@ -45,15 +45,15 @@ class MultiTop(implicit p: Parameters) extends YQModule {
   io.input.ready  := isFree
 
   when(io.input.fire()) {
-    val res = wallaceTree.io.output(0)(33, 0) +& wallaceTree.io.output(1)(33, 0)
+    val res = walTree.io.output(0)(33, 0) +& walTree.io.output(1)(33, 0)
     isFree   := 0.B
     stage    := 1.U
     data_in  := io.input.bits.data
     sign_in  := io.input.bits.sign
     lo_34    := res(33, 0)
     lo_34_in := res(34)
-    part_sum(0) := wallaceTree.io.output(0)(108, 34) ## 0.U(34.W)
-    part_sum(1) := wallaceTree.io.output(1)(108, 34) ## 0.U(34.W)
+    part_sum(0) := walTree.io.output(0)(108, 34) ## 0.U(34.W)
+    part_sum(1) := walTree.io.output(1)(108, 34) ## 0.U(34.W)
   }
 
   when(stage === 1.U) {
@@ -61,14 +61,14 @@ class MultiTop(implicit p: Parameters) extends YQModule {
     sign  := sign_in
     stage := 2.U
     for (i <- 0 until 16) {
-      wallaceTree.io.input(i) := boothSext.io.output(i)((boothSext.io.output(i).getWidth - 1) min (128 - (32 + i * 2) - 1), 0) << 32 + i * 2
+      walTree.io.input(i) := boothSext.io.output(i)((boothSext.io.output(i).getWidth - 1) min (128 - (32 + i * 2) - 1), 0) << 32 + i * 2
       boothSext.io.input(i)   := op_1(2 * (i + 17) + 1, 2 * (i + 17) - 1)
     }
-    wallaceTree.io.input( 2) := boothSext.io.output(2) ## 0.B ## lo_34_in ## 0.U(34.W)
-    wallaceTree.io.input(16) := part_sum(0)
-    wallaceTree.io.input(17) := part_sum(1)
-    part_sum(0) := wallaceTree.io.output(0)
-    part_sum(1) := wallaceTree.io.output(1)
+    walTree.io.input( 2) := boothSext.io.output(2) ## 0.B ## lo_34_in ## 0.U(34.W)
+    walTree.io.input(16) := part_sum(0)
+    walTree.io.input(17) := part_sum(1)
+    part_sum(0) := walTree.io.output(0)
+    part_sum(1) := walTree.io.output(1)
   }
 
   when(stage === 2.U) {

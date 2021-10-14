@@ -13,7 +13,7 @@ class _42_CompressorIO(length: Int = 128) extends Bundle {
   val output = Output(Vec(2, UInt(length.W)))
 }
 
-class Wallace_ImprovedIO(length: Int = 128) extends Bundle {
+class WalImprovedIO(length: Int = 128) extends Bundle {
   val input  = Input (Vec(18, UInt(length.W)))
   val output = Output(Vec(2 , UInt(length.W)))
 }
@@ -26,13 +26,13 @@ class BoothEncIO extends Bundle {
   val two  = Output(Bool())
 }
 
-class MultiTopIn extends Bundle {
+class MulTopIn extends Bundle {
   val data = Output(Vec(2, UInt(64.W)))
   val sign = Output(Vec(2, Bool()))
 }
 
-class MultiTopIO extends Bundle {
-  val input  = Flipped(Decoupled(new MultiTopIn))
+class MulTopIO extends Bundle {
+  val input  = Flipped(Decoupled(new MulTopIn))
   val output = Decoupled(UInt(128.W))
 }
 
