@@ -19,6 +19,8 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
     val priv     = Input (UInt(2.W))
     val jmpBch   = Input (Bool())
     val sum      = Input (Bool())
+    val mprv     = Input (Bool())
+    val mpp      = Input (UInt(2.W))
   })
 
   private val idle::walking::writing::Nil = Enum(3)
@@ -35,12 +37,18 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
   private val current  = RegInit(0.U(1.W))
   private val isWrite  = io.memIO.pipelineReq.cpuReq.rw
   private val ptePpn   = RegInit(0.U(44.W))
-  private val isSv39   = io.priv <= "b01".U && satp.mode === 8.U
+  private val isSv39_i = io.priv <= "b01".U && satp.mode === 8.U
+  private val isSv39_d = Mux(io.mprv, io.mpp, io.priv) <= "b01".U && satp.mode === 8.U
   private val (ifDel  , memDel  ) = (RegInit(0.B), RegInit(0.B))
   private val (ifReady, memReady) = (RegInit(0.B), RegInit(0.B))
   private val (ifExcpt, memExcpt) = (RegInit(0.B), RegInit(0.B))
   private val (ifCause, memCause) = (RegInit(0.U(4.W)), RegInit(0.U(4.W)))
-  private val (isU, isS, isM) = (io.priv === "b00".U, io.priv === "b01".U, io.priv === "b11".U)
+  private val (isU_i, isS_i, isM_i) = (io.priv === "b00".U, io.priv === "b01".U, io.priv === "b11".U)
+  private val (isU_d, isS_d, isM_d) = (
+    Mux(io.mprv, io.mpp, io.priv) === "b00".U,
+    Mux(io.mprv, io.mpp, io.priv) === "b01".U,
+    Mux(io.mprv, io.mpp, io.priv) === "b11".U
+  )
 
   when(ifDel) { ifDel := 0.B }; when(memDel) { memDel := 0.B }
 
@@ -72,20 +80,20 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
     io.memIO.pipelineResult.cause := memCause
   }
 
-  when(isSv39) {
-    io.icacheIO.cpuReq.addr := tlb.translate(ifVaddr)
-    io.dcacheIO.cpuReq.addr := tlb.translate(memVaddr)
-    when(!tlb.isHit(ifVaddr)) {
-      ifDel := 1.B
-      ifReady := 0.B
-      io.icacheIO.cpuReq.valid := 0.B
-    }
-    when(!tlb.isHit(memVaddr) || (isWrite && !tlb.isDirty(memVaddr))) {
-      memDel := 1.B
-      memReady := 0.B
-      io.dcacheIO.cpuReq.valid := 0.B
-    }
+  when(isSv39_i) { io.icacheIO.cpuReq.addr := tlb.translate(ifVaddr) }
+  when(isSv39_d) { io.dcacheIO.cpuReq.addr := tlb.translate(memVaddr) }
+  when(isSv39_i && !tlb.isHit(ifVaddr)) {
+    ifDel := 1.B
+    ifReady := 0.B
+    io.icacheIO.cpuReq.valid := 0.B
+  }
+  when(isSv39_d && (!tlb.isHit(memVaddr) || (isWrite && !tlb.isDirty(memVaddr)))) {
+    memDel := 1.B
+    memReady := 0.B
+    io.dcacheIO.cpuReq.valid := 0.B
+  }
 
+  when(isSv39_i || isSv39_d) {
     when(stage === walking) {
       io.dcacheIO.cpuReq.valid := 1.B
       io.dcacheIO.cpuReq.rw    := 0.B
@@ -104,8 +112,8 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
                  (level === 1.U && newPte.ppn(0) =/= 0.U)) {                    // misaligned megapage
               when(current === ifWalking) { IfRaiseException(12.U) } // Instruction page fault
               .otherwise { MemRaiseException(Mux(isWrite, 15.U, 13.U)) } // load/store/amo page fault
-            }.elsewhen(current === ifWalking && (isU && !newPte.u || isS && newPte.u)) { IfRaiseException(12.U) } // Instruction page fault
-            .elsewhen(current === memWalking && (isU && !newPte.u || isS && newPte.u && !io.sum)) { MemRaiseException(Mux(isWrite, 15.U, 13.U)) } // load/store/amo page fault
+            }.elsewhen(current === ifWalking && (isU_i && !newPte.u || isS_i && newPte.u)) { IfRaiseException(12.U) } // Instruction page fault
+            .elsewhen(current === memWalking && (isU_d && !newPte.u || isS_d && newPte.u && !io.sum)) { MemRaiseException(Mux(isWrite, 15.U, 13.U)) } // load/store/amo page fault
             .elsewhen(current === ifWalking && !newPte.x) { IfRaiseException(12.U) } // Instruction page fault
             .elsewhen(current === memWalking && !isWrite && !newPte.r) { MemRaiseException(13.U) } // load page fault
             .elsewhen(current === memWalking && isWrite && !newPte.w) { MemRaiseException(15.U) } // store/amo page fault
@@ -154,8 +162,8 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
   )) {
     io.dcacheIO.cpuReq.valid := 0.B
     MemRaiseException(Mux(isWrite, 6.U, 4.U), false) // load/store/amo address misaligned
-  }.elsewhen(isSv39) {
-    when(io.ifIO.pipelineReq.cpuReq.valid && !io.dcacheIO.cpuReq.valid && stage === idle) {
+  }.otherwise {
+    when(isSv39_i && io.ifIO.pipelineReq.cpuReq.valid && !io.dcacheIO.cpuReq.valid && stage === idle) {
       when(ifVaddr.getHigher.andR =/= ifVaddr.getHigher.orR) { IfRaiseException(12.U, false) } // Instruction page fault
       .elsewhen(!tlb.isHit(ifVaddr)) {
         current := ifWalking
@@ -165,7 +173,7 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
       }
     }
 
-    when(io.memIO.pipelineReq.cpuReq.valid && stage === idle) {
+    when(isSv39_d && io.memIO.pipelineReq.cpuReq.valid && stage === idle) {
       when(memVaddr.getHigher.andR =/= memVaddr.getHigher.orR) { MemRaiseException(Mux(isWrite, 15.U, 13.U), false) } // load/store/amo page fault
       .elsewhen(!tlb.isHit(memVaddr) || (isWrite && !tlb.isDirty(memVaddr))) {
         current := memWalking

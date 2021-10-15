@@ -98,6 +98,8 @@ class CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
     val sum         = Output(Bool())
     val mtime       = Input (UInt(64.W))
     val mtip        = Input (Bool())
+    val mprv        = Output(Bool())
+    val mpp         = Output(UInt(2.W))
     val debug       = if (Debug) new Bundle {
       val priv     = Output(UInt(2.W))
       val mstatus  = Output(UInt(xlen.W))
@@ -271,6 +273,8 @@ class CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
   io.bareSEIP := mip.SEIP; io.bareUEIP := mip.UEIP
   io.satp := satp
   io.sum  := mstatus.SUM
+  io.mprv := mstatus.MPRV
+  io.mpp  := mstatus.MPP
 
   if (Debug) {
     io.debug.priv     := currentPriv
