@@ -19,6 +19,7 @@ class ID(implicit p: Parameters) extends YQModule {
   private class csrsAddr(implicit val p: Parameters) extends CPUParams with cpu.privileged.CSRsAddr
   private val csrsAddr = new csrsAddr
   private val idle::loading::Nil = Enum(2)
+  private val memExcept = Seq(5,7,13,15,4,6)
 
   private val csrr    = io.csrsR.rdata(0)
   private val mstatus = io.csrsR.rdata(1).asTypeOf(new MstatusBundle)
@@ -77,6 +78,8 @@ class ID(implicit p: Parameters) extends YQModule {
   private val wireJmpBch  = WireDefault(0.B)
   private val wireJbAddr  = WireDefault(0.U(valen.W))
   private val wireIntr    = if (Debug) WireDefault(0.B) else null
+
+  private val isMemExcept = VecInit(memExcept.map(wireExcept(_))).asUInt().orR()
 
   private val (lessthan, ulessthan, equal) = (wireNum(0).asSInt < wireNum(1).asSInt, wireNum(0) < wireNum(1), wireNum(0) === wireNum(1))
   private val willBranch = MuxLookup(wireInstr(14, 12), equal, Seq(
@@ -211,7 +214,7 @@ class ID(implicit p: Parameters) extends YQModule {
   io.lastVR.READY := io.nextVR.READY && !io.isWait && !blocked && amoStat === idle
 
   when(io.lastVR.VALID && io.lastVR.READY) { // let's start working
-    when(!jbPend || jbPend && jbAddr === io.input.pc) {
+    when(!jbPend || jbAddr === io.input.pc || isMemExcept) {
       NVALID     := 1.B
       rd         := wireRd
       isWcsr     := wireIsWcsr
@@ -284,11 +287,11 @@ class ID(implicit p: Parameters) extends YQModule {
         when(io.currentPriv =/= "b11".U && mie(x) && mip(x)) { intCode := x.id.U }
         when(mstatus.MIE && io.currentPriv === "b11".U && mie(x) && mip(x)) { intCode := x.id.U }
       })
-      when(wireExcept(5) | wireExcept(7) | wireExcept(13) | wireExcept(15) | wireExcept(4) | wireExcept(6)) {
+      when(isMemExcept) {
         // the mem-access exceptions should be handled first, because they happened "in the past".
         // All other types of exceptions prior to these must not have happened, as the mem-access
         // action can not have been acted if any other exceptions had occurred in previous id level.
-        Seq(5,7,13,15,4,6).foreach(i => when(wireExcept(i)) { fire := 1.B; code := i.U })
+        memExcept.foreach(i => when(wireExcept(i)) { fire := 1.B; code := i.U })
         when(!io.currentPriv(1)) { tmpNewPriv := Mux(medeleg(code), "b01".U, "b11".U) }
       }.elsewhen(isInt) {
         fire := 1.B
@@ -296,7 +299,7 @@ class ID(implicit p: Parameters) extends YQModule {
         when(!io.currentPriv(1)) { tmpNewPriv := Mux(mideleg(intCode), "b01".U, "b11".U) }
         if (Debug) wireIntr := 1.B
       }.otherwise {
-        Seq(/*24,*/3,8,9,11,0,2,1,12/*,25*/).foreach(i => when(wireExcept(i)) { fire := 1.B; code := i.U }) // 24 for watchpoint, and 25 for breakpoint
+        Seq(/*24,*/3,8,9,11,0,2,1,12/*,25*/).foreach(i => when(wireExcept(i)) { fire := 1.B; code := i.U }) // TODO: 24 for watchpoint, and 25 for breakpoint
         when(!io.currentPriv(1)) { tmpNewPriv := Mux(medeleg(code), "b01".U, "b11".U) } // TODO: user interrupt
       }
       when(io.lastVR.VALID && fire) {
