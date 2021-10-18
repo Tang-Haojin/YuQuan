@@ -6,8 +6,8 @@ import cpu.tools._
 
 class WalImproved(length: Int = 128)(implicit p: Parameters) extends YQRawModule {
   val io = IO(new WalImprovedIO(length))
-  private val CSAs   = List.tabulate(8)(x => CSA(length))
-  private val comp42s = List.tabulate(4)(x => Compressor_42(length))
+  private val CSAs   = List.fill(8)(CSA(length))
+  private val comp42s = List.fill(4)(Compressor_42(length))
 
   for (i <- 0 until 3)
     for (j <- 0 until 2) {
