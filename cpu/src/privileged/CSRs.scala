@@ -109,6 +109,8 @@ class CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
       val stvec    = Output(UInt(xlen.W))
       val mcause   = Output(UInt(xlen.W))
       val scause   = Output(UInt(xlen.W))
+      val mtval    = Output(UInt(xlen.W))
+      val stval    = Output(UInt(xlen.W))
       val mie      = Output(UInt(xlen.W))
       val mscratch = Output(UInt(xlen.W))
     } else null
@@ -285,6 +287,8 @@ class CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
     io.debug.stvec    := stvec
     io.debug.mcause   := mcause(4) ## 0.U((xlen - 5).W) ## mcause(3, 0)
     io.debug.scause   := scause(4) ## 0.U((xlen - 5).W) ## scause(3, 0)
+    io.debug.mtval    := mtval
+    io.debug.stval    := stval
     io.debug.mie      := mie.asUInt
     io.debug.mscratch := mscratch
   }

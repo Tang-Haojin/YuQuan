@@ -22,6 +22,8 @@ class DEBUG(implicit val p: Parameters) extends Bundle with UtilsParams {
   val stvec    = Output(UInt(xlen.W))
   val mcause   = Output(UInt(xlen.W))
   val scause   = Output(UInt(xlen.W))
+  val mtval    = Output(UInt(xlen.W))
+  val stval    = Output(UInt(xlen.W))
   val mie      = Output(UInt(xlen.W))
   val mscratch = Output(UInt(xlen.W))
 }

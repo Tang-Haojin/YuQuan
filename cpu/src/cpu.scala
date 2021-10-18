@@ -164,6 +164,8 @@ class CPU(implicit p: Parameters) extends YQModule {
     io.debug.stvec    := moduleCSRs.io.debug.stvec
     io.debug.mcause   := moduleCSRs.io.debug.mcause
     io.debug.scause   := moduleCSRs.io.debug.scause
+    io.debug.mtval    := moduleCSRs.io.debug.mtval
+    io.debug.stval    := moduleCSRs.io.debug.stval
     io.debug.mie      := moduleCSRs.io.debug.mie
     io.debug.mscratch := moduleCSRs.io.debug.mscratch
   }

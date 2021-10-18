@@ -107,7 +107,7 @@ int main(int argc, char **argv, char **env) {
       real_int_handler();
     }
 #ifdef TRACE
-    if (cycles >= 141800000)
+    if (cycles >= 110800000)
       tfp->dump(contextp->time());
 #endif
 
@@ -128,6 +128,8 @@ int main(int argc, char **argv, char **env) {
         difftest_exec(1);
         size_t diff_regs[50];
         difftest_regcpy(diff_regs, DIFFTEST_TO_DUT);
+        add_diff(mtval);
+        add_diff(stval);
         add_diff(mcause);
         add_diff(scause);
         add_diff(mepc);
@@ -159,6 +161,8 @@ int main(int argc, char **argv, char **env) {
         tmp[stvec] = top->io_stvec;
         tmp[mcause] = top->io_mcause;
         tmp[scause] = top->io_scause;
+        tmp[mtval] = top->io_mtval;
+        tmp[stval] = top->io_stval;
         tmp[mie] = top->io_mie;
         tmp[mscratch] = top->io_mscratch;
         tmp[priv] = top->io_priv;

@@ -57,7 +57,7 @@ struct diff_gpr_pc_p {
 
 extern struct diff_gpr_pc_p diff_gpr_pc;
 
-enum pc_csr { pc = 32, mstatus, mepc, sepc, mtvec, stvec, mcause, scause, mie, mscratch, priv };
+enum pc_csr { pc = 32, mstatus, mepc, sepc, mtvec, stvec, mcause, scause, mtval, stval, mie, mscratch, priv };
 
 enum { DIFFTEST_TO_DUT, DIFFTEST_TO_REF };
 void difftest_init(int port);
