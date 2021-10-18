@@ -89,7 +89,7 @@ class MEM(implicit p: Parameters) extends YQModule {
     when(io.dmmu.pipelineResult.exception) {
       isWfe := 1.B
       cause := io.dmmu.pipelineResult.cause
-    }
+    }.otherwise { if (Debug) mmio := io.dmmu.pipelineResult.isMMIO }
   }.elsewhen(isWfe && (!io.input.except || io.input.cause =/= cause)) {
     LREADY    := 1.B
     NVALID    := 0.B // flush invalid instructions
@@ -123,7 +123,7 @@ class MEM(implicit p: Parameters) extends YQModule {
     if (Debug) {
       exit  := io.input.debug.exit
       rcsr  := io.input.debug.rcsr
-      mmio  := io.input.isMem && (io.input.addr < DRAM.BASE.U && io.input.addr >= PLIC.BASE.U || io.input.addr >= CLINT.BASE.U && io.input.addr < (CLINT.BASE + CLINT.SIZE).U)
+      mmio  := 0.B
       intr  := io.input.debug.intr
     }
     when(io.input.isMem) {

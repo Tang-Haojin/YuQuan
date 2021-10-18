@@ -212,6 +212,12 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
     dcacheValid := 0.B
   }
 
+  if (Debug) {
+    val memAddr = Mux(isSv39_d, tlb.translate(memVaddr), memVaddr.asUInt())(alen - 1, 0)
+    io.ifIO.pipelineResult.isMMIO := DontCare
+    io.memIO.pipelineResult.isMMIO := memAddr < DRAM.BASE.U && memAddr >= PLIC.BASE.U || memAddr >= CLINT.BASE.U && memAddr < (CLINT.BASE + CLINT.SIZE).U
+  }
+
   private case class IfRaiseException(cause: UInt, isPtw: Boolean = true) {
     if (isPtw) stage := idle
     if (isPtw) dcacheValid := 0.B

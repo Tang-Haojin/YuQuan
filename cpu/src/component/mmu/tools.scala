@@ -16,6 +16,7 @@ class PipelineResult(implicit p: Parameters) extends YQBundle {
   val cause     = UInt(4.W)
   val cpuResult = new cpu.cache.CpuResult
   val fromMem   = Bool()
+  val isMMIO    = if (Debug) Bool() else null
 }
 
 class PipelineIO(datalen: Int = 64)(implicit p: Parameters) extends YQBundle {
