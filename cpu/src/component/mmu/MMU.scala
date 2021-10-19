@@ -180,8 +180,7 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
       .elsewhen(tlb.isHit(ifVaddr)) {
         when(isU_i && !tlb.isUser(ifVaddr) || isS_i && tlb.isUser(ifVaddr)) { IfRaiseException(12.U, false); io.icacheIO.cpuReq.valid := 0.B } // Instruction page fault
         .elsewhen(!tlb.canExec(ifVaddr)) { IfRaiseException(12.U, false); io.icacheIO.cpuReq.valid := 0.B } // Instruction page fault
-      }
-      .elsewhen(!dcacheValid && stage === idle) {
+      }.elsewhen(!dcacheValid && stage === idle) {
         current := ifWalking
         stage := walking
         vaddr := ifVaddr
@@ -189,19 +188,16 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
       }
     }
 
-    when(isSv39_d && io.memIO.pipelineReq.cpuReq.valid) {
+    when(isSv39_d && io.memIO.pipelineReq.cpuReq.valid && stage === idle) {
+      val willWalk = WireDefault(0.B)
       when(memVaddr.getHigher.andR =/= memVaddr.getHigher.orR) { MemRaiseException(Mux(isWrite, 15.U, 13.U), false); io.dcacheIO.cpuReq.valid := 0.B } // load/store/amo page fault
       .elsewhen(tlb.isHit(memVaddr)) {
         when(isU_d && !tlb.isUser(memVaddr) || isS_d && tlb.isUser(memVaddr) && !io.sum) { MemRaiseException(Mux(isWrite, 15.U, 13.U), false); io.dcacheIO.cpuReq.valid := 0.B } // load/store/amo page fault
         .elsewhen(!isWrite && !tlb.canRead(memVaddr)) { MemRaiseException(13.U, false); io.dcacheIO.cpuReq.valid := 0.B } // load page fault
         .elsewhen(isWrite && !tlb.canWrite(memVaddr)) { MemRaiseException(15.U, false); io.dcacheIO.cpuReq.valid := 0.B } // store/amo page fault
-        .elsewhen(isWrite && !tlb.isDirty(memVaddr)) {
-          current := memWalking
-          stage := walking
-          vaddr := memVaddr
-          level := 2.U
-        }
-      }.elsewhen(stage === idle) {
+        .elsewhen(isWrite && !tlb.isDirty(memVaddr)) { willWalk := 1.B }
+      }.otherwise { willWalk := 1.B }
+      when(willWalk) {
         current := memWalking
         stage := walking
         vaddr := memVaddr
