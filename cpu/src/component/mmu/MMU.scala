@@ -155,29 +155,33 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
   when(io.memIO.pipelineReq.cpuReq.valid && io.memIO.pipelineReq.flush) {
     tlb.flush()
     memDel := !memDel; memReady := 1.B; memCause := 0.U; memExcpt := 0.B
-    dcacheValid := 0.B
-  }.elsewhen(io.ifIO.pipelineReq.cpuReq.valid && io.ifIO.pipelineReq.cpuReq.addr(1, 0) =/= 0.U) {
-    icacheValid := 0.B
-    IfRaiseException(0.U, false) // Instruction address misaligned // TODO: compression instructions
+    io.dcacheIO.cpuReq.valid := 0.B
   }.elsewhen(io.memIO.pipelineReq.cpuReq.valid && (
     (io.memIO.pipelineReq.cpuReq.size === 1.U && io.memIO.pipelineReq.cpuReq.addr(0)) ||
     (io.memIO.pipelineReq.cpuReq.size === 2.U && io.memIO.pipelineReq.cpuReq.addr(1, 0) =/= 0.U) ||
     (io.memIO.pipelineReq.cpuReq.size === 3.U && io.memIO.pipelineReq.cpuReq.addr(2, 0) =/= 0.U)
   )) {
-    dcacheValid := 0.B
+    io.dcacheIO.cpuReq.valid := 0.B
     MemRaiseException(Mux(isWrite, 6.U, 4.U), false) // load/store/amo address misaligned
   }.elsewhen(dcacheValid && !PMA(io.dcacheIO.cpuReq.addr, io.dcacheIO.cpuReq.size, isWrite)) {
     io.dcacheIO.cpuReq.valid := 0.B
     when(stage === walking && current === ifWalking) { IfRaiseException(1.U, false) } // instruction access fault
     .otherwise { MemRaiseException(Mux(stage === walking || !isWrite, 5.U, 7.U), false) } // load/store/amo access fault
     stage := idle
+  }.elsewhen(io.ifIO.pipelineReq.cpuReq.valid && io.ifIO.pipelineReq.cpuReq.addr(1, 0) =/= 0.U) {
+    icacheValid := 0.B
+    IfRaiseException(0.U, false) // Instruction address misaligned // TODO: compression instructions
   }.elsewhen(icacheValid && !PMA(io.icacheIO.cpuReq.addr, io.icacheIO.cpuReq.size, 2.U)) {
     io.icacheIO.cpuReq.valid := 0.B
     IfRaiseException(1.U, false) // instruction access fault
   }.otherwise {
-    when(isSv39_i && io.ifIO.pipelineReq.cpuReq.valid && !dcacheValid && stage === idle) {
-      when(ifVaddr.getHigher.andR =/= ifVaddr.getHigher.orR) { IfRaiseException(12.U, false) } // Instruction page fault
-      .elsewhen(!tlb.isHit(ifVaddr)) {
+    when(isSv39_i && io.ifIO.pipelineReq.cpuReq.valid) {
+      when(ifVaddr.getHigher.andR =/= ifVaddr.getHigher.orR) { IfRaiseException(12.U, false); io.icacheIO.cpuReq.valid := 0.B } // Instruction page fault
+      .elsewhen(tlb.isHit(ifVaddr)) {
+        when(isU_i && !tlb.isUser(ifVaddr) || isS_i && tlb.isUser(ifVaddr)) { IfRaiseException(12.U, false); io.icacheIO.cpuReq.valid := 0.B } // Instruction page fault
+        .elsewhen(!tlb.canExec(ifVaddr)) { IfRaiseException(12.U, false); io.icacheIO.cpuReq.valid := 0.B } // Instruction page fault
+      }
+      .elsewhen(!dcacheValid && stage === idle) {
         current := ifWalking
         stage := walking
         vaddr := ifVaddr
@@ -185,9 +189,19 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
       }
     }
 
-    when(isSv39_d && io.memIO.pipelineReq.cpuReq.valid && stage === idle) {
-      when(memVaddr.getHigher.andR =/= memVaddr.getHigher.orR) { MemRaiseException(Mux(isWrite, 15.U, 13.U), false) } // load/store/amo page fault
-      .elsewhen(!tlb.isHit(memVaddr) || (isWrite && !tlb.isDirty(memVaddr))) {
+    when(isSv39_d && io.memIO.pipelineReq.cpuReq.valid) {
+      when(memVaddr.getHigher.andR =/= memVaddr.getHigher.orR) { MemRaiseException(Mux(isWrite, 15.U, 13.U), false); io.dcacheIO.cpuReq.valid := 0.B } // load/store/amo page fault
+      .elsewhen(tlb.isHit(memVaddr)) {
+        when(isU_d && !tlb.isUser(memVaddr) || isS_d && tlb.isUser(memVaddr) && !io.sum) { MemRaiseException(Mux(isWrite, 15.U, 13.U), false); io.dcacheIO.cpuReq.valid := 0.B } // load/store/amo page fault
+        .elsewhen(!isWrite && !tlb.canRead(memVaddr)) { MemRaiseException(13.U, false); io.dcacheIO.cpuReq.valid := 0.B } // load page fault
+        .elsewhen(isWrite && !tlb.canWrite(memVaddr)) { MemRaiseException(15.U, false); io.dcacheIO.cpuReq.valid := 0.B } // store/amo page fault
+        .elsewhen(isWrite && !tlb.isDirty(memVaddr)) {
+          current := memWalking
+          stage := walking
+          vaddr := memVaddr
+          level := 2.U
+        }
+      }.elsewhen(stage === idle) {
         current := memWalking
         stage := walking
         vaddr := memVaddr

@@ -35,12 +35,17 @@ class TLB(implicit val p: Parameters) extends CacheParams {
     case 2 => vaddr.vpn(2)                 === getTlbE(vaddr)(2).vpn(2)
   }) && getTlbE(vaddr)(x).i === x.U))
   def isHit(vaddr: Vaddr): Bool = isHitLevel(vaddr).asUInt().orR()
-  def isDirty(vaddr: Vaddr): Bool = VecInit(Seq.tabulate(3)(x => isHitLevel(vaddr)(x) && getTlbE(vaddr)(x).d)).asUInt().orR()
   def translate(vaddr: Vaddr): UInt = Mux1H(Seq(
     isHitLevel(vaddr)(0) -> getTlbE(vaddr)(0).ppn                                         ## vaddr.offset,
     isHitLevel(vaddr)(1) -> getTlbE(vaddr)(1).ppn(43, 9)                  ## vaddr.vpn(0) ## vaddr.offset,
     isHitLevel(vaddr)(2) -> getTlbE(vaddr)(2).ppn(43, 18) ## vaddr.vpn(1) ## vaddr.vpn(0) ## vaddr.offset
   ))
+  def isDirty (vaddr: Vaddr): Bool = VecInit(Seq.tabulate(3)(x => isHitLevel(vaddr)(x) && getTlbE(vaddr)(x).d)).asUInt().orR()
+  def isGlobal(vaddr: Vaddr): Bool = VecInit(Seq.tabulate(3)(x => isHitLevel(vaddr)(x) && getTlbE(vaddr)(x).g)).asUInt().orR()
+  def isUser  (vaddr: Vaddr): Bool = VecInit(Seq.tabulate(3)(x => isHitLevel(vaddr)(x) && getTlbE(vaddr)(x).u)).asUInt().orR()
+  def canRead (vaddr: Vaddr): Bool = VecInit(Seq.tabulate(3)(x => isHitLevel(vaddr)(x) && getTlbE(vaddr)(x).r)).asUInt().orR()
+  def canWrite(vaddr: Vaddr): Bool = VecInit(Seq.tabulate(3)(x => isHitLevel(vaddr)(x) && getTlbE(vaddr)(x).w)).asUInt().orR()
+  def canExec (vaddr: Vaddr): Bool = VecInit(Seq.tabulate(3)(x => isHitLevel(vaddr)(x) && getTlbE(vaddr)(x).x)).asUInt().orR()
   def update(vaddr: Vaddr, pte: PTE, level: UInt): Unit = {
     val tlbEntry = tlbEntries(vaddr.vpn(level)(TlbIndex - 1, 0))
     tlbEntry.vpn := vaddr.vpn
