@@ -75,6 +75,8 @@ void difftest_memcpy(paddr_t addr, void *buf, size_t n, bool direction);
     goto reg_diff;                               \
   }
 
+#define print_csr(csr) printf("%s = " FMT_WORD "\tspike_%s = " FMT_WORD "\n", #csr, (uint64_t)top->io_##csr, #csr, (uint64_t)diff_regs[csr])
+
 #endif
 
 

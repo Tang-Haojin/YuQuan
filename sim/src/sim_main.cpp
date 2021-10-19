@@ -62,6 +62,7 @@ int main(int argc, char **argv, char **env) {
   QData *gprs = &top->io_gprs_0;
   char name[15] = {};
   size_t cpu_reg, diff_reg;
+  size_t diff_regs[50];
 #endif
 
   setbuf(stdout, NULL);
@@ -95,7 +96,7 @@ int main(int argc, char **argv, char **env) {
   top->reset = 0;
   for (;!contextp->gotFinish();cycles++) {
 #ifdef mainargs
-    if (cycles == 110000000)
+    if (cycles == 246656526)
       command_init(to_string(mainargs) "\n");
 #endif
     contextp->timeInc(1);
@@ -107,7 +108,7 @@ int main(int argc, char **argv, char **env) {
       real_int_handler();
     }
 #ifdef TRACE
-    if (cycles >= 110800000)
+    if (cycles >= 246656526)
       tfp->dump(contextp->time());
 #endif
 
@@ -126,7 +127,6 @@ int main(int argc, char **argv, char **env) {
                   top->io_wbRcsr == 0xC01 || top->io_wbMMIO;
       if (!skip) {
         difftest_exec(1);
-        size_t diff_regs[50];
         difftest_regcpy(diff_regs, DIFFTEST_TO_DUT);
         add_diff(mtval);
         add_diff(stval);
@@ -197,7 +197,20 @@ int main(int argc, char **argv, char **env) {
     std::cout << DEBUG "Exit after " << cycles / 2 << " clock cycles.\n";
     std::cout << DEBUG "\33[1;31m" << name << " Diff\33[0m ";
     printf("at pc = " FMT_WORD "\n" DEBUG, pc);
-    printf("%s = " FMT_WORD "\tspike_%s = " FMT_WORD "\n", name, cpu_reg, name, diff_reg);
+    for (int i = 0; i < 32; i++)
+      printf("GPR[%d] = " FMT_WORD "\tspike_GPR[%d] = " FMT_WORD "\n", i, gprs[i], i, diff_regs[i]);
+    print_csr(mstatus);
+    print_csr(stval);
+    print_csr(mcause);
+    print_csr(scause);
+    print_csr(mepc);
+    print_csr(sepc);
+    print_csr(mstatus);
+    print_csr(mtvec);
+    print_csr(stvec);
+    print_csr(mie);
+    print_csr(mscratch);
+    print_csr(priv);
     ret = 1;
     break;
 #endif
