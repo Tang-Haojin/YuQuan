@@ -66,12 +66,13 @@ class MEM(implicit p: Parameters) extends YQModule {
 
   private val rawStrb = VecInit((0 until 4).map { i => Fill(pow(2, i).round.toInt, 1.B) })(io.input.mask)
 
-  io.dmmu.pipelineReq.cpuReq.data  := wireData
-  io.dmmu.pipelineReq.cpuReq.rw    := wireRw
-  io.dmmu.pipelineReq.cpuReq.wmask := wireMask
-  io.dmmu.pipelineReq.cpuReq.valid := wireIsMem
-  io.dmmu.pipelineReq.cpuReq.addr  := wireAddr
-  io.dmmu.pipelineReq.cpuReq.size  := wireReql(1, 0)
+  io.dmmu.pipelineReq.cpuReq.data   := wireData
+  io.dmmu.pipelineReq.cpuReq.rw     := wireRw
+  io.dmmu.pipelineReq.cpuReq.wmask  := wireMask
+  io.dmmu.pipelineReq.cpuReq.valid  := wireIsMem
+  io.dmmu.pipelineReq.cpuReq.addr   := wireAddr
+  io.dmmu.pipelineReq.cpuReq.size   := wireReql(1, 0)
+  io.dmmu.pipelineReq.cpuReq.revoke := DontCare
   io.dmmu.pipelineReq.flush        := (if (extensions.contains('S')) wireFsh else 0.B)
   io.output.retire := retire
   io.output.priv   := priv

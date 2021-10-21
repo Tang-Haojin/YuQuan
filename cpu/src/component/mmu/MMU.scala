@@ -54,10 +54,6 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
 
   when(ifDel) { ifDel := 0.B }; when(memDel) { memDel := 0.B }
 
-  io.icacheIO.cpuReq.data  := DontCare
-  io.icacheIO.cpuReq.rw    := DontCare
-  io.icacheIO.cpuReq.wmask := DontCare
-
   io.ifIO.pipelineResult.cause      := 0.U
   io.ifIO.pipelineResult.exception  := 0.B
   io.ifIO.pipelineResult.fromMem    := 0.B
@@ -69,8 +65,9 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
   io.ifIO.pipelineResult.cpuResult  <> io.icacheIO.cpuResult
   io.memIO.pipelineReq.cpuReq       <> io.dcacheIO.cpuReq
   io.memIO.pipelineResult.cpuResult <> io.dcacheIO.cpuResult
-  io.icacheIO.cpuReq.valid := icacheValid
-  io.dcacheIO.cpuReq.valid := dcacheValid
+  io.icacheIO.cpuReq.valid  := icacheValid
+  io.dcacheIO.cpuReq.valid  := dcacheValid
+  io.dcacheIO.cpuReq.revoke := 0.B
 
   when(ifDel) {
     io.ifIO.pipelineResult.cpuResult.ready := ifReady
@@ -106,10 +103,10 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
       when(io.dcacheIO.cpuResult.ready) {
         pte := io.dcacheIO.cpuResult.data
         when(newPte.v) {
+          dcacheValid := 0.B
           val leaf = (level === 0.B) || newPte.w || newPte.r || newPte.x
           when(leaf) { // TODO: MXR
             stage := idle
-            dcacheValid := 0.B
             when((!newPte.w && !newPte.r && !newPte.x) ||                       // this should be a leaf
                  (newPte.w && !newPte.r) ||                                     // that with w must have r
                  (level === 2.U && (newPte.ppn(1) ## newPte.ppn(0)) =/= 0.U) || // misaligned gigapage
@@ -212,13 +209,14 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
     .otherwise       { memDel := 1.B }
   }
 
-  when(io.jmpBch && stage =/= idle && current === ifWalking) {
+  when(io.jmpBch && stage =/= idle && current === ifWalking && isSv39_i) {
     stage := idle
     ifDel := 0.B
     ifCause := 0.B
     ifExcpt := 0.B
     ifReady := 0.B
     io.ifIO.pipelineResult.cpuResult.ready := 0.B
+    io.dcacheIO.cpuReq.revoke := 1.B
     dcacheValid := 0.B
   }
 

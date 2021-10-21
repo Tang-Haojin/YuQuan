@@ -17,14 +17,14 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   })
 
   private val rand = MaximalPeriodGaloisLFSR(2)
-  private val idle::compare::allocate::passing::Nil = Enum(4)
-  private val state = RegInit(UInt(2.W), idle)
+  private val idle::starting::compare::allocate::passing::Nil = Enum(5)
+  private val state = RegInit(UInt(3.W), idle)
   private val received = RegInit(0.U(LogBurstLen.W))
   private val willDrop = RegInit(0.B)
 
   private val addr       = RegInit(0.U(alen.W))
   private val addrOffset = addr(Offset - 1, 2)
-  private val addrIndex  = WireDefault(UInt(Index.W), addr(Index + Offset - 1, Offset))
+  private val addrIndex  = addr(Index + Offset - 1, Offset)
   private val addrTag    = addr(alen - 1, Index + Offset)
   private val memAddr    = addr(alen - 1, Offset) ## 0.U(Offset.W)
 
@@ -62,10 +62,7 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   io.cpuIO.cpuResult.ready := hit
   io.cpuIO.cpuResult.data  := wordData(addrOffset)
 
-  when(io.cpuIO.cpuReq.valid && state =/= allocate) {
-    addr      := io.cpuIO.cpuReq.addr
-    addrIndex := io.cpuIO.cpuReq.addr(Index + Offset - 1, Offset)
-  }
+  when(io.cpuIO.cpuReq.valid && state =/= allocate) { addr := io.cpuIO.cpuReq.addr }
 
   private val isPeripheral = IsPeripheral(io.cpuIO.cpuReq.addr)
   private val passThrough  = PassThrough(true)(io.memIO, 0.B, addr, 0.U, 0.U, 0.B)
@@ -73,10 +70,11 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   io.inv.ready := 0.B
   when(state === idle) {
     when(io.cpuIO.cpuReq.valid) {
-      state := (if (noCache) passing else compare)
+      state := (if (noCache) passing else starting)
       when(isPeripheral) { state := passing }
     }.elsewhen(io.inv.valid) { ramValid.reset; io.inv.ready := 1.B }
   }
+  if (!noCache) when(state === starting) { state := compare }
   if (!noCache) when(state === compare) {
     ARVALID := 1.B
     state   := allocate
@@ -87,7 +85,7 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
       state := idle
       ARVALID := 0.B
       when(io.cpuIO.cpuReq.valid) {
-        state := compare
+        state := starting
         when(isPeripheral) { state := passing }
       }
     }
@@ -116,7 +114,7 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
       state := idle
       willDrop := 0.B
       when(io.cpuIO.cpuReq.valid) {
-        state := (if (noCache) idle else compare)
+        state := (if (noCache) idle else starting)
         when(isPeripheral) { state := passing }
       }
     }.elsewhen(io.jmpBch && (!passThrough.ready || !io.cpuIO.cpuReq.valid)) { willDrop := 1.B }

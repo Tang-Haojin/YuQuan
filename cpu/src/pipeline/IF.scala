@@ -55,9 +55,10 @@ class IF(implicit p: Parameters) extends YQModule {
                          (wireInstr(31, 25) === "b0001001".U && wireInstr(14, 7) === 0.U)
                        )
 
-  io.immu.pipelineReq.cpuReq.data  := DontCare
-  io.immu.pipelineReq.cpuReq.rw    := DontCare
-  io.immu.pipelineReq.cpuReq.wmask := DontCare
+  io.immu.pipelineReq.cpuReq.data   := DontCare
+  io.immu.pipelineReq.cpuReq.rw     := DontCare
+  io.immu.pipelineReq.cpuReq.wmask  := DontCare
+  io.immu.pipelineReq.cpuReq.revoke := DontCare
   io.immu.pipelineReq.cpuReq.valid := io.nextVR.READY && !wirePause && !io.isPriv && !io.isSatp
   io.immu.pipelineReq.cpuReq.addr  := wirePC
   io.immu.pipelineReq.cpuReq.size  := 2.U // TODO: Compression instruction
