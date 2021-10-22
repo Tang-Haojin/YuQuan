@@ -18,12 +18,12 @@ case class Zicsr()(implicit val p: Parameters) extends CPUParams {
   def CSRRCI = BitPat("b????????????_?????_111_?????_1110011")
 
   val table = Array(
-    //            |    Type    |num1 |num2 |num3 |num4 |op1_2| WB |     Special        |
-    CSRRW  -> List(InstrTypes.c, csr , rs1 , non , non , non , 1.U, ExecSpecials.csr   ),
-    CSRRS  -> List(InstrTypes.c, csr , rs1 , non , non , non , 1.U, ExecSpecials.csr   ),
-    CSRRC  -> List(InstrTypes.c, csr , rs1 , non , non , non , 1.U, ExecSpecials.csr   ),
-    CSRRWI -> List(InstrTypes.c, csr , imm , non , non , non , 1.U, ExecSpecials.csr   ),
-    CSRRSI -> List(InstrTypes.c, csr , imm , non , non , non , 1.U, ExecSpecials.csr   ),
-    CSRRCI -> List(InstrTypes.c, csr , imm , non , non , non , 1.U, ExecSpecials.csr   )
+    //            |    Type    |num1 |num2 |num3 |num4 |op1_2| WB |     Special     |
+    CSRRW  -> List(InstrTypes.c, csr , rs1 , non , non , non , 1.U, ExecSpecials.csr),
+    CSRRS  -> List(InstrTypes.c, csr , rs1 , non , non , non , 1.U, ExecSpecials.csr),
+    CSRRC  -> List(InstrTypes.c, csr , rs1 , non , non , non , 1.U, ExecSpecials.csr),
+    CSRRWI -> List(InstrTypes.c, csr , imm , non , non , non , 1.U, ExecSpecials.csr),
+    CSRRSI -> List(InstrTypes.c, csr , imm , non , non , non , 1.U, ExecSpecials.csr),
+    CSRRCI -> List(InstrTypes.c, csr , imm , non , non , non , 1.U, ExecSpecials.csr)
   )
 }

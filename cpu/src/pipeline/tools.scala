@@ -51,11 +51,11 @@ object ExecSpecials {
   val non::ld::st::jump::jalr::branch::trap::inv::word::csr::mret::exception::mu::msu::ecall::ebreak::sret::fencei::amo::sfence::Nil = specials
 }
 
-object InstrTypes { val i::u::s::r::j::b::c::Nil = Enum(7) }
+object InstrTypes { val i::u::s::r::j::b::c::cr::ci::css::ciw::cl::cs::ca::cb::cj::Nil = Enum(16) }
 
 object NumTypes {
-  val numtypes = Enum(8)
-  val non::rs1::rs2::imm::four::pc::csr::tmp::Nil = numtypes
+  val numtypes = Enum(13)
+  val non::rs1::rs2::imm::four::pc::csr::tmp::rs1c::rs2c::rs1p::rs2p::two::Nil = numtypes
 }
 
 case class RVInstr()(implicit val p: Parameters) extends CPUParams {

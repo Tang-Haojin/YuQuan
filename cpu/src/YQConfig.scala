@@ -13,7 +13,7 @@ object YQConfig {
   val f: (View, View, View) => PartialFunction[Any,Any] = (site, here, up) => {
     case XLEN          => 64
     case AxSIZE        => log2Ceil(here(XLEN) / 8)
-    case EXTENSIONS    => List('I', 'M', 'S', 'A', 'U')
+    case EXTENSIONS    => List('I', 'M', 'S', 'A', 'U', 'C')
     case ALEN          => site(GEN_NAME) match { case "ysyx" => 32; case "zmb" => 64 }
     case IDLEN         => 4
     case USRLEN        => site(GEN_NAME) match { case "ysyx" => 0; case "zmb" => 1 }

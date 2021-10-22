@@ -72,8 +72,8 @@ class IF(implicit p: Parameters) extends YQModule {
     rs(1)     := io.immu.pipelineResult.cpuResult.data(24, 20)
     rd        := io.immu.pipelineResult.cpuResult.data(11, 7)
     pc        := regPC
-    wirePC    := regPC + 4.U
-    regPC     := regPC + 4.U
+    wirePC    := regPC + Mux(io.immu.pipelineResult.cpuResult.data(1, 0) === "b11".U, 4.U, 2.U)
+    regPC     := regPC + Mux(io.immu.pipelineResult.cpuResult.data(1, 0) === "b11".U, 4.U, 2.U)
     except    := io.immu.pipelineResult.exception
     cause     := io.immu.pipelineResult.cause
     wirePause := isSatp

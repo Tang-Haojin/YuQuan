@@ -20,13 +20,13 @@ case class RVM()(implicit val p: Parameters) extends CPUParams {
   def REM    = BitPat("b0000001_?????_?????_110_?????_0110011")
   def REMU   = BitPat("b0000001_?????_?????_111_?????_0110011")
 
-  def MULW   = if(xlen!=32) BitPat("b0000001_?????_?????_000_?????_0111011") else RVI().ERR
-  def DIVW   = if(xlen!=32) BitPat("b0000001_?????_?????_100_?????_0111011") else RVI().ERR
-  def DIVUW  = if(xlen!=32) BitPat("b0000001_?????_?????_101_?????_0111011") else RVI().ERR
-  def REMW   = if(xlen!=32) BitPat("b0000001_?????_?????_110_?????_0111011") else RVI().ERR
-  def REMUW  = if(xlen!=32) BitPat("b0000001_?????_?????_111_?????_0111011") else RVI().ERR
+  def MULW   = BitPat("b0000001_?????_?????_000_?????_0111011")
+  def DIVW   = BitPat("b0000001_?????_?????_100_?????_0111011")
+  def DIVUW  = BitPat("b0000001_?????_?????_101_?????_0111011")
+  def REMW   = BitPat("b0000001_?????_?????_110_?????_0111011")
+  def REMUW  = BitPat("b0000001_?????_?????_111_?????_0111011")
 
-  val table = Array(
+  var table = Array(
     //            |    Type    |num1 |num2 |num3 |num4 |op1_2| WB |     Special        |
     MUL    -> List(InstrTypes.r, rs1 , rs2 , non , non , mul , 1.U, ExecSpecials.non   ),
     MULH   -> List(InstrTypes.r, rs1 , rs2 , non , non , mulh, 1.U, ExecSpecials.non   ),
@@ -35,8 +35,9 @@ case class RVM()(implicit val p: Parameters) extends CPUParams {
     DIV    -> List(InstrTypes.r, rs1 , rs2 , non , non , div , 1.U, ExecSpecials.non   ),
     DIVU   -> List(InstrTypes.r, rs1 , rs2 , non , non , divu, 1.U, ExecSpecials.non   ),
     REM    -> List(InstrTypes.r, rs1 , rs2 , non , non , rem , 1.U, ExecSpecials.non   ),
-    REMU   -> List(InstrTypes.r, rs1 , rs2 , non , non , remu, 1.U, ExecSpecials.non   ),
-
+    REMU   -> List(InstrTypes.r, rs1 , rs2 , non , non , remu, 1.U, ExecSpecials.non   )
+  )
+  if(xlen!=32) table ++= Array(
     MULW   -> List(InstrTypes.r, rs1 , rs2 , non , non , mul , 1.U, ExecSpecials.word  ),
     DIVW   -> List(InstrTypes.r, rs1 , rs2 , non , non , divw, 1.U, ExecSpecials.word  ),
     DIVUW  -> List(InstrTypes.r, rs1 , rs2 , non , non , duw , 1.U, ExecSpecials.word  ),
