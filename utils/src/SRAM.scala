@@ -3,7 +3,7 @@ package utils
 import chisel3._
 import chisel3.util._
 
-class S011HD1P_X32Y2D128(bits: Int = 128, wordDepth: Int = 64) extends BlackBox with HasBlackBoxInline {
+class SRAM(bits: Int = 128, wordDepth: Int = 64) extends BlackBox with HasBlackBoxInline {
   val io = IO(new Bundle {
     val Q   = Output(UInt(bits.W))
     val CLK = Input (Clock())
@@ -33,12 +33,12 @@ class S011HD1P_X32Y2D128(bits: Int = 128, wordDepth: Int = 64) extends BlackBox 
       |""".stripMargin)
 }
 
-object S011HD1P_X32Y2D128 {
-  def apply(bits: Int = 128, wordDepth: Int = 64): S011HD1P_X32Y2D128 = Module(new S011HD1P_X32Y2D128(bits, wordDepth))
+object SRAM {
+  def apply(bits: Int = 128, wordDepth: Int = 64): SRAM = Module(new SRAM(bits, wordDepth))
 }
 
 class SramWrapper(clock: Clock, bits: Int = 128, wordDepth: Int = 64) {
-  private val sram = S011HD1P_X32Y2D128(bits, wordDepth)
+  private val sram = SRAM(bits, wordDepth)
   private val rAddr = WireDefault(0.U(log2Ceil(wordDepth).W))
   private val wAddr = WireDefault(0.U(log2Ceil(wordDepth).W))
 

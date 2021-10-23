@@ -66,14 +66,14 @@ class IF(implicit p: Parameters) extends YQModule {
 
   when(io.immu.pipelineResult.cpuResult.ready && (!io.nextVR.VALID || io.nextVR.READY)) {
     NVALID    := 1.B
-    instr     := io.immu.pipelineResult.cpuResult.data
-    instrCode := io.immu.pipelineResult.cpuResult.data(6, 0)
-    rs(0)     := io.immu.pipelineResult.cpuResult.data(19, 15)
-    rs(1)     := io.immu.pipelineResult.cpuResult.data(24, 20)
-    rd        := io.immu.pipelineResult.cpuResult.data(11, 7)
+    instr     := wireInstr
+    instrCode := wireInstr(6, 0)
+    rs(0)     := wireInstr(19, 15)
+    rs(1)     := wireInstr(24, 20)
+    rd        := wireInstr(11, 7)
     pc        := regPC
-    wirePC    := regPC + Mux(io.immu.pipelineResult.cpuResult.data(1, 0) === "b11".U, 4.U, 2.U)
-    regPC     := regPC + Mux(io.immu.pipelineResult.cpuResult.data(1, 0) === "b11".U, 4.U, 2.U)
+    wirePC    := regPC + Mux(wireInstr(1, 0) === "b11".U, 4.U, 2.U)
+    regPC     := regPC + Mux(wireInstr(1, 0) === "b11".U, 4.U, 2.U)
     except    := io.immu.pipelineResult.exception
     cause     := io.immu.pipelineResult.cause
     wirePause := isSatp

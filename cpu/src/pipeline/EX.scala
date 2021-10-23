@@ -149,9 +149,7 @@ class EX(implicit p: Parameters) extends YQModule {
       newMstatus.UPIE := oldMstatus.UIE
       newMstatus.UIE  := 0.B
     }
-    wireCsrData(0) := io.input.num(0)
-    wireCsrData(1) := io.input.num(1)
-    wireCsrData(2) := io.input.num(2)
+    wireCsrData    := io.input.num
     wireCsrData(3) := newMstatus.asUInt
     wireRd := 0.U
   }
