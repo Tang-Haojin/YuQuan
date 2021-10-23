@@ -73,7 +73,8 @@ class MEM(implicit p: Parameters) extends YQModule {
   io.dmmu.pipelineReq.cpuReq.addr   := wireAddr
   io.dmmu.pipelineReq.cpuReq.size   := wireReql(1, 0)
   io.dmmu.pipelineReq.cpuReq.revoke := DontCare
-  io.dmmu.pipelineReq.flush        := (if (extensions.contains('S')) wireFsh else 0.B)
+  io.dmmu.pipelineReq.flush         := (if (extensions.contains('S')) wireFsh else 0.B)
+  io.dmmu.pipelineReq.offset        := DontCare
   io.output.retire := retire
   io.output.priv   := priv
   io.output.isPriv := isPriv

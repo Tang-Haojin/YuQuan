@@ -5,18 +5,21 @@ import chisel3.util._
 import chipsalliance.rocketchip.config._
 
 import cpu.tools._
+import cpu.cache._
 
-class PipelineReq(implicit p: Parameters) extends YQBundle {
+class PipelineReq(implicit p: Parameters) extends YQBundle with CacheParams {
   val cpuReq = new cpu.cache.CpuReq()(p.alterPartial({ case utils.ALEN => valen }))
   val flush  = Bool()
+  val offset = UInt(Offset.W)
 }
 
 class PipelineResult(implicit p: Parameters) extends YQBundle {
-  val exception = Bool()
-  val cause     = UInt(4.W)
-  val cpuResult = new cpu.cache.CpuResult
-  val fromMem   = Bool()
-  val isMMIO    = if (Debug) Bool() else null
+  val exception  = Bool()
+  val cause      = UInt(4.W)
+  val cpuResult  = new cpu.cache.CpuResult
+  val fromMem    = Bool()
+  val isMMIO     = if (Debug) Bool() else null
+  val crossCache = Bool()
 }
 
 class PipelineIO(datalen: Int = 64)(implicit p: Parameters) extends YQBundle {

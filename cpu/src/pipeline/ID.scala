@@ -299,12 +299,14 @@ class ID(implicit p: Parameters) extends YQModule {
         when(!io.currentPriv(1)) { tmpNewPriv := Mux(mideleg(intCode), "b01".U, "b11".U) }
         if (Debug) wireIntr := 1.B
       }.otherwise {
-        Seq(/*24,*/3,8,9,11,0,2,1,12/*,25*/).foreach(i => when(wireExcept(i)) { fire := 1.B; code := i.U }) // TODO: 24 for watchpoint, and 25 for breakpoint
+        Seq(/*24,*/3,8,9,11,0,2,1,12/*,25*/).filter(_ != (if (extensions.contains('C')) 0 else 32))
+        .foreach(i => when(wireExcept(i)) { fire := 1.B; code := i.U }) // TODO: 24 for watchpoint, and 25 for breakpoint
         when(!io.currentPriv(1)) { tmpNewPriv := Mux(medeleg(code), "b01".U, "b11".U) } // TODO: user interrupt
       }
       when(io.lastVR.VALID && fire) {
         val mstat   = io.csrsR.rdata(1)(xlen - 1) ## io.currentPriv ## wirePriv ## io.csrsR.rdata(1)(xlen - 6, 0)
-        val badAddr = wireExcept(0) | wireExcept(1) | wireExcept(12)
+        val bad     = (if (extensions.contains('C')) 0.B else wireExcept(0)) | wireExcept(1) | wireExcept(12)
+        val badAddr = Mux(io.input.crossCache && extensions.contains('C').B, io.input.pc + 2.U, io.input.pc)
         val Xepc    = MuxLookup(wirePriv, csrsAddr.Mepc,   Seq("b01".U -> csrsAddr.Sepc,   "b00".U -> csrsAddr.Uepc  ))
         val Xcause  = MuxLookup(wirePriv, csrsAddr.Mcause, Seq("b01".U -> csrsAddr.Scause, "b00".U -> csrsAddr.Ucause))
         val Xtval   = MuxLookup(wirePriv, csrsAddr.Mtval,  Seq("b01".U -> csrsAddr.Stval,  "b00".U -> csrsAddr.Utval ))
@@ -316,7 +318,7 @@ class ID(implicit p: Parameters) extends YQModule {
         wireIsWcsr := 1.B
         wireRd := 0.U
         wireCsr := VecInit(Xepc, Xcause, Xtval, csrsAddr.Mstatus)
-        wireNum := VecInit(io.input.pc, code, Mux(badAddr, io.input.pc, 0.U), mstat)
+        wireNum := VecInit(io.input.pc, code, Mux(bad, badAddr, 0.U), mstat)
         wireJbAddr := xtvec(valen - 1, 2) ## 0.U(2.W) + Mux(isInt && xtvec(0), code(3, 0) ## 0.U(2.W), 0.U)
         wireIsSatp := 0.B; wireBlocked := 0.B; wireAmoStat := amoStat; wireRetire := 1.B
       }

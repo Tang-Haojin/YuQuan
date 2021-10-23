@@ -28,7 +28,10 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
   private val stage = RegInit(0.U(2.W))
   private val level = RegInit(0.U(2.W))
   private val tlb = new TLB
-  private val ifVaddr  = io.ifIO.pipelineReq.cpuReq.addr.asTypeOf(new Vaddr)
+  private val crossCache = RegInit(0.B)
+  private val crossAddrP = RegInit(0.U((39 - Offset).W))
+  private val crossAddr  = Fill(valen - 39, crossAddrP(39 - Offset - 1)) ## crossAddrP ## 0.U(Offset.W)
+  private val ifVaddr  = Mux(crossCache, crossAddr, io.ifIO.pipelineReq.cpuReq.addr).asTypeOf(new Vaddr)
   private val memVaddr = io.memIO.pipelineReq.cpuReq.addr.asTypeOf(new Vaddr)
   private val vaddr    = RegInit(new Vaddr, 0.U.asTypeOf(new Vaddr))
   private val satp     = UseSatp(io.satp)
@@ -43,6 +46,7 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
   private val (ifReady, memReady) = (RegInit(0.B), RegInit(0.B))
   private val (ifExcpt, memExcpt) = (RegInit(0.B), RegInit(0.B))
   private val (ifCause, memCause) = (RegInit(0.U(4.W)), RegInit(0.U(4.W)))
+  private val ifCrossCache = RegInit(0.B)
   private val (isU_i, isS_i, isM_i) = (io.priv === "b00".U, io.priv === "b01".U, io.priv === "b11".U)
   private val (isU_d, isS_d, isM_d) = (
     Mux(io.mprv, io.mpp, io.priv) === "b00".U,
@@ -51,15 +55,19 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
   )
   private val icacheValid = WireDefault(Bool(), io.ifIO.pipelineReq.cpuReq.valid)
   private val dcacheValid = WireDefault(Bool(), io.memIO.pipelineReq.cpuReq.valid)
+  private val icacheReady = WireDefault(Bool(), io.icacheIO.cpuResult.ready)
+  private val partialInst = RegInit(0.U(16.W))
 
   when(ifDel) { ifDel := 0.B }; when(memDel) { memDel := 0.B }
 
-  io.ifIO.pipelineResult.cause      := 0.U
-  io.ifIO.pipelineResult.exception  := 0.B
-  io.ifIO.pipelineResult.fromMem    := 0.B
-  io.memIO.pipelineResult.cause     := 0.U
-  io.memIO.pipelineResult.exception := 0.B
-  io.memIO.pipelineResult.fromMem   := DontCare
+  io.ifIO.pipelineResult.cause       := 0.U
+  io.ifIO.pipelineResult.exception   := 0.B
+  io.ifIO.pipelineResult.fromMem     := 0.B
+  io.ifIO.pipelineResult.crossCache  := 0.B
+  io.memIO.pipelineResult.cause      := 0.U
+  io.memIO.pipelineResult.exception  := 0.B
+  io.memIO.pipelineResult.fromMem    := DontCare
+  io.memIO.pipelineResult.crossCache := DontCare
 
   io.ifIO.pipelineReq.cpuReq        <> io.icacheIO.cpuReq
   io.ifIO.pipelineResult.cpuResult  <> io.icacheIO.cpuResult
@@ -68,11 +76,13 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
   io.icacheIO.cpuReq.valid  := icacheValid
   io.dcacheIO.cpuReq.valid  := dcacheValid
   io.dcacheIO.cpuReq.revoke := 0.B
+  io.ifIO.pipelineResult.cpuResult.ready := icacheReady
 
   when(ifDel) {
-    io.ifIO.pipelineResult.cpuResult.ready := ifReady
+    icacheReady := ifReady
     io.ifIO.pipelineResult.exception := ifExcpt
     io.ifIO.pipelineResult.cause := ifCause
+    io.ifIO.pipelineResult.crossCache := ifCrossCache
     io.ifIO.pipelineResult.fromMem := memExcpt
   }
   when(memDel) {
@@ -165,7 +175,7 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
     when(stage === walking && current === ifWalking) { IfRaiseException(1.U, false) } // instruction access fault
     .otherwise { MemRaiseException(Mux(stage === walking || !isWrite, 5.U, 7.U), false) } // load/store/amo access fault
     stage := idle
-  }.elsewhen(io.ifIO.pipelineReq.cpuReq.valid && io.ifIO.pipelineReq.cpuReq.addr(1, 0) =/= 0.U && (!extensions.contains('C')).B) {
+  }.elsewhen(io.ifIO.pipelineReq.cpuReq.valid && ifVaddr.offset(1, 0) =/= 0.U && (!extensions.contains('C')).B) {
     icacheValid := 0.B
     IfRaiseException(0.U, false) // Instruction address misaligned
   }.elsewhen(icacheValid && !PMA(io.icacheIO.cpuReq.addr, io.icacheIO.cpuReq.size, 2.U)) {
@@ -203,7 +213,22 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
     }
   }
 
-  when(ifDel && ifExcpt) { ifDel := 0.B; ifCause := 0.U; ifExcpt := 0.B }
+  if (extensions.contains('C')) when(!ifDel && !crossCache && icacheReady && io.ifIO.pipelineReq.offset === (BlockSize - 2).U) {
+    when(io.icacheIO.cpuResult.data(1, 0) === "b11".U) {
+      crossCache := 1.B
+      io.ifIO.pipelineResult.cpuResult.ready := 0.B
+      icacheValid := 0.B
+      crossAddrP := ifVaddr.asUInt()(39 - 1, Offset) + 1.U
+      partialInst := io.icacheIO.cpuResult.data(15, 0)
+    }
+  }
+
+  if (extensions.contains('C')) when(crossCache === 1.B) {
+    io.ifIO.pipelineResult.cpuResult.data := io.icacheIO.cpuResult.data(15, 0) ## partialInst
+    when(icacheReady) { crossCache := 0.B }
+  }
+
+  when(ifDel && ifExcpt) { ifDel := 0.B; ifCause := 0.U; ifExcpt := 0.B; ifCrossCache := 0.B }
   when(memDel && memExcpt) {
     when(!io.jmpBch) { memDel := 0.B; memCause := 0.U; memExcpt := 0.B }
     .otherwise       { memDel := 1.B }
@@ -215,10 +240,13 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
     ifCause := 0.B
     ifExcpt := 0.B
     ifReady := 0.B
-    io.ifIO.pipelineResult.cpuResult.ready := 0.B
+    icacheReady := 0.B
+    ifCrossCache := 0.B
+    crossCache := 0.B
     io.dcacheIO.cpuReq.revoke := 1.B
     dcacheValid := 0.B
   }
+  when(io.jmpBch) { crossCache := 0.B }
 
   if (Debug) {
     val memAddr = Mux(isSv39_d, tlb.translate(memVaddr), memVaddr.asUInt())(alen - 1, 0)
@@ -233,6 +261,8 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
     ifReady := 1.B
     ifCause := cause
     ifExcpt := 1.B
+    ifCrossCache := crossCache
+    crossCache := 0.B
   }
 
   private case class MemRaiseException(cause: UInt, isPtw: Boolean = true) {
