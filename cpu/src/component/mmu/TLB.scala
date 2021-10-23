@@ -27,7 +27,7 @@ class TlbEntryBundle extends Bundle {
 class TLB(implicit val p: Parameters) extends CacheParams {
   private val tlbEntries = RegInit(VecInit(Seq.fill(TlbEntries)(0.U.asTypeOf(new TlbEntryBundle))))
 
-  def flush(): Unit = tlbEntries.foreach(_.flush)
+  def flush: Unit = tlbEntries.foreach(_.flush)
   def getTlbE(vaddr: Vaddr): Vec[TlbEntryBundle] = VecInit(Seq.tabulate(3)(x => tlbEntries(vaddr.vpn(x)(TlbIndex - 1, 0))))
   def isHitLevel(vaddr: Vaddr): Vec[Bool] = VecInit(Seq.tabulate(3)(x => getTlbE(vaddr)(x).v && (x match {
     case 0 => vaddr.vpn.asUInt()           === getTlbE(vaddr)(0).vpn.asUInt()

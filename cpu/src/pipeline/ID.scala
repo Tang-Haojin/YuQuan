@@ -258,7 +258,7 @@ class ID(implicit p: Parameters) extends YQModule {
       isSatp  := 0.B
     }
   }
-  
+
   when(jmpBch) { jmpBch := 0.B }
 
   if (Debug) {

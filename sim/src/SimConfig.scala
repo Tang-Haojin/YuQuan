@@ -39,7 +39,6 @@ object SimConfig {
     case ENABLE_DEBUG   => true
     case IS_YSYX        => false
     case IS_ZMB         => false
-    case NO_CACHE       => false
     case TLB_ENTRIES    => 16
     case VALEN          => 64
     case USESLAVE       => false

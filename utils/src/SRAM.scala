@@ -78,15 +78,6 @@ object SinglePortRam {
   def apply(clock: Clock, bits: Int = 128, wordDepth: Int = 64, associativity: Int = 4): SinglePortRam = new SinglePortRam(clock, bits, wordDepth, associativity)
 }
 
-class NoCacheRam(associativity: Int = 4) extends ReadWriteInterface {
-  def read(x: UInt, en: Bool = 1.B): Vec[UInt] = VecInit(Seq.fill(associativity)(0.U))
-  def write(idx: UInt, data: Vec[UInt], mask: Seq[Bool]): Unit = {}
-}
-
-object NoCacheRam {
-  def apply(associativity: Int = 4): NoCacheRam = new NoCacheRam(associativity)
-}
-
 abstract private[utils] class ReadWriteInterface {
   def read(x: UInt, en: Bool = 1.B): Vec[UInt]
   def write(idx: UInt, data: Vec[UInt], mask: Seq[Bool]): Unit

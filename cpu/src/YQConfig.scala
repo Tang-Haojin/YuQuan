@@ -36,7 +36,6 @@ object YQConfig {
     case REG_CONF      => new RegConf
     case IS_YSYX       => site(GEN_NAME) match { case "ysyx" => true; case "zmb" => false }
     case IS_ZMB        => site(GEN_NAME) match { case "ysyx" => false; case "zmb" => true }
-    case NO_CACHE      => false
     case TLB_ENTRIES   => 16
     case VALEN         => 64
     case USESLAVE      => false
@@ -75,7 +74,6 @@ case object ILEN         extends Field[Int]
 case object REG_CONF     extends Field[YQConfig.RegConf]
 case object IS_YSYX      extends Field[Boolean]
 case object IS_ZMB       extends Field[Boolean]
-case object NO_CACHE     extends Field[Boolean]
 case object TLB_ENTRIES  extends Field[Int]
 case object VALEN        extends Field[Int]
 case object USESLAVE     extends Field[Boolean]

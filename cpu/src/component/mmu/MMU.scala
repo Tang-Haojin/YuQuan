@@ -150,7 +150,7 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
   }
 
   when(io.memIO.pipelineReq.cpuReq.valid && io.memIO.pipelineReq.flush) {
-    tlb.flush()
+    tlb.flush
     memDel := !memDel; memReady := 1.B; memCause := 0.U; memExcpt := 0.B
     io.dcacheIO.cpuReq.valid := 0.B
   }.elsewhen(io.memIO.pipelineReq.cpuReq.valid && (
@@ -165,9 +165,9 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
     when(stage === walking && current === ifWalking) { IfRaiseException(1.U, false) } // instruction access fault
     .otherwise { MemRaiseException(Mux(stage === walking || !isWrite, 5.U, 7.U), false) } // load/store/amo access fault
     stage := idle
-  }.elsewhen(io.ifIO.pipelineReq.cpuReq.valid && io.ifIO.pipelineReq.cpuReq.addr(1, 0) =/= 0.U) {
+  }.elsewhen(io.ifIO.pipelineReq.cpuReq.valid && io.ifIO.pipelineReq.cpuReq.addr(1, 0) =/= 0.U && (!extensions.contains('C')).B) {
     icacheValid := 0.B
-    IfRaiseException(0.U, false) // Instruction address misaligned // TODO: compression instructions
+    IfRaiseException(0.U, false) // Instruction address misaligned
   }.elsewhen(icacheValid && !PMA(io.icacheIO.cpuReq.addr, io.icacheIO.cpuReq.size, 2.U)) {
     io.icacheIO.cpuReq.valid := 0.B
     IfRaiseException(1.U, false) // instruction access fault
