@@ -6,6 +6,7 @@ import chipsalliance.rocketchip.config._
 
 import cpu.pipeline.NumTypes._
 import cpu.component.Operators._
+import cpu.pipeline.InstrTypes._
 import cpu.pipeline._
 import cpu.tools._
 import cpu._
@@ -57,5 +58,55 @@ case class RVC()(implicit val p: Parameters) extends CPUParams {
   def C_SWSP     = BitPat("b????????????????_110_?_?????_?????_10")
   def C_SDSP     = BitPat("b????????????????_111_?_?????_?????_10") // RV64/128
 
-  // var table: Array[(BitPat, List[UInt])] = 
+  var table = Array(
+    //                | Type  |num1 |num2 |num3 |num4 |op1_2| WB |     Special        |
+    // quadrant 0
+    C_ERR      -> List(7.U    , pc  , non , non , non , non , 0.U, ExecSpecials.inv   ),
+    C_ADDI4SPN -> List(caddi4 , x2  , imm , non , non , add , 1.U, ExecSpecials.non   ),
+    C_LW       -> List(cld    , non , non , rs1p, imm , non , 1.U, ExecSpecials.ld    ),
+    C_SW       -> List(cst    , rs2p, non , rs1p, imm , add , 0.U, ExecSpecials.st    )
+  )
+  if (xlen != 32) table ++= Array(
+    C_LD       -> List(cld    , non , non , rs1p, imm , non , 1.U, ExecSpecials.ld    ),
+    C_SD       -> List(cst    , rs2p, non , rs1p, imm , add , 0.U, ExecSpecials.st    ),
+  )
+  // quadrant 1
+  table ++= Array(
+    C_ADDI     -> List(c540   , rd1c, imm , non , non , add , 1.U, ExecSpecials.non   ),
+    C_LI       -> List(c540   , non , imm , non , non , add , 1.U, ExecSpecials.non   ),
+    C_ADDI16SP -> List(caddi16, x2  , imm , non , non , add , 1.U, ExecSpecials.non   ),
+    C_LUI      -> List(c540   , non , imm , non , non , add , 1.U, ExecSpecials.non   ),
+    C_SRLI     -> List(c540   , rd1p, imm , non , non , srl , 1.U, ExecSpecials.non   ),
+    C_SRAI     -> List(c540   , rd1p, imm , non , non , sra , 1.U, ExecSpecials.non   ),
+    C_ANDI     -> List(c540   , rd1p, imm , non , non , and , 1.U, ExecSpecials.non   ),
+    C_SUB      -> List(cni    , rd1p, rs2p, non , non , sub , 1.U, ExecSpecials.non   ),
+    C_XOR      -> List(cni    , rd1p, rs2p, non , non , xor , 1.U, ExecSpecials.non   ),
+    C_OR       -> List(cni    , rd1p, rs2p, non , non , or  , 1.U, ExecSpecials.non   ),
+    C_AND      -> List(cni    , rd1p, rs2p, non , non , and , 1.U, ExecSpecials.non   ),
+    C_J        -> List(cj     , pc  , two , imm , non , add , 0.U, ExecSpecials.jump  ),
+    C_BEQZ     -> List(cb     , rs1p, non , imm , non , equ , 0.U, ExecSpecials.branch),
+    C_BNEZ     -> List(cb     , rs1p, non , imm , non , neq , 0.U, ExecSpecials.branch)
+  )
+  table ++= (if (xlen == 32) Array(
+    C_JAL      -> List(cj     , pc  , two , imm , non , add , 1.U, ExecSpecials.jump  )
+  ) else Array(
+    C_ADDIW    -> List(c540   , rd1c, imm , non , non , add , 1.U, ExecSpecials.word  ),
+    C_SUBW     -> List(cni    , rd1p, rs2p, non , non , sub , 1.U, ExecSpecials.word  ),
+    C_ADDW     -> List(cni    , rd1p, rs2p, non , non , add , 1.U, ExecSpecials.word  )
+  ))
+  // quadrant 2
+  table ++= Array(
+    C_SLLI     -> List(c540   , rd1c, imm , non , non , sll , 1.U, ExecSpecials.non   ),
+    C_LWSP     -> List(clsp   , non , non , x2  , imm , non , 1.U, ExecSpecials.ld    ),
+    C_JR       -> List(cni    , pc  , two , non , rs1c, add , 0.U, ExecSpecials.jalr  ),
+    C_MV       -> List(cni    , non , rs2c, non , non , add , 1.U, ExecSpecials.non   ),
+    C_EBREAK   -> List(cni    , non , non , non , non , non , 0.U, ExecSpecials.ebreak),
+    C_JALR     -> List(cni    , pc  , two , non , rs1c, add , 1.U, ExecSpecials.jalr  ),
+    C_ADD      -> List(cni    , rd1c, rs2c, non , non , add , 1.U, ExecSpecials.non   ),
+    C_SWSP     -> List(cssp   , rs2c, non , x2  , imm , add , 0.U, ExecSpecials.st    )
+  )
+  if (xlen != 32) table ++= Array(
+    C_LDSP     -> List(clsp   , non , non , x2  , imm , non , 1.U, ExecSpecials.ld    ),
+    C_SDSP     -> List(cssp   , rs2c, non , x2  , imm , add , 0.U, ExecSpecials.st    )
+  )
 }
