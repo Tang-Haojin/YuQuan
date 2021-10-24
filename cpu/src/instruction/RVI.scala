@@ -116,6 +116,7 @@ case class RVI()(implicit val p: Parameters) extends CPUParams {
     AND   -> List(InstrTypes.r, rs1 , rs2 , non , non , and , 1.U, ExecSpecials.non   ),
     FENCE -> List(InstrTypes.i, non , non , non , non , non , 0.U, ExecSpecials.non   ), // do nothing
     ECALL -> List(InstrTypes.i, non , non , non , non , non , 0.U, ExecSpecials.ecall ),
+    EBREAK-> List(InstrTypes.i, non , non , non , non , non , 0.U, ExecSpecials.ebreak),
     TRAP  -> List(InstrTypes.i, non , non , non , non , non , 0.U, ExecSpecials.trap  )
   )
   if(xlen!=32) table ++= Array(
