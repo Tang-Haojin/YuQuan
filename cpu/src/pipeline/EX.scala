@@ -56,7 +56,7 @@ class EX(implicit p: Parameters) extends YQModule {
   private val isSatp  = RegInit(0.B)
   private val except  = RegInit(0.B)
   private val cause   = RegInit(0.U(4.W))
-  private val fshTLB  = if (extensions.contains('S')) RegInit(0.B) else null
+  private val fshTLB  = if (ext('S')) RegInit(0.B) else null
   private val exit    = if (Debug) RegInit(0.U(3.W)) else null
   private val rcsr    = if (Debug) RegInit(0xfff.U(12.W)) else null
   private val intr    = if (Debug) RegInit(0.B) else null
@@ -91,7 +91,7 @@ class EX(implicit p: Parameters) extends YQModule {
   io.output.isSatp  := isSatp
   io.output.except  := except
   io.output.cause   := cause
-  if (extensions.contains('S')) io.output.fshTLB := fshTLB
+  if (ext('S')) io.output.fshTLB := fshTLB
 
   io.invIch.valid   := invalidateICache
   io.wbDch.valid    := writebackDCache
@@ -102,8 +102,8 @@ class EX(implicit p: Parameters) extends YQModule {
     case class csrsAddr()(implicit val p: Parameters) extends cpu.CPUParams with cpu.privileged.CSRsAddr
     val oldValue = io.input.num(0).asTypeOf(new MipBundle)
     val newValue = WireDefault(new MipBundle, oldValue)
-    if (extensions.contains('S')) newValue.SEIP := Mux(io.input.wcsr(0) === csrsAddr().Mip, io.seip, oldValue.SEIP)
-    if (extensions.contains('U')) newValue.UEIP := Mux(io.input.wcsr(0) === csrsAddr().Mip || io.input.wcsr(0) === csrsAddr().Sip, io.ueip, oldValue.UEIP)
+    if (ext('S')) newValue.SEIP := Mux(io.input.wcsr(0) === csrsAddr().Mip, io.seip, oldValue.SEIP)
+    if (ext('U')) newValue.UEIP := Mux(io.input.wcsr(0) === csrsAddr().Mip || io.input.wcsr(0) === csrsAddr().Sip, io.ueip, oldValue.UEIP)
     wireCsrData(0) := MuxLookup(io.input.op1_3(1, 0), 0.U, Seq(
       1.U -> (io.input.num(1)),
       2.U -> (newValue | io.input.num(1)),
@@ -121,7 +121,7 @@ class EX(implicit p: Parameters) extends YQModule {
       io.input.num(0)(2, 0)
     )
   }
-  if (extensions.contains('S')) when(io.input.special === sret) {
+  if (ext('S')) when(io.input.special === sret) {
     val oldMstatus = io.input.num(0).asTypeOf(new MstatusBundle)
     val newMstatus = WireDefault(new MstatusBundle, oldMstatus)
     newMstatus.SPP  := 0.B
@@ -153,7 +153,7 @@ class EX(implicit p: Parameters) extends YQModule {
     wireCsrData(3) := newMstatus.asUInt
     wireRd := 0.U
   }
-  if (extensions.contains('A')) when(io.input.special === amo) {
+  if (ext('A')) when(io.input.special === amo) {
     when(io.input.op1_2 === Operators.lr) {
       wireIsMem   := 1.B
       wireIsLd    := 1.B
@@ -211,7 +211,7 @@ class EX(implicit p: Parameters) extends YQModule {
     isSatp  := io.input.isSatp
     except  := io.input.except
     cause   := io.input.cause
-    if (extensions.contains('S')) fshTLB := io.input.special === sfence
+    if (ext('S')) fshTLB := io.input.special === sfence
 
     op      := wireOp
     isWord  := wireIsWord
@@ -231,7 +231,7 @@ class EX(implicit p: Parameters) extends YQModule {
     isSatp := 0.B
   }
 
-  if (extensions.contains('A')) when(scState === storing) {
+  if (ext('A')) when(scState === storing) {
     scState := idle
     rd      := tmpRd
     data    := 0.U

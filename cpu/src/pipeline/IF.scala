@@ -75,8 +75,8 @@ class IF(implicit p: Parameters) extends YQModule {
     rs(1)      := wireInstr(24, 20)
     rd         := wireInstr(11, 7)
     pc         := regPC
-    wirePC     := regPC + Mux(wireInstr(1, 0) === "b11".U, 4.U, 2.U)
-    regPC      := regPC + Mux(wireInstr(1, 0) === "b11".U, 4.U, 2.U)
+    wirePC     := regPC + Mux(wireInstr(1, 0).andR() || !ext('C').B, 4.U, 2.U)
+    regPC      := regPC + Mux(wireInstr(1, 0).andR() || !ext('C').B, 4.U, 2.U)
     except     := io.immu.pipelineResult.exception
     cause      := io.immu.pipelineResult.cause
     crossCache := io.immu.pipelineResult.crossCache

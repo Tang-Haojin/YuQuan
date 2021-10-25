@@ -29,7 +29,7 @@ class MEM(implicit p: Parameters) extends YQModule {
   private val isWfe   = RegInit(0.B)
   private val cause   = RegInit(0.U(4.W))
   private val pc      = RegInit(0.U(valen.W))
-  private val flush   = if (extensions.contains('S')) RegInit(0.B) else null
+  private val flush   = if (ext('S')) RegInit(0.B) else null
   private val exit    = if (Debug) RegInit(0.U(3.W)) else null
   private val rcsr    = if (Debug) RegInit(0xfff.U(12.W)) else null
   private val mmio    = if (Debug) RegInit(0.B) else null
@@ -50,7 +50,7 @@ class MEM(implicit p: Parameters) extends YQModule {
   private val wireMask = WireDefault(UInt((xlen / 8).W), mask)
   private val wireRetr = WireDefault(Bool(), io.input.retire)
   private val wireReql = WireDefault(UInt(3.W), extType)
-  private val wireFsh  = if (extensions.contains('S')) WireDefault(Bool(), flush) else null
+  private val wireFsh  = if (ext('S')) WireDefault(Bool(), flush) else null
 
   private val shiftRdata = VecInit((0 until 8).map(i => io.dmmu.pipelineResult.cpuResult.data >> (8 * i)))(offset)
   private val extRdata   = VecInit((0 until 7).map {
@@ -73,7 +73,7 @@ class MEM(implicit p: Parameters) extends YQModule {
   io.dmmu.pipelineReq.cpuReq.addr   := wireAddr
   io.dmmu.pipelineReq.cpuReq.size   := wireReql(1, 0)
   io.dmmu.pipelineReq.cpuReq.revoke := DontCare
-  io.dmmu.pipelineReq.flush         := (if (extensions.contains('S')) wireFsh else 0.B)
+  io.dmmu.pipelineReq.flush         := (if (ext('S')) wireFsh else 0.B)
   io.dmmu.pipelineReq.offset        := DontCare
   io.output.retire := retire
   io.output.priv   := priv
@@ -86,7 +86,7 @@ class MEM(implicit p: Parameters) extends YQModule {
     isMem     := 0.B
     wireIsMem := 0.B
     rw        := 0.B
-    if (extensions.contains('S')) flush := 0.B
+    if (ext('S')) flush := 0.B
     when(!rw) { data := extRdata }
     when(io.dmmu.pipelineResult.exception) {
       isWfe := 1.B
@@ -118,7 +118,7 @@ class MEM(implicit p: Parameters) extends YQModule {
     isWfe    := 0.B
     when(isWfe) { csrData(0) := pc; csrData(2) := addr }
     .otherwise { pc := io.input.pc }
-    if (extensions.contains('S')) {
+    if (ext('S')) {
       wireFsh := io.input.fshTLB
       flush   := wireFsh
     }

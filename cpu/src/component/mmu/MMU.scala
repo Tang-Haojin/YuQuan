@@ -175,7 +175,7 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
     when(stage === walking && current === ifWalking) { IfRaiseException(1.U, false) } // instruction access fault
     .otherwise { MemRaiseException(Mux(stage === walking || !isWrite, 5.U, 7.U), false) } // load/store/amo access fault
     stage := idle
-  }.elsewhen(io.ifIO.pipelineReq.cpuReq.valid && ifVaddr.offset(1, 0) =/= 0.U && (!extensions.contains('C')).B) {
+  }.elsewhen(io.ifIO.pipelineReq.cpuReq.valid && ifVaddr.offset(1, 0) =/= 0.U && (!ext('C')).B) {
     icacheValid := 0.B
     IfRaiseException(0.U, false) // Instruction address misaligned
   }.elsewhen(icacheValid && !PMA(io.icacheIO.cpuReq.addr, io.icacheIO.cpuReq.size, 2.U)) {
@@ -213,7 +213,7 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
     }
   }
 
-  if (extensions.contains('C')) when(!ifDel && !crossCache && icacheReady && io.ifIO.pipelineReq.offset === (BlockSize - 2).U) {
+  if (ext('C')) when(!ifDel && !crossCache && icacheReady && io.ifIO.pipelineReq.offset === (BlockSize - 2).U) {
     when(io.icacheIO.cpuResult.data(1, 0) === "b11".U) {
       crossCache := 1.B
       io.ifIO.pipelineResult.cpuResult.ready := 0.B
@@ -223,7 +223,7 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
     }
   }
 
-  if (extensions.contains('C')) when(crossCache === 1.B) {
+  if (ext('C')) when(crossCache === 1.B) {
     io.ifIO.pipelineResult.cpuResult.data := io.icacheIO.cpuResult.data(15, 0) ## partialInst
     when(icacheReady) { crossCache := 0.B }
   }

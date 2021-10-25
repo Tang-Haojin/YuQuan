@@ -59,8 +59,8 @@ class MipBundle(implicit val p: Parameters) extends Bundle with CPUParams {
 
   def := (that: => Data): Unit = {
     val mip = WireDefault(new MipBundle, that.asTypeOf(new MipBundle))
-    if (extensions.contains('S')) { SEIP := mip.SEIP; SSIP := mip.SSIP; STIP := mip.STIP }
-    if (extensions.contains('U')) { UEIP := mip.UEIP; USIP := mip.USIP; UTIP := mip.UTIP }
+    if (ext('S')) { SEIP := mip.SEIP; SSIP := mip.SSIP; STIP := mip.STIP }
+    if (ext('U')) { UEIP := mip.UEIP; USIP := mip.USIP; UTIP := mip.UTIP }
   }
 
   def apply(x: Int): Bool = asUInt()(x)
@@ -90,8 +90,8 @@ class MieBundle(implicit val p: Parameters) extends Bundle with CPUParams {
   def := (that: => Data): Unit = {
     val mie = WireDefault(new MieBundle, that.asTypeOf(new MieBundle))
     MEIE := mie.MEIE; MSIE := mie.MSIE; MTIE := mie.MTIE
-    if (extensions.contains('S')) { SEIE := mie.SEIE; SSIE := mie.SSIE; STIE := mie.STIE }
-    if (extensions.contains('U')) { UEIE := mie.UEIE; USIE := mie.USIE; UTIE := mie.UTIE }
+    if (ext('S')) { SEIE := mie.SEIE; SSIE := mie.SSIE; STIE := mie.STIE }
+    if (ext('U')) { UEIE := mie.UEIE; USIE := mie.USIE; UTIE := mie.UTIE }
   }
 
   def apply(x: Int): Bool = asUInt()(x)
@@ -112,8 +112,8 @@ class MidelegBundle(implicit val p: Parameters) extends Bundle with CPUParams {
 
   def := (that: => Data): Unit = {
     val mideleg = WireDefault(new MidelegBundle, that.asTypeOf(new MidelegBundle))
-    if (extensions.contains('S')) { SEI := mideleg.SEI; SSI := mideleg.SSI; STI := mideleg.STI }
-    if (extensions.contains('U')) { UEI := mideleg.UEI; USI := mideleg.USI; UTI := mideleg.UTI }
+    if (ext('S')) { SEI := mideleg.SEI; SSI := mideleg.SSI; STI := mideleg.STI }
+    if (ext('U')) { UEI := mideleg.UEI; USI := mideleg.USI; UTI := mideleg.UTI }
   }
 
   def apply(x: Int): Bool = asUInt()(x)

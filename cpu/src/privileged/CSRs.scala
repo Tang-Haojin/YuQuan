@@ -123,13 +123,13 @@ class CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
   private val mhartid   = 0.U(xlen.W) // the hart that running the code
   private val mtvec     = RegInit(0.U(xlen.W))
   private val mstatus   = RegInit({ val init = WireDefault(0.U.asTypeOf(new MstatusBundle))
-    init.UXL := (if (extensions.contains('S')) log2Down(xlen) - 4 else 0).U
-    init.SXL := (if (extensions.contains('S')) log2Down(xlen) - 4 else 0).U
+    init.UXL := (if (ext('S')) log2Down(xlen) - 4 else 0).U
+    init.SXL := (if (ext('S')) log2Down(xlen) - 4 else 0).U
     init
   })
 
-  private val medeleg = if (extensions.contains('S')) RegInit(0.U(xlen.W)) else null
-  private val mideleg = if (extensions.contains('S')) RegInit(0.U.asTypeOf(new MidelegBundle)) else null
+  private val medeleg = if (ext('S')) RegInit(0.U(xlen.W)) else null
+  private val mideleg = if (ext('S')) RegInit(0.U.asTypeOf(new MidelegBundle)) else null
 
   private val mcycle       = RegInit(0.U(64.W)) // the number of clock cycles
   private val minstret     = RegInit(0.U(64.W)) // the number of instructions retired
@@ -209,8 +209,8 @@ class CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
         when(io.csrsW.wcsr(i) === Stval) { stval := io.csrsW.wdata(i) }
         when(io.csrsW.wcsr(i) === Sip) { sip := io.csrsW.wdata(i) }
         when(io.csrsW.wcsr(i) === Satp) { satp := io.csrsW.wdata(i) }
-        when(io.csrsW.wcsr(i) === Mideleg) { if (extensions.contains('S')) mideleg := io.csrsW.wdata(i) }
-        when(io.csrsW.wcsr(i) === Medeleg) { if (extensions.contains('S')) medeleg := io.csrsW.wdata(i) }
+        when(io.csrsW.wcsr(i) === Mideleg) { if (ext('S')) mideleg := io.csrsW.wdata(i) }
+        when(io.csrsW.wcsr(i) === Medeleg) { if (ext('S')) medeleg := io.csrsW.wdata(i) }
 
         if (xlen == 32) {
           when((io.csrsW.wcsr(i) === Pmpcfg1) || (io.csrsW.wcsr(i) === Pmpcfg3)) {} // Currently do nothing.
@@ -259,8 +259,8 @@ class CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
     when(io.csrsR.rcsr(i) === Stval) { io.csrsR.rdata(i) := stval }
     when(io.csrsR.rcsr(i) === Sip) { io.csrsR.rdata(i) := sip }
     when(io.csrsR.rcsr(i) === Satp) { io.csrsR.rdata(i) := satp }
-    when(io.csrsR.rcsr(i) === Mideleg) { if (extensions.contains('S')) io.csrsR.rdata(i) := mideleg.asUInt }
-    when(io.csrsR.rcsr(i) === Medeleg) { if (extensions.contains('S')) io.csrsR.rdata(i) := medeleg }
+    when(io.csrsR.rcsr(i) === Mideleg) { if (ext('S')) io.csrsR.rdata(i) := mideleg.asUInt }
+    when(io.csrsR.rcsr(i) === Medeleg) { if (ext('S')) io.csrsR.rdata(i) := medeleg }
     when(io.csrsR.rcsr(i) === Time) { io.csrsR.rdata(i) := io.mtime }
 
     if (xlen == 32) {
