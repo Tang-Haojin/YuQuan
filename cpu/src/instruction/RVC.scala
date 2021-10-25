@@ -63,19 +63,19 @@ case class RVC()(implicit val p: Parameters) extends CPUParams {
     // quadrant 0
     C_ERR      -> List(7.U    , pc  , non , non , non , non , 0.U, ExecSpecials.inv   ),
     C_ADDI4SPN -> List(caddi4 , x2  , imm , non , non , add , 1.U, ExecSpecials.non   ),
-    C_LW       -> List(cld    , non , non , rs1p, imm , non , 1.U, ExecSpecials.ld    ),
-    C_SW       -> List(cst    , rs2p, non , rs1p, imm , add , 0.U, ExecSpecials.st    )
+    C_LW       -> List(cldst  , non , non , rs1p, imm , non , 1.U, ExecSpecials.ld    ),
+    C_SW       -> List(cldst  , rs2p, non , rs1p, imm , add , 0.U, ExecSpecials.st    )
   )
   if (xlen != 32) table ++= Array(
-    C_LD       -> List(cld    , non , non , rs1p, imm , non , 1.U, ExecSpecials.ld    ),
-    C_SD       -> List(cst    , rs2p, non , rs1p, imm , add , 0.U, ExecSpecials.st    ),
+    C_LD       -> List(cldst  , non , non , rs1p, imm , non , 1.U, ExecSpecials.ld    ),
+    C_SD       -> List(cldst  , rs2p, non , rs1p, imm , add , 0.U, ExecSpecials.st    ),
   )
   // quadrant 1
   table ++= Array(
     C_ADDI     -> List(c540   , rd1c, imm , non , non , add , 1.U, ExecSpecials.non   ),
     C_LI       -> List(c540   , non , imm , non , non , add , 1.U, ExecSpecials.non   ),
-    C_ADDI16SP -> List(caddi16, x2  , imm , non , non , add , 1.U, ExecSpecials.non   ),
-    C_LUI      -> List(c540   , non , imm , non , non , add , 1.U, ExecSpecials.non   ),
+    C_ADDI16SP -> List(caddi16, rd1c, imm , non , non , add , 1.U, ExecSpecials.non   ),
+    C_LUI      -> List(clui   , non , imm , non , non , add , 1.U, ExecSpecials.non   ),
     C_SRLI     -> List(c540   , rd1p, imm , non , non , srl , 1.U, ExecSpecials.non   ),
     C_SRAI     -> List(c540   , rd1p, imm , non , non , sra , 1.U, ExecSpecials.non   ),
     C_ANDI     -> List(c540   , rd1p, imm , non , non , and , 1.U, ExecSpecials.non   ),
