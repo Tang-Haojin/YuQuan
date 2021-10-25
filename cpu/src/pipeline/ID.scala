@@ -89,13 +89,13 @@ class ID(implicit p: Parameters) extends YQModule {
   private val isMemExcept = VecInit(memExcept.map(wireExcept(_))).asUInt().orR()
 
   private val (lessthan, ulessthan, equal) = (wireNum(0).asSInt < wireNum(1).asSInt, wireNum(0) < wireNum(1), wireNum(0) === wireNum(1))
-  private val willBranch = MuxLookup(wireInstr(14, 12), equal, Seq(
+  private val willBranch = Mux(wireInstr(1, 0).andR(), MuxLookup(wireInstr(14, 12), equal, Seq(
     "b001".U -> !equal,
     "b100".U -> lessthan,
     "b101".U -> !lessthan,
     "b110".U -> ulessthan,
     "b111".U -> !ulessthan
-  ))
+  )), Mux(wireFunct3c(1, 0) === "b10".U, equal, !equal))
 
   io.nextVR.VALID   := NVALID
   io.output.rd      := rd
@@ -186,8 +186,9 @@ class ID(implicit p: Parameters) extends YQModule {
   wireRd := Fill(5, decoded(6)(0)) & Mux(wireInstr(1, 0).andR() || !ext('C').B, io.input.rd, wireCRd)
 
   io.jmpBch := jmpBch; io.jbAddr := jbAddr
-  private val jbOffset = MuxLookup(io.input.instrCode(3, 2), immMap(j), Seq("b01".U -> immMap(i), "b00".U -> immMap(b)))
-  private val tmpJbaddr = Mux(io.input.instrCode(6, 2) === "b11001".U, io.gprsR.rdata(2)(valen - 1, 0), io.input.pc) + jbOffset(valen - 1, 0)
+  private val jbCOffset = MuxLookup(wireFunct3c(1, 0), immMap(cb), Seq("b01".U -> immMap(cj), "b00".U -> 0.U))
+  private val jbOffset  = Mux(wireInstr(1, 0).andR() || !ext('C').B, MuxLookup(io.input.instrCode(3, 2), immMap(j), Seq("b01".U -> immMap(i), "b00".U -> immMap(b))), jbCOffset)
+  private val tmpJbaddr = Mux(useRaddr2, io.gprsR.rdata(2)(valen - 1, 0), io.input.pc) + jbOffset(valen - 1, 0)
 
   when(decoded(7) === jump || (decoded(7) === branch && willBranch === 1.U)) {
     wireJmpBch := 1.B
@@ -280,7 +281,7 @@ class ID(implicit p: Parameters) extends YQModule {
       cause      := io.input.cause
       pc         := io.input.pc
       jbPend     := 0.B
-      when(wireJmpBch && wireJbAddr =/= io.input.pc + 4.U) { jmpBch := 1.B; jbPend := 1.B; jbAddr := wireJbAddr }
+      when(wireJmpBch && wireJbAddr =/= io.input.pc + Mux(wireInstr(1, 0).andR() || !ext('C').B, 4.U, 2.U)) { jmpBch := 1.B; jbPend := 1.B; jbAddr := wireJbAddr }
       if (Debug) {
         rcsr := Mux(wireSpecial === csr, wireInstr(31, 20), 0xfff.U)
         intr := wireIntr
