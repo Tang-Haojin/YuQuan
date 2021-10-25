@@ -119,7 +119,7 @@ class CPU(implicit p: Parameters) extends YQModule {
   moduleBypass.io.memOut.value := moduleMEM.io.output.data
   moduleBypass.io.isLd         := moduleEX.io.output.isLd
   moduleBypass.io.isAmo        := moduleID.io.isAmo
-  moduleBypass.io.insRs        := moduleIF.io.output.rs
+  moduleBypass.io.instr        := moduleIF.io.output.instr
 
   moduleBypassCsr.io.idIO.bits   := moduleID.io.output
   moduleBypassCsr.io.idIO.valid  := moduleID.io.nextVR.VALID
