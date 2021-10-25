@@ -61,7 +61,8 @@ object NumTypes {
 case class RVInstr()(implicit val p: Parameters) extends CPUParams {
   val table: Array[(BitPat, List[UInt])] = (
     RVI().table ++ Zicsr().table ++ Privileged().table ++ Zifencei().table ++
-    (if (ext('M')) RVM().table else Nil) ++ (if (ext('A')) RVA().table else Nil)
+    (if (ext('M')) RVM().table else Nil) ++ (if (ext('A')) RVA().table else Nil) ++
+    (if (ext('C')) RVC().table else Nil)
   ).toArray
 }
 
