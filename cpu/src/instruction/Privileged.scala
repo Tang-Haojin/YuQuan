@@ -16,13 +16,10 @@ case class Privileged()(implicit val p: Parameters) extends CPUParams {
   def SRET       = BitPat("b0001000_00010_00000_000_00000_1110011")
   def SFENCE_VMA = BitPat("b0001001_?????_?????_000_00000_1110011")
 
-  var table = Array(
+  val table = List(
     //                |    Type    |num1 |num2 |num3 |num4 |op1_2| WB |     Special        |
     MRET       -> List(InstrTypes.i, non , non , non , non , non , 0.U, ExecSpecials.mret  ),
-    WFI        -> List(InstrTypes.i, non , non , non , non , non , 0.U, ExecSpecials.non   ) // do nothing
-  )
-  if(extensions.contains('S')) table ++= Array(
+    WFI        -> List(InstrTypes.i, non , non , non , non , non , 0.U, ExecSpecials.non   )) /* do nothing */ ++ (if(ext('S')) List(
     SRET       -> List(InstrTypes.i, non , non , non , non , non , 0.U, ExecSpecials.sret  ),
-    SFENCE_VMA -> List(InstrTypes.i, non , non , non , non , non , 0.U, ExecSpecials.sfence)
-  )
+    SFENCE_VMA -> List(InstrTypes.i, non , non , non , non , non , 0.U, ExecSpecials.sfence)) else Nil)
 }

@@ -35,7 +35,7 @@ class EXOutput(implicit p: Parameters) extends YQBundle {
   val isSatp  = Output(Bool())
   val except  = Output(Bool())
   val cause   = Output(UInt(4.W))
-  val fshTLB  = if (extensions.contains('S')) Output(Bool()) else null
+  val fshTLB  = if (ext('S')) Output(Bool()) else null
   val pc      = Output(UInt(valen.W))
   val debug   =
     if (Debug) new YQBundle {
@@ -47,24 +47,22 @@ class EXOutput(implicit p: Parameters) extends YQBundle {
 
 // ID
 object ExecSpecials {
-  val specials = Enum(20)
+  val specials: List[UInt] = Enum(20)
   val non::ld::st::jump::jalr::branch::trap::inv::word::csr::mret::exception::mu::msu::ecall::ebreak::sret::fencei::amo::sfence::Nil = specials
 }
 
 object InstrTypes { val i::u::s::r::j::b::c::invalid::clsp::cssp::cldst::cj::cni::cb::c540::clui::caddi16::caddi4::cinv::Nil = Enum(19) }
 
 object NumTypes {
-  val numtypes = Enum(16)
+  val numtypes: List[UInt] = Enum(16)
   val non::rs1::rs2::imm::four::pc::csr::tmp::rs1c::rs2c::rs1p::rs2p::rd1c::rd1p::two::x2::Nil = numtypes
 }
 
 case class RVInstr()(implicit val p: Parameters) extends CPUParams {
-  val table = {
-    val a = RVI().table ++ Zicsr().table ++ Privileged().table ++ Zifencei().table
-    val b = if (extensions.contains('M')) a ++ RVM().table else a
-    val c = if (extensions.contains('A')) b ++ RVA().table else b
-    c
-  }
+  val table: Array[(BitPat, List[UInt])] = (
+    RVI().table ++ Zicsr().table ++ Privileged().table ++ Zifencei().table ++
+    (if (ext('M')) RVM().table else Nil) ++ (if (ext('A')) RVA().table else Nil)
+  ).toArray
 }
 
 class IDOutput(implicit p: Parameters) extends YQBundle {

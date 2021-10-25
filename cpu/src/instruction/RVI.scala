@@ -74,7 +74,7 @@ case class RVI()(implicit val p: Parameters) extends CPUParams {
   def TRAP   = BitPat("b???????_?????_?????_???_?????_1101011")
   def ERR    = BitPat("b0000000_00000_00000_000_00000_0000000")
 
-  var table = Array(
+  val table = List(
     //           |    Type    |num1 |num2 |num3 |num4 |op1_2| WB |     Special        |
     ERR   -> List(7.U         , pc  , non , non , non , non , 0.U, ExecSpecials.inv   ),
     LUI   -> List(InstrTypes.u, non , imm , non , non , add , 1.U, ExecSpecials.non   ),
@@ -117,9 +117,7 @@ case class RVI()(implicit val p: Parameters) extends CPUParams {
     FENCE -> List(InstrTypes.i, non , non , non , non , non , 0.U, ExecSpecials.non   ), // do nothing
     ECALL -> List(InstrTypes.i, non , non , non , non , non , 0.U, ExecSpecials.ecall ),
     EBREAK-> List(InstrTypes.i, non , non , non , non , non , 0.U, ExecSpecials.ebreak),
-    TRAP  -> List(InstrTypes.i, non , non , non , non , non , 0.U, ExecSpecials.trap  )
-  )
-  if(xlen!=32) table ++= Array(
+    TRAP  -> List(InstrTypes.i, non , non , non , non , non , 0.U, ExecSpecials.trap  )) ++ (if (xlen != 32) List(
     LWU   -> List(InstrTypes.i, non , non , rs1 , imm , non , 1.U, ExecSpecials.ld    ),
     LD    -> List(InstrTypes.i, non , non , rs1 , imm , non , 1.U, ExecSpecials.ld    ),
     SD    -> List(InstrTypes.s, rs2 , non , rs1 , imm , add , 0.U, ExecSpecials.st    ),
@@ -131,6 +129,5 @@ case class RVI()(implicit val p: Parameters) extends CPUParams {
     SUBW  -> List(InstrTypes.r, rs1 , rs2 , non , non , sub , 1.U, ExecSpecials.word  ),
     SLLW  -> List(InstrTypes.r, rs1 , rs2 , non , non , sllw, 1.U, ExecSpecials.word  ),
     SRLW  -> List(InstrTypes.r, rs1 , rs2 , non , non , srlw, 1.U, ExecSpecials.word  ),
-    SRAW  -> List(InstrTypes.r, rs1 , rs2 , non , non , sraw, 1.U, ExecSpecials.word  )
-  )
+    SRAW  -> List(InstrTypes.r, rs1 , rs2 , non , non , sraw, 1.U, ExecSpecials.word  )) else Nil)
 }

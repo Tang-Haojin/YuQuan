@@ -36,7 +36,7 @@ case class RVA()(implicit val p: Parameters) extends CPUParams {
   def AMOMINU_D = BitPat("b11000??_?????_?????_011_?????_0101111")
   def AMOMAXU_D = BitPat("b11100??_?????_?????_011_?????_0101111")
 
-  var table = Array(
+  val table = List(
     //               |Type|num1 |num2 |num3 |num4 |op1_2| WB |Special|
     LR_W      -> List(0.U , non , non , rs1 , non , lr  , 1.U,  amo  ),
     SC_W      -> List(0.U , rs2 , non , rs1 , non , sc  , 1.U,  amo  ),
@@ -48,9 +48,7 @@ case class RVA()(implicit val p: Parameters) extends CPUParams {
     AMOMIN_W  -> List(0.U , rs2 , tmp , rs1 , non , min , 1.U,  amo  ),
     AMOMAX_W  -> List(0.U , rs2 , tmp , rs1 , non , max , 1.U,  amo  ),
     AMOMINU_W -> List(0.U , rs2 , tmp , rs1 , non , minu, 1.U,  amo  ),
-    AMOMAXU_W -> List(0.U , rs2 , tmp , rs1 , non , maxu, 1.U,  amo  ),
-  )
-  if(xlen!=32) table ++= Array(
+    AMOMAXU_W -> List(0.U , rs2 , tmp , rs1 , non , maxu, 1.U,  amo  )) ++ (if (xlen != 32) List(
     LR_D      -> List(0.U , non , non , rs1 , non , lr  , 1.U,  amo  ),
     SC_D      -> List(0.U , rs2 , non , rs1 , non , sc  , 1.U,  amo  ),
     AMOSWAP_D -> List(0.U , rs2 , tmp , rs1 , non , non , 1.U,  amo  ),
@@ -61,6 +59,5 @@ case class RVA()(implicit val p: Parameters) extends CPUParams {
     AMOMIN_D  -> List(0.U , rs2 , tmp , rs1 , non , min , 1.U,  amo  ),
     AMOMAX_D  -> List(0.U , rs2 , tmp , rs1 , non , max , 1.U,  amo  ),
     AMOMINU_D -> List(0.U , rs2 , tmp , rs1 , non , minu, 1.U,  amo  ),
-    AMOMAXU_D -> List(0.U , rs2 , tmp , rs1 , non , maxu, 1.U,  amo  )
-  )
+    AMOMAXU_D -> List(0.U , rs2 , tmp , rs1 , non , maxu, 1.U,  amo  )) else Nil)
 }
