@@ -224,6 +224,7 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
   }
 
   if (ext('C')) when(crossCache === 1.B) {
+    io.icacheIO.cpuReq.addr := crossAddr
     io.ifIO.pipelineResult.cpuResult.data := io.icacheIO.cpuResult.data(15, 0) ## partialInst
     when(icacheReady) { crossCache := 0.B }
   }
