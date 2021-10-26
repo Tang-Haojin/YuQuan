@@ -91,7 +91,7 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
     io.memIO.pipelineResult.cause := memCause
   }
 
-  when(isSv39_i) { io.icacheIO.cpuReq.addr := tlb.translate(ifVaddr) }
+  io.icacheIO.cpuReq.addr := Mux(isSv39_i, tlb.translate(ifVaddr), ifVaddr.asUInt())
   when(isSv39_d) { io.dcacheIO.cpuReq.addr := tlb.translate(memVaddr) }
   when(isSv39_i && !tlb.isHit(ifVaddr)) {
     ifDel := 1.B
@@ -224,7 +224,6 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
   }
 
   if (ext('C')) when(crossCache === 1.B) {
-    io.icacheIO.cpuReq.addr := crossAddr
     io.ifIO.pipelineResult.cpuResult.data := io.icacheIO.cpuResult.data(15, 0) ## partialInst
     when(icacheReady) { crossCache := 0.B }
   }
