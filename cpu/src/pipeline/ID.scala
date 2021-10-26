@@ -179,8 +179,7 @@ class ID(implicit p: Parameters) extends YQModule {
     hasRsType(NumTypes.rd1p)                            -> wireRd1p,
     (decoded.head === caddi4 || decoded.head === cldst) -> wireRs2p,
     (decoded.head === cj)                               -> 1.U,
-    (decoded.head === cni && decoded(7) === jalr)       -> 1.U,
-    (decoded.head === clsp)                             -> 2.U
+    (decoded.head === cni && decoded(7) === jalr)       -> 1.U
   ))
   wireImm := MuxLookup(decoded.head, 0.U, immMap.toSeq)
   wireRd := Fill(5, decoded(6)(0)) & Mux(wireInstr(1, 0).andR() || !ext('C').B, io.input.rd, wireCRd)
