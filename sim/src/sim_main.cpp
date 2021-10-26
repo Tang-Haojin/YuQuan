@@ -166,7 +166,7 @@ int main(int argc, char **argv, char **env) {
         tmp[mie] = top->io_mie;
         tmp[mscratch] = top->io_mscratch;
         tmp[priv] = top->io_priv;
-        tmp[32] = top->io_wbIntr ? (top->io_priv == 0b11 ? tmp[mtvec] : tmp[stvec]) : pc + 4;
+        tmp[32] = top->io_wbIntr ? (top->io_priv == 0b11 ? tmp[mtvec] : tmp[stvec]) : pc + (top->io_wbRvc ? 2 : 4);
         difftest_regcpy(tmp, DIFFTEST_TO_REF);
       }
     }
@@ -197,6 +197,7 @@ int main(int argc, char **argv, char **env) {
     std::cout << DEBUG "Exit after " << cycles / 2 << " clock cycles.\n";
     std::cout << DEBUG "\33[1;31m" << name << " Diff\33[0m ";
     printf("at pc = " FMT_WORD "\n" DEBUG, pc);
+    printf("pc = " FMT_WORD "\tspike_pc = " FMT_WORD "\n", pc, diff_regs[32]);
     for (int i = 0; i < 32; i++)
       printf("GPR[%d] = " FMT_WORD "\tspike_GPR[%d] = " FMT_WORD "\n", i, gprs[i], i, diff_regs[i]);
     print_csr(mstatus);

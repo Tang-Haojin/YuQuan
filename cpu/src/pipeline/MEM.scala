@@ -34,6 +34,7 @@ class MEM(implicit p: Parameters) extends YQModule {
   private val rcsr    = if (Debug) RegInit(0xfff.U(12.W)) else null
   private val mmio    = if (Debug) RegInit(0.B) else null
   private val intr    = if (Debug) RegInit(0.B) else null
+  private val rvc     = if (Debug) RegInit(0.B) else null
 
   private val offset   = addr(axSize - 1, 0)
 
@@ -127,6 +128,7 @@ class MEM(implicit p: Parameters) extends YQModule {
       rcsr  := io.input.debug.rcsr
       mmio  := 0.B
       intr  := io.input.debug.intr
+      rvc   := io.input.debug.rvc
     }
     when(io.input.isMem) {
       NVALID    := 0.B
@@ -151,5 +153,6 @@ class MEM(implicit p: Parameters) extends YQModule {
     io.output.debug.rcsr := rcsr
     io.output.debug.mmio := mmio
     io.output.debug.intr := intr
+    io.output.debug.rvc  := rvc
   }
 }

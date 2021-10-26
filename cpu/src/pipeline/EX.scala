@@ -60,6 +60,7 @@ class EX(implicit p: Parameters) extends YQModule {
   private val exit    = if (Debug) RegInit(0.U(3.W)) else null
   private val rcsr    = if (Debug) RegInit(0xfff.U(12.W)) else null
   private val intr    = if (Debug) RegInit(0.B) else null
+  private val rvc     = if (Debug) RegInit(0.B) else null
 
   private val wireRd      = WireDefault(UInt(5.W), io.input.rd)
   private val wireData    = WireDefault(UInt(xlen.W), alu.io.output.bits.asUInt)
@@ -222,9 +223,10 @@ class EX(implicit p: Parameters) extends YQModule {
     wireOp     := io.input.op1_2
     wireIsWord := (io.input.special === word)
     if (Debug) {
-      exit  := wireExit
-      rcsr  := io.input.debug.rcsr
-      intr  := io.input.debug.intr
+      exit := wireExit
+      rcsr := io.input.debug.rcsr
+      intr := io.input.debug.intr
+      rvc  := io.input.debug.rvc
     }
   }.elsewhen(io.nextVR.READY && io.nextVR.VALID) {
     NVALID := 0.B
@@ -241,8 +243,9 @@ class EX(implicit p: Parameters) extends YQModule {
   }
 
   if (Debug) {
-    io.output.debug.exit  := exit
-    io.output.debug.rcsr  := rcsr
-    io.output.debug.intr  := intr
+    io.output.debug.exit := exit
+    io.output.debug.rcsr := rcsr
+    io.output.debug.intr := intr
+    io.output.debug.rvc  := rvc
   }
 }

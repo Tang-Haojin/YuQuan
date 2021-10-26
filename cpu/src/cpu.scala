@@ -156,6 +156,7 @@ class CPU(implicit p: Parameters) extends YQModule {
     io.debug.gprs     := moduleGPRs.io.debug.gprs
     io.debug.wbMMIO   := moduleWB.io.debug.mmio
     io.debug.wbIntr   := moduleWB.io.debug.intr
+    io.debug.wbRvc    := moduleWB.io.debug.rvc
     io.debug.priv     := moduleCSRs.io.currentPriv
     io.debug.mstatus  := moduleCSRs.io.debug.mstatus
     io.debug.mepc     := moduleCSRs.io.debug.mepc

@@ -39,9 +39,10 @@ class EXOutput(implicit p: Parameters) extends YQBundle {
   val pc      = Output(UInt(valen.W))
   val debug   =
     if (Debug) new YQBundle {
-      val exit  = Output(UInt(3.W))
-      val rcsr  = Output(UInt(12.W))
-      val intr  = Output(Bool())
+      val exit = Output(UInt(3.W))
+      val rcsr = Output(UInt(12.W))
+      val intr = Output(Bool())
+      val rvc  = Output(Bool())
     } else null
 }
 
@@ -83,9 +84,10 @@ class IDOutput(implicit p: Parameters) extends YQBundle {
   val pc      = Output(UInt(valen.W))
   val debug   =
     if (Debug) new YQBundle {
-      val rcsr  = Output(UInt(12.W))
-      val intr  = Output(Bool())
-      val priv  = Output(UInt(2.W))
+      val rcsr = Output(UInt(12.W))
+      val intr = Output(Bool())
+      val priv = Output(UInt(2.W))
+      val rvc  = Output(Bool())
     } else null
 }
 
@@ -148,11 +150,12 @@ class MEMOutput(implicit p: Parameters) extends YQBundle {
   val isSatp  = Output(Bool())
   val debug   =
     if (Debug) new YQBundle {
-      val exit  = Output(UInt(3.W))
-      val pc    = Output(UInt(valen.W))
-      val rcsr  = Output(UInt(12.W))
-      val mmio  = Output(Bool())
-      val intr  = Output(Bool())
+      val exit = Output(UInt(3.W))
+      val pc   = Output(UInt(valen.W))
+      val rcsr = Output(UInt(12.W))
+      val mmio = Output(Bool())
+      val intr = Output(Bool())
+      val rvc  = Output(Bool())
     } else null
 }
 

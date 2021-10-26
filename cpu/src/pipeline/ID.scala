@@ -52,6 +52,7 @@ class ID(implicit p: Parameters) extends YQModule {
   private val jbPend  = RegInit(0.B)
   private val rcsr    = if (Debug) RegInit(0xfff.U(12.W)) else null
   private val intr    = if (Debug) RegInit(0.B) else null
+  private val rvc     = if (Debug) RegInit(0.B) else null
 
   private val num = RegInit(VecInit(Seq.fill(4)(0.U(xlen.W))))
 
@@ -284,6 +285,7 @@ class ID(implicit p: Parameters) extends YQModule {
       if (Debug) {
         rcsr := Mux(wireSpecial === csr, wireInstr(31, 20), 0xfff.U)
         intr := wireIntr
+        rvc  := !wireInstr(1, 0).andR()
       }
     }.otherwise { NVALID := 0.B }
   }.otherwise {
@@ -307,9 +309,10 @@ class ID(implicit p: Parameters) extends YQModule {
   when(jmpBch) { jmpBch := 0.B }
 
   if (Debug) {
-    io.output.debug.rcsr  := rcsr
-    io.output.debug.intr  := intr
-    io.output.debug.priv  := newPriv
+    io.output.debug.rcsr := rcsr
+    io.output.debug.intr := intr
+    io.output.debug.priv := newPriv
+    io.output.debug.rvc  := rvc
   }
 
   private case class HandleException() {
