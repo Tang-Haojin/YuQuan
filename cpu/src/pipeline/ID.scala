@@ -221,7 +221,7 @@ class ID(implicit p: Parameters) extends YQModule {
       wireNum(0) := io.csrsR.rdata(1)
       wirePriv   := io.csrsR.rdata(1).asTypeOf(new MstatusBundle).MPP
       wireJmpBch := 1.B
-      wireJbAddr := io.csrsR.rdata(0)(valen - 1, 2) ## 0.U(2.W)
+      wireJbAddr := io.csrsR.rdata(0)
     }
   }
   if (ext('S')) when(decoded(7) === sret) {
@@ -233,7 +233,7 @@ class ID(implicit p: Parameters) extends YQModule {
       wireNum(0) := io.csrsR.rdata(1)
       wirePriv   := io.csrsR.rdata(1).asTypeOf(new MstatusBundle).SPP
       wireJmpBch := 1.B
-      wireJbAddr := io.csrsR.rdata(0)(valen - 1, 2) ## 0.U(2.W)
+      wireJbAddr := io.csrsR.rdata(0)
     }
   }
   if (ext('S')) when(decoded(7) === sfence) { wireIsSatp := 1.B }
