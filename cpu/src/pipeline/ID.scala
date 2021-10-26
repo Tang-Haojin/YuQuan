@@ -266,7 +266,7 @@ class ID(implicit p: Parameters) extends YQModule {
       wcsr       := wireCsr
       num        := wireNum
       op1_2      := wireOp1_2
-      op1_3      := wireInstr(14, 12)
+      op1_3      := Mux(wireInstr(1, 0).andR(), wireInstr(14, 12), 0.B ## wireInstr(14, 13))
       special    := wireSpecial
       instr      := wireInstr
       wireIsPriv := wirePriv =/= io.currentPriv
