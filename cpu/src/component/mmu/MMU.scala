@@ -92,7 +92,7 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
   }
 
   io.icacheIO.cpuReq.addr := Mux(isSv39_i, tlb.translate(ifVaddr), ifVaddr.asUInt())
-  when(isSv39_d) { io.dcacheIO.cpuReq.addr := tlb.translate(memVaddr) }
+  io.dcacheIO.cpuReq.addr := Mux(isSv39_d, tlb.translate(memVaddr), memVaddr.asUInt())
   when(isSv39_i && !tlb.isHit(ifVaddr)) {
     ifDel := 1.B
     ifReady := 0.B
