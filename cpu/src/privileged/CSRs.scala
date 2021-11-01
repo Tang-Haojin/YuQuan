@@ -74,6 +74,9 @@ trait CSRsAddr extends CPUParams {
   val Satp          = 0x180.U
 
   val Ustatus       = 0x000.U
+  val Fflags        = 0x001.U
+  val Frm           = 0x002.U
+  val Fcsr          = 0x003.U
   val Uie           = 0x004.U
   val Utvec         = 0x005.U
   val Uscratch      = 0x040.U

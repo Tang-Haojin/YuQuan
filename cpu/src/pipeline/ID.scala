@@ -199,10 +199,14 @@ class ID(implicit p: Parameters) extends YQModule {
     wireJbAddr := tmpJbaddr(valen - 1, 1) ## 0.B
   }
   when(decoded(7) === csr) {
-    wireIsWcsr := 1.B
-    io.csrsR.rcsr(0) := wireCsr(0)
-    wireCsr(0) := wireInstr(31, 20)
-    when(wireCsr(0) === csrsAddr.Satp) { wireIsSatp := 1.B }
+    when(VecInit(Seq(csrsAddr.Fflags, csrsAddr.Frm, csrsAddr.Fcsr).map(wireInstr(31, 20) === _)).asUInt().orR()) {
+      wireExcept(2) := 1.B
+    }.otherwise {
+      wireIsWcsr := 1.B
+      io.csrsR.rcsr(0) := wireCsr(0)
+      wireCsr(0) := wireInstr(31, 20)
+      when(wireCsr(0) === csrsAddr.Satp) { wireIsSatp := 1.B }
+    }
   }
   when(decoded(7) === inv) { wireExcept(2)  := 1.B } // illegal instruction
   when(decoded(7) === ecall) {
