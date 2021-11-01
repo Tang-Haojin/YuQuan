@@ -353,8 +353,8 @@ class ID(implicit p: Parameters) extends YQModule {
       }
       when(io.lastVR.VALID && fire) {
         val mstat   = io.csrsR.rdata(1)(xlen - 1) ## io.currentPriv ## wirePriv ## io.csrsR.rdata(1)(xlen - 6, 0)
-        val bad     = (if (ext('C')) 0.B else wireExcept(0)) | wireExcept(1) | wireExcept(12)
-        val badAddr = Mux(io.input.crossCache && ext('C').B, io.input.pc + 2.U, io.input.pc)
+        val bad     = (if (ext('C')) 0.B else code === 0.U) | code === 1.U | code === 2.U | code === 12.U
+        val badAddr = Mux(code === 2.U, Mux(wireInstr(1, 0).andR(), wireInstr, wireInstr(15, 0)), Mux(io.input.crossCache && ext('C').B, io.input.pc + 2.U, io.input.pc))
         val Xepc    = MuxLookup(wirePriv, csrsAddr.Mepc,   Seq("b01".U -> csrsAddr.Sepc,   "b00".U -> csrsAddr.Uepc  ))
         val Xcause  = MuxLookup(wirePriv, csrsAddr.Mcause, Seq("b01".U -> csrsAddr.Scause, "b00".U -> csrsAddr.Ucause))
         val Xtval   = MuxLookup(wirePriv, csrsAddr.Mtval,  Seq("b01".U -> csrsAddr.Stval,  "b00".U -> csrsAddr.Utval ))
