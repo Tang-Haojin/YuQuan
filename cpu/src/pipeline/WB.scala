@@ -37,9 +37,11 @@ class WB(implicit p: Parameters) extends YQModule {
   private val intr = if (Debug) RegInit(0.B) else null
   private val rvc  = if (Debug) RegInit(0.B) else null
 
-  io.gprsW.wen   := 0.B
-  io.gprsW.waddr := io.input.rd
-  io.gprsW.wdata := io.input.data
+  io.gprsW.wen    := io.lastVR.VALID
+  io.gprsW.waddr  := io.input.rd
+  io.gprsW.wdata  := io.input.data
+  io.gprsW.except := io.input.except
+  io.gprsW.retire := io.input.retire
 
   io.csrsW.wen   := VecInit(Seq.fill(RegConf.writeCsrsPort)(0.B))
   io.csrsW.wcsr  := io.input.wcsr
@@ -51,7 +53,6 @@ class WB(implicit p: Parameters) extends YQModule {
   io.isPriv       := 0.B
   
   when(io.lastVR.VALID) { // ready to start fetching instr
-    io.gprsW.wen := io.input.rd =/= 0.U
     for (i <- io.csrsW.wen.indices) io.csrsW.wen(i) := (io.input.wcsr(i) =/= 0xFFF.U)
     io.priv   := io.input.priv
     io.isPriv := io.input.isPriv

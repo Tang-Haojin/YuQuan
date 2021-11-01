@@ -241,21 +241,24 @@ class ID(implicit p: Parameters) extends YQModule {
     }
   }
   if (ext('S')) when(decoded(7) === sfence) { wireIsSatp := 1.B }
-  if (ext('A')) when(decoded(7) === amo && amoStat === idle && wireOp1_2 =/= Operators.lr && wireOp1_2 =/= Operators.sc) {
-    wireAmoStat := loading
-    wireSpecial := ld
-    wireRetire  := 0.B
-  }
-  if (ext('A')) when(amoStat === loading) {
-    io.gprsR.raddr(0) := rd
-    when(!io.isWait && io.nextVR.READY) {
-      num(1)  := io.gprsR.rdata(0)
-      special := st
-      NVALID  := 1.B
-      amoStat := idle
-      retire  := 1.B
-      rd      := 0.U
+  if (ext('A')) {
+    when(decoded(7) === amo && amoStat === idle && wireOp1_2 =/= Operators.lr && wireOp1_2 =/= Operators.sc) {
+      wireAmoStat := loading
+      wireSpecial := ld
+      wireRetire  := 0.B
     }
+    when(amoStat === loading) {
+      io.gprsR.raddr(0) := rd
+      when(!io.isWait && io.nextVR.READY) {
+        num(1)  := io.gprsR.rdata(0)
+        special := st
+        NVALID  := 1.B
+        amoStat := idle
+        retire  := 1.B
+        rd      := 0.U
+      }
+    }
+    when(io.revAmo) { amoStat := idle }
   }
 
   when(io.input.except) { wireExcept(io.input.cause) := 1.B }

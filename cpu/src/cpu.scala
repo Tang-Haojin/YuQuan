@@ -131,6 +131,7 @@ class CPU(implicit p: Parameters) extends YQModule {
   moduleIF.io.isPriv := moduleBypassCsr.io.isPriv
   moduleIF.io.isSatp := moduleBypassCsr.io.isSatp
   moduleID.io.isWait := moduleBypass.io.isWait || moduleBypassCsr.io.isWait
+  moduleID.io.revAmo := moduleMMU.io.revAmo
 
   moduleIF.io.jmpBch := moduleID.io.jmpBch
   moduleIF.io.jbAddr := moduleID.io.jbAddr

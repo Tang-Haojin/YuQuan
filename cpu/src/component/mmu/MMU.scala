@@ -21,6 +21,7 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
     val sum      = Input (Bool())
     val mprv     = Input (Bool())
     val mpp      = Input (UInt(2.W))
+    val revAmo   = Output(Bool())
   })
 
   private val idle::walking::writing::Nil = Enum(3)
@@ -59,6 +60,7 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
   private val partialInst = RegInit(0.U(16.W))
 
   when(ifDel) { ifDel := 0.B }; when(memDel) { memDel := 0.B }
+  io.revAmo := memDel && memReady && memExcpt
 
   io.ifIO.pipelineResult.cause       := 0.U
   io.ifIO.pipelineResult.exception   := 0.B

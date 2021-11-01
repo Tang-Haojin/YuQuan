@@ -29,6 +29,7 @@ class MEM(implicit p: Parameters) extends YQModule {
   private val isWfe   = RegInit(0.B)
   private val cause   = RegInit(0.U(4.W))
   private val pc      = RegInit(0.U(valen.W))
+  private val except  = RegInit(0.B)
   private val flush   = if (ext('S')) RegInit(0.B) else null
   private val exit    = if (Debug) RegInit(0.U(3.W)) else null
   private val rcsr    = if (Debug) RegInit(0xfff.U(12.W)) else null
@@ -80,6 +81,7 @@ class MEM(implicit p: Parameters) extends YQModule {
   io.output.priv   := priv
   io.output.isPriv := isPriv
   io.output.isSatp := isSatp
+  io.output.except := except
 
   when(io.dmmu.pipelineResult.cpuResult.ready) {
     NVALID    := Mux(io.dmmu.pipelineResult.exception, 0.B, 1.B)
@@ -117,6 +119,7 @@ class MEM(implicit p: Parameters) extends YQModule {
     isPriv   := io.input.isPriv
     isSatp   := io.input.isSatp
     isWfe    := 0.B
+    except   := isWfe
     when(isWfe) { csrData(0) := pc; csrData(2) := addr }
     .otherwise { pc := io.input.pc }
     if (ext('S')) {

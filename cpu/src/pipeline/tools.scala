@@ -104,6 +104,7 @@ class IDIO(implicit p: Parameters) extends YQBundle {
   val currentPriv = Input (UInt(2.W))
   val isAmo       = Output(Bool())
   val mtip        = Input (Bool())
+  val revAmo      = Input (Bool())
 }
 
 class EXIO(implicit p: Parameters) extends YQBundle {
@@ -148,6 +149,7 @@ class MEMOutput(implicit p: Parameters) extends YQBundle {
   val priv    = Output(UInt(2.W))
   val isPriv  = Output(Bool())
   val isSatp  = Output(Bool())
+  val except  = Output(Bool())
   val debug   =
     if (Debug) new YQBundle {
       val exit = Output(UInt(3.W))
