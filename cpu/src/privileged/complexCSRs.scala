@@ -8,7 +8,7 @@ import cpu.tools._
 import cpu._
 
 class MstatusBundle(implicit val p: Parameters) extends Bundle with CPUParams {
-  val SD     = UInt(1.W)
+  val SD     = Bool()
   val WPRI_0 = UInt((if (xlen == 32) 8 else xlen - 37).W)
   val SXL    = UInt((if (xlen == 32) 0 else 2).W)
   val UXL    = UInt((if (xlen == 32) 0 else 2).W)
@@ -39,6 +39,7 @@ class MstatusBundle(implicit val p: Parameters) extends Bundle with CPUParams {
     MPP := Mux(mstatus.MPP =/= 2.U, mstatus.MPP, MPP)
     SPP := mstatus.SPP; MPIE := mstatus.MPIE; SPIE := mstatus.SPIE; UPIE := mstatus.UPIE
     MIE := mstatus.MIE; SIE := mstatus.SIE; UIE := mstatus.UIE; TSR := mstatus.TSR
+    FS := mstatus.FS; SD := mstatus.FS === "b11".U
   }
 }
 
