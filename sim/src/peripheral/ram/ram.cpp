@@ -8,7 +8,7 @@
 #define BSIZE  1024  // block size
 #define FSSIZE 1000  // size of file system in blocks
 
-#define RAM_SIZE  (128 * 1024 * 1024)
+#define RAM_SIZE  (1024 * 1024 * 1024)
 #define PMEM_SIZE (RAM_SIZE + BSIZE * FSSIZE)
 
 #define PAGE_SIZE 4096
