@@ -17,4 +17,6 @@
 
 #define panic(...) Assert(0, __VA_ARGS__)
 
+#define DEBUG "\33[1;33m[debug]\33[0m "
+
 #endif

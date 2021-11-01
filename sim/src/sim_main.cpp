@@ -201,6 +201,7 @@ int main(int argc, char **argv, char **env) {
     for (int i = 0; i < 32; i++)
       printf("GPR[%d] = " FMT_WORD "\tspike_GPR[%d] = " FMT_WORD "\n", i, gprs[i], i, diff_regs[i]);
     print_csr(mstatus);
+    print_csr(mtval);
     print_csr(stval);
     print_csr(mcause);
     print_csr(scause);
