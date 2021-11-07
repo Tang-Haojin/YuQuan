@@ -28,7 +28,7 @@ class ID(implicit p: Parameters) extends YQModule {
   private val medeleg = io.csrsR.rdata(4).asTypeOf(new MedelegBundle)
   private val xtvec   = io.csrsR.rdata(5)
   private val mip     = WireDefault(new MipBundle, io.csrsR.rdata(7).asTypeOf(new MipBundle))
-  mip.MTIP := io.mtip
+  mip.MTIP := io.mtip; mip.MSIP := io.msip
 
   private val NVALID  = RegInit(0.B)
   private val rd      = RegInit(0.U(5.W))

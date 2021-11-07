@@ -98,6 +98,7 @@ class CPU(implicit p: Parameters) extends YQModule {
   moduleEX.io.wbDch      <> moduleDCache.io.wb
   moduleID.io.jmpBch     <> moduleICache.io.jmpBch
   moduleID.io.mtip       <> moduleClint.io.mtip
+  moduleID.io.msip       <> moduleClint.io.msip
   moduleClint.io.clintIO <> moduleDCache.io.clintIO
 
   moduleBypass.io.request <> moduleGPRs.io.gprsR
@@ -139,6 +140,7 @@ class CPU(implicit p: Parameters) extends YQModule {
   moduleCSRs.io.currentPriv <> moduleID.io.currentPriv
   moduleCSRs.io.mtime       <> moduleClint.io.mtime
   moduleCSRs.io.mtip        <> moduleClint.io.mtip
+  moduleCSRs.io.msip        <> moduleClint.io.msip
 
   if (Debug) {
     io.debug.exit     := moduleWB.io.debug.exit

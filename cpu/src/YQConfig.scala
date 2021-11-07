@@ -44,6 +44,7 @@ object YQConfig {
   class CLINT extends MMAP {
     override val BASE = 0x2000000L
     override val SIZE = 0x10000L
+    val MSIP = (hartid: Int) => BASE + 4 * hartid
     val MTIMECMP = (hartid: Int) => BASE + 0x4000 + 8 * hartid
     val MTIME = BASE + 0xBFF8
   }

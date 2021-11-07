@@ -101,6 +101,7 @@ class CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
     val sum         = Output(Bool())
     val mtime       = Input (UInt(64.W))
     val mtip        = Input (Bool())
+    val msip        = Input (Bool())
     val mprv        = Output(Bool())
     val mpp         = Output(UInt(2.W))
     val debug       = if (Debug) new Bundle {
@@ -237,7 +238,7 @@ class CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
     when(io.csrsR.rcsr(i) === Mip) { io.csrsR.rdata(i) := { val data = WireDefault(new MipBundle, mip)
       data.WPRI_0 := 0.U; data.WPRI_1 := 0.B; data.WPRI_2 := 0.B; data.WPRI_3 := 0.B
       data.MEIP := io.eip; data.MTIP := io.mtip; data.SEIP := mip.SEIP || io.eip
-      data.asUInt
+      data.MSIP := io.msip; data.asUInt
     }}
     when(io.csrsR.rcsr(i) === Mie) { io.csrsR.rdata(i) := mie.asUInt }
     when(io.csrsR.rcsr(i) === Mcycle || io.csrsR.rcsr(i) === Cycle) { io.csrsR.rdata(i) := mcycle }

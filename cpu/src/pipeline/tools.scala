@@ -104,6 +104,7 @@ class IDIO(implicit p: Parameters) extends YQBundle {
   val currentPriv = Input (UInt(2.W))
   val isAmo       = Output(Bool())
   val mtip        = Input (Bool())
+  val msip        = Input (Bool())
   val revAmo      = Input (Bool())
 }
 
