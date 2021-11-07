@@ -236,7 +236,6 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
     ifReady := 0.B
     icacheReady := 0.B
     ifCrossCache := 0.B
-    crossCache := 0.B
     io.dcacheIO.cpuReq.revoke := 1.B
     dcacheValid := 0.B
   }
