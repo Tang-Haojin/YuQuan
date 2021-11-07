@@ -29,6 +29,7 @@ object SimConfig {
     case PLIC_MMAP      => new PeripheralConfig.PLIC
     case CHIPLINK_MMAP  => new PeripheralConfig.CHIPLINK
     case NEMU_UART_MMAP => new NEMU_UART
+    case SD_CARD_MMAP   => new SD_CARD
     case CLINT_MMAP     => new YQConfig.CLINT
     case DRAM_MMAP      => new YQConfig.DRAM
     case SPI_MMAP       => new PeripheralConfig.SPI
@@ -72,10 +73,16 @@ object SimConfig {
     override val SIZE = 0x1L
   }
 
+  class SD_CARD extends MMAP {
+    override val BASE = 0x02020000L
+    override val SIZE = 0x1000L
+  }
+
   def apply(): SimConfig = new SimConfig
 }
 
 case object DMAC_MMAP      extends Field[SimConfig.DMAC]
 case object NEMU_UART_MMAP extends Field[SimConfig.NEMU_UART]
+case object SD_CARD_MMAP   extends Field[SimConfig.SD_CARD]
 case object ISREALUART     extends Field[Boolean]
 case object USECHIPLINK    extends Field[Boolean]

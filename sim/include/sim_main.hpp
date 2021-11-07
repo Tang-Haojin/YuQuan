@@ -82,6 +82,7 @@ void difftest_memcpy(paddr_t addr, void *buf, size_t n, bool direction);
 
 void scan_uart(_init)(void);
 void *ram_init(char *img);
+void sdcard_init(char *img);
 extern bool scan_uart(_isRunning);
 void flash_init(char *img);
 void storage_init(char *img);

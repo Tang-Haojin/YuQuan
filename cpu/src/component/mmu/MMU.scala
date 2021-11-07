@@ -172,17 +172,9 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
   )) {
     io.dcacheIO.cpuReq.valid := 0.B
     MemRaiseException(Mux(isWrite, 6.U, 4.U), false) // load/store/amo address misaligned
-  }.elsewhen(dcacheValid && !PMA(io.dcacheIO.cpuReq.addr, io.dcacheIO.cpuReq.size, isWrite)) {
-    io.dcacheIO.cpuReq.valid := 0.B
-    when(stage === walking && current === ifWalking) { IfRaiseException(1.U, false) } // instruction access fault
-    .otherwise { MemRaiseException(Mux(stage === walking || !isWrite, 5.U, 7.U), false) } // load/store/amo access fault
-    stage := idle
   }.elsewhen(io.ifIO.pipelineReq.cpuReq.valid && ifVaddr.offset(1, 0) =/= 0.U && (!ext('C')).B) {
     icacheValid := 0.B
     IfRaiseException(0.U, false) // Instruction address misaligned
-  }.elsewhen(icacheValid && !PMA(io.icacheIO.cpuReq.addr, io.icacheIO.cpuReq.size, 2.U)) {
-    io.icacheIO.cpuReq.valid := 0.B
-    IfRaiseException(1.U, false) // instruction access fault
   }.otherwise {
     when(isSv39_i && io.ifIO.pipelineReq.cpuReq.valid) {
       when(ifVaddr.getHigher.andR =/= ifVaddr.getHigher.orR) { IfRaiseException(12.U, false); io.icacheIO.cpuReq.valid := 0.B } // Instruction page fault
@@ -253,7 +245,7 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
   if (Debug) {
     val memAddr = Mux(isSv39_d, tlb.translate(memVaddr), memVaddr.asUInt())(alen - 1, 0)
     io.ifIO.pipelineResult.isMMIO := DontCare
-    io.memIO.pipelineResult.isMMIO := memAddr < DRAM.BASE.U && memAddr >= PLIC.BASE.U || memAddr >= CLINT.BASE.U && memAddr < (CLINT.BASE + CLINT.SIZE).U
+    io.memIO.pipelineResult.isMMIO := memAddr < DRAM.BASE.U && memAddr >= CLINT.BASE.U
   }
 
   private case class IfRaiseException(cause: UInt, isPtw: Boolean = true) {

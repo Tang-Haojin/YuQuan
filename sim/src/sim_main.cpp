@@ -40,6 +40,7 @@ int main(int argc, char **argv, char **env) {
   void *ram_param =
 #endif
   ram_init(argv[1]);
+  sdcard_init(argv[1]);
 
 #ifdef FLASH
   flash_init(argv[2]);

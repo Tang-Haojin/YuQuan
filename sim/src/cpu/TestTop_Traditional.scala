@@ -12,6 +12,7 @@ import sim._
 import peripheral.ram._
 import peripheral.uart._
 import peripheral.spiFlash._
+import peripheral.sdcard._
 
 class TestTop_Traditional(io: DEBUG, clock: Clock, reset: Reset)(implicit val p: Parameters) extends SimParams {
   val cpu       = Module(new CPU)
@@ -19,6 +20,7 @@ class TestTop_Traditional(io: DEBUG, clock: Clock, reset: Reset)(implicit val p:
   val uart      = Module(if (IsRealUart) new UartReal else new UartSim)
   val plic      = Module(new Plic)
   val spi       = Module(new AxiFlash)
+  val sd        = Module(new SDCard)
   val nemu_uart = Module(new Nemu_Uart)
   val router    = Module(new ROUTER)
 
@@ -32,6 +34,7 @@ class TestTop_Traditional(io: DEBUG, clock: Clock, reset: Reset)(implicit val p:
   router.io.PLICIO      <> plic.io.channel
   router.io.SpiIO       <> spi.io.channel
   router.io.Nemu_UartIO <> nemu_uart.io.channel
+  router.io.SdIO        <> sd.io.channel
 
   plic.io.inter     := VecInit(Seq.fill(plic.io.inter.length)(0.B))
   plic.io.inter(10) := uart.io.interrupt
@@ -47,6 +50,8 @@ class TestTop_Traditional(io: DEBUG, clock: Clock, reset: Reset)(implicit val p:
   spi.io.basic.ARESETn       := !reset.asBool
   nemu_uart.io.basic.ACLK    := clock
   nemu_uart.io.basic.ARESETn := !reset.asBool
+  sd.io.basic.ACLK           := clock
+  sd.io.basic.ARESETn        := !reset.asBool
   router.io.basic.ACLK       := clock
   router.io.basic.ARESETn    := !reset.asBool
 }

@@ -36,6 +36,7 @@ CSRCS   += $(simSrcDir)/peripheral/spiFlash/spiFlash.cpp
 CSRCS   += $(simSrcDir)/peripheral/storage/storage.cpp
 CSRCS   += $(simSrcDir)/peripheral/uart/scanKbd.cpp
 CSRCS   += $(simSrcDir)/peripheral/uart/uart.cpp
+CSRCS   += $(simSrcDir)/peripheral/sdcard/sdcard.cpp
 
 CFLAGS  += -D$(ISA) -pthread -I$(pwd)/sim/include
 LDFLAGS += -pthread
@@ -45,6 +46,7 @@ VFLAGS  += -I$(pwd)/peripheral/src/uart16550
 VFLAGS  += -I$(pwd)/utils/src/axi2apb/inner
 VFLAGS  += -I$(pwd)/peripheral/src/spi/rtl -j $(cpuNum) -O3
 VFLAGS  += -I$(simSrcDir)/peripheral/spiFlash
+VFLAGS  += -I$(simSrcDir)/peripheral/sdcard
 VFLAGS  += -cc TestTop.v $(pwd)/peripheral/src/chiplink/chiplink.v $(pwd)/peripheral/src/chiplink/top.v
 
 ifeq ($(TRACE),1)
@@ -71,7 +73,7 @@ $(shell wget $(site)/$(BIN)-$(ISA)-nemu.bin -O $(binFile) || rm $(binFile))
 endif
 endif
 
-SIMBIN = $(filter-out yield rtthread fw_payload xv6 xv6-full linux linux-c debian,$(shell cd $(pwd)/sim/bin && ls *-$(ISA)-nemu.bin | grep -oP ".*(?=-$(ISA)-nemu.bin)"))
+SIMBIN = $(filter-out yield rtthread fw_payload xv6 xv6-full linux linux-c debian debian-disk,$(shell cd $(pwd)/sim/bin && ls *-$(ISA)-nemu.bin | grep -oP ".*(?=-$(ISA)-nemu.bin)"))
 
 ifneq ($(mainargs),)
 CFLAGS += '-Dmainargs=$(mainargs)'
