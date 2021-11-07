@@ -34,7 +34,8 @@ class CPU(implicit p: Parameters) extends YQModule {
   private val moduleBypass    = Module(new Bypass)
   private val moduleBypassCsr = Module(new BypassCsr)
   private val moduleAXIRMux   = Module(new AXIRMux)
-  private val moduleAXIWMux   = if (useSlave) Module(new AXIWMux) else null
+  private val moduleDCacheMux = if (useSlave) Module(new DCacheMux) else null
+  private val moduleDMA       = if (useSlave) Module(new DMA) else null
 
   private val moduleICache = ICache()
   private val moduleDCache = DCache()
@@ -55,25 +56,18 @@ class CPU(implicit p: Parameters) extends YQModule {
   moduleAXIRMux.io.axiRdIn1 <> moduleDCache.io.memIO.r
   moduleAXIRMux.io.axiRdOut <> io.master.r
 
+  io.master.aw <> moduleDCache.io.memIO.aw
+  io.master.w  <> moduleDCache.io.memIO.w
+  io.master.b  <> moduleDCache.io.memIO.b
+
   if (useSlave && !IsZmb) {
-    moduleAXIWMux.io.axiWaIn0 <> moduleDCache.io.memIO.aw
-    moduleAXIWMux.io.axiWdIn0 <> moduleDCache.io.memIO.w
-    moduleAXIWMux.io.axiWrIn0 <> moduleDCache.io.memIO.b
-
-    io.master.aw <> moduleAXIWMux.io.axiWaOut
-    io.master.w  <> moduleAXIWMux.io.axiWdOut
-    io.master.b  <> moduleAXIWMux.io.axiWrOut
-
-    io.slave.ar <> DontCare
-    io.slave.r  <> DontCare
-    io.slave.aw <> moduleAXIWMux.io.axiWaIn1
-    io.slave.w  <> moduleAXIWMux.io.axiWdIn1
-    io.slave.b  <> moduleAXIWMux.io.axiWrIn1
+    moduleDMA.io.memIO          <> io.slave
+    moduleDMA.io.cpuIO          <> moduleDCacheMux.io.dmaIO
+    moduleMMU.io.dcacheIO       <> moduleDCacheMux.io.cpuIO
+    moduleDCacheMux.io.dcacheIO <> moduleDCache.io.cpuIO
   } else {
-    io.master.aw <> moduleDCache.io.memIO.aw
-    io.master.w  <> moduleDCache.io.memIO.w
-    io.master.b  <> moduleDCache.io.memIO.b
-    if (!IsZmb) io.slave <> DontCare
+    moduleMMU.io.dcacheIO <> moduleDCache.io.cpuIO
+    if (!IsZmb) io.slave  <> DontCare
   }
 
   moduleID.io.gprsR <> moduleBypass.io.receive
@@ -92,7 +86,6 @@ class CPU(implicit p: Parameters) extends YQModule {
   moduleMEM.io.nextVR <> moduleWB.io.lastVR
 
   moduleMMU.io.icacheIO  <> moduleICache.io.cpuIO
-  moduleMMU.io.dcacheIO  <> moduleDCache.io.cpuIO
   moduleMMU.io.ifIO      <> moduleIF.io.immu
   moduleMMU.io.memIO     <> moduleMEM.io.dmmu
   moduleMMU.io.satp      <> moduleCSRs.io.satp

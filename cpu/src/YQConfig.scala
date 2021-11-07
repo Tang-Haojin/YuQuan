@@ -38,7 +38,7 @@ object YQConfig {
     case IS_ZMB        => site(GEN_NAME) match { case "ysyx" => false; case "zmb" => true }
     case TLB_ENTRIES   => 16
     case VALEN         => 64
-    case USESLAVE      => false
+    case USESLAVE      => site(GEN_NAME) match { case "ysyx" => true; case "zmb" => false }
   }
 
   class CLINT extends MMAP {
