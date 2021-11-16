@@ -121,13 +121,12 @@ object WbBuffer {
 class PassThrough(readonly: Boolean)(var memIO: AXI_BUNDLE, wbFree: Bool, addr: UInt, wdata: UInt, wstrb: UInt, var rw: Bool, axsize: UInt = log2Ceil(32 / 8).U)(implicit val p: Parameters) extends CPUParams {
   val ready  = RegInit(1.B)
   val valid  = WireDefault(0.B)
-  val finish = WireDefault(0.B)
+  val finish = RegInit(0.B); finish := 0.B
 
   private val ARVALID = RegInit(1.B)
   private val RREADY  = RegInit(0.B)
 
-  private val regRdata = RegInit(0.U(xlen.W))
-  val rdata = WireDefault(UInt(xlen.W), regRdata)
+  val rdata = RegInit(0.U(xlen.W))
 
   if (readonly) rw = 0.B
 
@@ -187,7 +186,6 @@ class PassThrough(readonly: Boolean)(var memIO: AXI_BUNDLE, wbFree: Bool, addr: 
         ARVALID  := 1.B
         RREADY   := 0.B
         rdata    := memIO.r.bits.data
-        regRdata := rdata
       }
     }
   }

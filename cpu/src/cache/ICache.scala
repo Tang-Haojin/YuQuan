@@ -62,10 +62,10 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   io.cpuIO.cpuResult.ready := hit
   io.cpuIO.cpuResult.data  := wordData(addrOffset)
 
-  when(io.cpuIO.cpuReq.valid && state =/= allocate) { addr := io.cpuIO.cpuReq.addr }
-
   private val isPeripheral = IsPeripheral(io.cpuIO.cpuReq.addr)
   private val passThrough  = PassThrough(true)(io.memIO, 0.B, addr, 0.U, 0.U, 0.B)
+
+  when(io.cpuIO.cpuReq.valid && state =/= allocate) { addr := Mux(state === passing && !isPeripheral, addr, io.cpuIO.cpuReq.addr) }
 
   io.inv.ready := 0.B
   when(state === idle) {
@@ -108,7 +108,7 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   }
   when(state === passing) {
     hit := Mux(willDrop || io.jmpBch, 0.B, passThrough.finish)
-    passThrough.valid := !io.jmpBch
+    passThrough.valid := !io.jmpBch && !passThrough.finish
     io.cpuIO.cpuResult.data := VecInit(Seq.tabulate(xlen / 32)(x => passThrough.rdata(x * 32 + 31, x * 32)))(if (xlen == 32) 0.U else addr(axSize - 1, 2))
     when(passThrough.finish) {
       state := idle

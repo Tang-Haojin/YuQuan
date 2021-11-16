@@ -180,7 +180,7 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
   }
   when(state === passing) {
     hit := passThrough.finish
-    passThrough.valid := 1.B
+    passThrough.valid := !passThrough.finish
     io.cpuIO.cpuResult.data := passThrough.rdata
     when(hit) { state := Mux(io.cpuIO.cpuReq.valid, Mux(isPeripheral, passing, starting), idle) }
     when(willDrop) { io.cpuIO.cpuResult.ready := 0.B; willDrop := 0.B }
