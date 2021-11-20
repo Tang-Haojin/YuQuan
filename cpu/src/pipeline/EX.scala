@@ -65,6 +65,7 @@ class EX(implicit p: Parameters) extends YQModule {
   private val wireRd      = WireDefault(UInt(5.W), io.input.rd)
   private val wireData    = WireDefault(UInt(xlen.W), alu.io.output.bits.asUInt)
   private val wireCsrData = WireDefault(VecInit(Seq.fill(RegConf.writeCsrsPort)(0.U(xlen.W))))
+  private val wireIsWcsr  = WireDefault(Bool(), io.input.isWcsr)
   private val wireIsMem   = WireDefault(Bool(), io.input.special === ld || io.input.special === st || io.input.special === sfence)
   private val wireIsLd    = WireDefault(Bool(), io.input.special === ld)
   private val wireAddr    = WireDefault(UInt(valen.W), io.input.num(2)(valen - 1, 0) + io.input.num(3)(valen - 1, 0))
@@ -141,18 +142,19 @@ class EX(implicit p: Parameters) extends YQModule {
       newMstatus.MPIE := oldMstatus.MIE
       newMstatus.MIE  := 0.B
     }
-    when(newPriv === "b01".U) {
+    if (ext('S')) when(newPriv === "b01".U) {
       newMstatus.SPP  := currentPriv
       newMstatus.SPIE := oldMstatus.SIE
       newMstatus.SIE  := 0.B
     }
-    when(newPriv === "b00".U) {
+    if (ext('U')) when(newPriv === "b00".U) {
       newMstatus.UPIE := oldMstatus.UIE
       newMstatus.UIE  := 0.B
     }
     wireCsrData    := io.input.num
     wireCsrData(3) := newMstatus.asUInt
     wireRd := 0.U
+    wireIsWcsr := 1.B
   }
   if (ext('A')) when(io.input.special === amo) {
     when(io.input.op1_2 === Operators.lr) {
@@ -195,7 +197,7 @@ class EX(implicit p: Parameters) extends YQModule {
     pc      := io.input.pc
     rd      := wireRd
     data    := wireData
-    isWcsr  := io.input.isWcsr
+    isWcsr  := wireIsWcsr
     wcsr    := io.input.wcsr
     csrData := wireCsrData
     isMem   := wireIsMem
