@@ -41,8 +41,8 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
   private val current  = RegInit(0.U(1.W))
   private val isWrite  = io.memIO.pipelineReq.cpuReq.rw
   private val ptePpn   = RegInit(0.U(44.W))
-  private val isSv39_i = io.priv <= "b01".U && satp.mode === 8.U
-  private val isSv39_d = Mux(io.mprv, io.mpp, io.priv) <= "b01".U && satp.mode === 8.U
+  private val isSv39_i = if (ext('S')) io.priv <= "b01".U && satp.mode === 8.U else 0.B
+  private val isSv39_d = if (ext('S')) Mux(io.mprv, io.mpp, io.priv) <= "b01".U && satp.mode === 8.U else 0.B
   private val (ifDel  , memDel  ) = (RegInit(0.B), RegInit(0.B))
   private val (ifReady, memReady) = (RegInit(0.B), RegInit(0.B))
   private val (ifExcpt, memExcpt) = (RegInit(0.B), RegInit(0.B))
@@ -161,7 +161,7 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
     }
   }
 
-  when(io.memIO.pipelineReq.cpuReq.valid && io.memIO.pipelineReq.flush) {
+  when(io.memIO.pipelineReq.cpuReq.valid && io.memIO.pipelineReq.flush && ext('S').B) {
     tlb.flush
     memDel := !memDel; memReady := 1.B; memCause := 0.U; memExcpt := 0.B
     io.dcacheIO.cpuReq.valid := 0.B

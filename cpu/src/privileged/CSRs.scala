@@ -168,7 +168,7 @@ class CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
   private val satp       = UseSatp(RegInit(new SatpBundle, 0.U.asTypeOf(new SatpBundle)))
 
   private val currentPriv = RegEnable(io.newPriv, 3.U(2.W), io.changePriv)
-  io.currentPriv := currentPriv
+  io.currentPriv := (if (ext('S') || ext('U')) currentPriv else "b11".U)
 
   mcycle := mcycle + 1.U
   when(io.retire) { minstret := minstret + 1.U }
