@@ -13,17 +13,17 @@ object YQConfig {
   val f: (View, View, View) => PartialFunction[Any,Any] = (site, here, up) => {
     case XLEN          => 64
     case AxSIZE        => log2Ceil(here(XLEN) / 8)
-    case EXTENSIONS    => List('I', 'M', 'S', 'A', 'U', 'C')
-    case ALEN          => site(GEN_NAME) match { case "ysyx" => 32; case "zmb" => 64 }
+    case EXTENSIONS    => site(GEN_NAME) match { case "ysyx" => List('I', 'M', 'S', 'A', 'U', 'C'); case "zmb" => List('I', 'M') }
+    case ALEN          => 32
     case IDLEN         => 4
-    case USRLEN        => site(GEN_NAME) match { case "ysyx" => 0; case "zmb" => 1 }
-    case USEQOS        => site(GEN_NAME) match { case "ysyx" => 0; case "zmb" => 1 }
-    case USEPROT       => site(GEN_NAME) match { case "ysyx" => 0; case "zmb" => 1 }
-    case USECACHE      => site(GEN_NAME) match { case "ysyx" => 0; case "zmb" => 1 }
-    case USELOCK       => site(GEN_NAME) match { case "ysyx" => 0; case "zmb" => 1 }
-    case USEREGION     => site(GEN_NAME) match { case "ysyx" => 0; case "zmb" => 1 }
-    case AXIRENAME     => site(GEN_NAME) match { case "ysyx" => true; case "zmb" => false }
-    case MODULE_PREFIX => site(GEN_NAME) match { case "ysyx" => "ysyx_210153_"; case "zmb" => "" }
+    case USRLEN        => 0
+    case USEQOS        => 0
+    case USEPROT       => 0
+    case USECACHE      => 0
+    case USELOCK       => 0
+    case USEREGION     => 0
+    case AXIRENAME     => true
+    case MODULE_PREFIX => "ysyx_210153_"
     case CLINT_MMAP    => new CLINT
     case DRAM_MMAP     => new DRAM
     case PLIC_MMAP     => new PeripheralConfig.PLIC
@@ -34,8 +34,6 @@ object YQConfig {
     case IALIGN        => 32 // compressed instructions are not implemented yet
     case ILEN          => 32 // base instruction set supported only
     case REG_CONF      => new RegConf
-    case IS_YSYX       => site(GEN_NAME) match { case "ysyx" => true; case "zmb" => false }
-    case IS_ZMB        => site(GEN_NAME) match { case "ysyx" => false; case "zmb" => true }
     case TLB_ENTRIES   => 16
     case VALEN         => 64
     case USESLAVE      => site(GEN_NAME) match { case "ysyx" => true; case "zmb" => false }
@@ -56,7 +54,7 @@ object YQConfig {
 
   class RegConf {
     val readPortsNum  = 3
-    val readCsrsPort  = 8
+    val readCsrsPort  = 10
     val writeCsrsPort = 4
   }
 
@@ -73,8 +71,6 @@ case object ENABLE_DEBUG extends Field[Boolean]
 case object IALIGN       extends Field[Int]
 case object ILEN         extends Field[Int]
 case object REG_CONF     extends Field[YQConfig.RegConf]
-case object IS_YSYX      extends Field[Boolean]
-case object IS_ZMB       extends Field[Boolean]
 case object TLB_ENTRIES  extends Field[Int]
 case object VALEN        extends Field[Int]
 case object USESLAVE     extends Field[Boolean]

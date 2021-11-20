@@ -135,16 +135,6 @@ simall: $(LIB_SPIKE) verilate
 
 zmb:
 	mill -i __.cpu.runMain Elaborate -td $(BUILD_DIR)/zmb zmb
-	@cat $(BUILD_DIR)/zmb/SimTop.v >>$(BUILD_DIR)/zmb/`cd $(BUILD_DIR)/zmb/ && ls S011HD1P_X32Y*`
-	@mv -f $(BUILD_DIR)/zmb/`cd $(BUILD_DIR)/zmb/ && ls S011HD1P_X32Y*` $(BUILD_DIR)/zmb/SimTop.v
-	@cp $(BUILD_DIR)/zmb/SimTop.v $(BUILD_DIR)/zmb/riscv_cpu.v
-	@sed -i -e 's/io_master_/io_memAXI_0_/g' $(BUILD_DIR)/zmb/SimTop.v
-	@sed -i -e 's/module SimTop/module riscv_cpu/g' $(BUILD_DIR)/zmb/riscv_cpu.v
-	@sed -i -e 's/io_master_/io_mem_/g' $(BUILD_DIR)/zmb/riscv_cpu.v
-	@sed -i -e 's/io_perfInfo_dump,/io_meip/g' $(BUILD_DIR)/zmb/riscv_cpu.v
-	@sed -i '/io_logCtrl/d' $(BUILD_DIR)/zmb/riscv_cpu.v
-	@sed -i '/io_perfInfo/d' $(BUILD_DIR)/zmb/riscv_cpu.v
-	@sed -i '/io_uart/d' $(BUILD_DIR)/zmb/riscv_cpu.v
 	
 
 $(LIB_DIR)/librv64spike.so:

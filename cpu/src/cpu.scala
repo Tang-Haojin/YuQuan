@@ -12,16 +12,11 @@ import cache._
 import utils._
 
 class CPU(implicit p: Parameters) extends YQModule {
-  override val desiredName = if (IsYsyx) modulePrefix.dropRight(1) else if (IsZmb) "SimTop" else modulePrefix + this.getClass().getSimpleName()
+  override val desiredName = if (modulePrefix.length() > 1) modulePrefix.dropRight(1) else modulePrefix + this.getClass().getSimpleName()
   val io = IO(new YQBundle {
     val master    = new AXI_BUNDLE
-    val slave     = if (!IsZmb) Flipped(new AXI_BUNDLE) else null
-    val interrupt = if (!IsZmb) Input(Bool())           else null
-//--------------------------these are useless------------------------┐
-    val logCtrl   = if (!IsZmb) null else Input(new zmb.LogCtrl)  // | these
-    val perfInfo  = if (!IsZmb) null else Input(new zmb.PerfInfo) // | are
-    val uart      = if (!IsZmb) null else       new zmb.Uart      // | useless
-//--------------------------these are useless------------------------┘
+    val slave     = Flipped(new AXI_BUNDLE)
+    val interrupt = Input(Bool())
     val debug     =
     if(Debug)       new DEBUG
     else            null
@@ -60,14 +55,14 @@ class CPU(implicit p: Parameters) extends YQModule {
   io.master.w  <> moduleDCache.io.memIO.w
   io.master.b  <> moduleDCache.io.memIO.b
 
-  if (useSlave && !IsZmb) {
+  if (useSlave) {
     moduleDMA.io.memIO          <> io.slave
     moduleDMA.io.cpuIO          <> moduleDCacheMux.io.dmaIO
     moduleMMU.io.dcacheIO       <> moduleDCacheMux.io.cpuIO
     moduleDCacheMux.io.dcacheIO <> moduleDCache.io.cpuIO
   } else {
     moduleMMU.io.dcacheIO <> moduleDCache.io.cpuIO
-    if (!IsZmb) io.slave  <> DontCare
+    io.slave  <> DontCare
   }
 
   moduleID.io.gprsR <> moduleBypass.io.receive
@@ -133,7 +128,7 @@ class CPU(implicit p: Parameters) extends YQModule {
   moduleEX.io.seip := moduleCSRs.io.bareSEIP
   moduleEX.io.ueip := moduleCSRs.io.bareUEIP
 
-  moduleCSRs.io.eip         <> (if (IsZmb) 0.B else io.interrupt)
+  moduleCSRs.io.eip         <> io.interrupt
   moduleCSRs.io.retire      <> moduleWB.io.retire
   moduleCSRs.io.changePriv  <> moduleWB.io.isPriv
   moduleCSRs.io.newPriv     <> moduleWB.io.priv
@@ -165,10 +160,5 @@ class CPU(implicit p: Parameters) extends YQModule {
     io.debug.stval    := moduleCSRs.io.debug.stval
     io.debug.mie      := moduleCSRs.io.debug.mie
     io.debug.mscratch := moduleCSRs.io.debug.mscratch
-  }
-  if (IsZmb) {
-    io.logCtrl  <> DontCare
-    io.perfInfo <> DontCare
-    io.uart     <> DontCare
   }
 }
