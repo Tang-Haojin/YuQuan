@@ -50,12 +50,12 @@ class IF(implicit p: Parameters) extends YQModule {
   io.nextVR.VALID      := NVALID
 
   private val wireInstr = io.immu.pipelineResult.cpuResult.data
-  private val isSatp = wireInstr(6, 0) === "b1110011".U && (
-                         wireInstr(31, 20) === csrsAddr.Satp    ||
-                         wireInstr(31, 20) === csrsAddr.Mstatus ||
-                         wireInstr(31, 20) === csrsAddr.Sstatus ||
-                         (wireInstr(31, 25) === "b0001001".U && wireInstr(14, 7) === 0.U)
-                       )
+  private val willPause = wireInstr(6, 0) === "b1110011".U && (
+                          (ext('S').B && wireInstr(31, 20) === csrsAddr.Satp)    ||
+                                         wireInstr(31, 20) === csrsAddr.Mstatus  ||
+                          (ext('S').B && wireInstr(31, 20) === csrsAddr.Sstatus) ||
+                          (ext('S').B && wireInstr(31, 25) === "b0001001".U && wireInstr(14, 7) === 0.U)
+                        )
 
   io.immu.pipelineReq.cpuReq.data   := DontCare
   io.immu.pipelineReq.cpuReq.rw     := DontCare
@@ -80,7 +80,7 @@ class IF(implicit p: Parameters) extends YQModule {
     except     := io.immu.pipelineResult.exception
     cause      := io.immu.pipelineResult.cause
     crossCache := io.immu.pipelineResult.crossCache
-    wirePause  := isSatp
+    wirePause  := willPause
     pause      := wirePause
   }.elsewhen(io.nextVR.READY && io.nextVR.VALID) {
     pause     := 0.B
