@@ -21,15 +21,14 @@ class GPRsR(implicit p: Parameters) extends YQBundle {
 class GPRs(implicit p: Parameters) extends YQModule {
   val io = IO(new YQBundle {
     val gprsW = new GPRsW
-    val gprsR = new GPRsR
+    val rregs = Output(Vec(32, UInt(xlen.W)))
     val debug = if (Debug) new YQBundle {
       val gprs    = Output(Vec(32, UInt(xlen.W)))
     } else null
   })
   private val regs  = RegInit(VecInit(Seq.fill(32)(0.U(xlen.W))))
-  private val rregs = WireDefault(Vec(32, UInt(xlen.W)), regs); rregs(0) := 0.U
+  private val rregs = WireDefault(Vec(32, UInt(xlen.W)), regs); rregs(0) := 0.U; io.rregs := rregs
   private val rd    = RegInit(0.U(5.W))
-  for (i <- 0 until RegConf.readPortsNum) io.gprsR.rdata(i) := rregs(io.gprsR.raddr(i))
   when(io.gprsW.wen) {
     when(io.gprsW.waddr =/= 0.U) { regs(io.gprsW.waddr) := io.gprsW.wdata }
     when(!io.gprsW.retire) { rd := io.gprsW.waddr; regs(0) := regs(io.gprsW.waddr) }

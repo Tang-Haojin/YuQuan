@@ -96,7 +96,7 @@ class CPU(implicit p: Parameters) extends YQModule {
   moduleID.io.msip       <> moduleClint.io.msip
   moduleClint.io.clintIO <> moduleDCache.io.clintIO
 
-  moduleBypass.io.request <> moduleGPRs.io.gprsR
+  moduleBypass.io.rregs  <> moduleGPRs.io.rregs
   moduleBypass.io.idOut.valid  := moduleID.io.nextVR.VALID
   moduleBypass.io.idOut.index  := moduleID.io.output.rd
   moduleBypass.io.idOut.value  := DontCare

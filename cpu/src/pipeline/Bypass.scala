@@ -8,7 +8,7 @@ import cpu.tools._
 class Bypass(implicit p: Parameters) extends YQModule {
   val io = IO(new YQBundle {
     val receive = new cpu.component.GPRsR
-    val request = Flipped(new cpu.component.GPRsR)
+    val rregs  = Input(Vec(32, UInt(xlen.W)))
     val instr  = Input(UInt(32.W))
     val idOut  = new RdVal
     val exOut  = new RdVal
@@ -26,17 +26,15 @@ class Bypass(implicit p: Parameters) extends YQModule {
   private val insRsp = VecInit(1.U(2.W) ## io.instr(9, 7), 1.U(2.W) ## io.instr(4, 2))
 
   io.isWait := 0.B
-  io.request.raddr <> io.receive.raddr
-  io.receive.rdata <> io.request.rdata
-  for (i <- io.request.raddr.indices)
-    when(io.receive.raddr(i) === 0.U && !io.isAmo) { io.receive.rdata(i) := 0.U }
+
+  private val rregs = WireDefault(Vec(32, UInt(xlen.W)), io.rregs)
+  for (i <- rregs.indices)
+    when(i.U === 0.U && !io.isAmo) { rregs(i) := 0.U }
     .otherwise {
-      when(io.receive.raddr(i) === io.exOut.index && io.exOut.valid) {
-        io.receive.rdata(i) := io.exOut.value
-      }.elsewhen(io.receive.raddr(i) === io.memOut.index && io.memOut.valid) {
-        io.receive.rdata(i) := io.memOut.value
-      }
+      when(i.U === io.exOut.index && io.exOut.valid) { rregs(i) := io.exOut.value }
+      .elsewhen(i.U === io.memOut.index && io.memOut.valid) { rregs(i) := io.memOut.value }
     }
+  for (i <- io.receive.raddr.indices) io.receive.rdata(i) := rregs(io.receive.raddr(i))
 
   private def willWait(rs: Vec[UInt]): Unit =
     rs.foreach(x => when((x =/= 0.U || io.isAmo) && (
