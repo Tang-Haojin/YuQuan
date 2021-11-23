@@ -185,9 +185,7 @@ class EX(implicit p: Parameters) extends YQModule {
 
   import Operators.{mul, ruw}
   when(alu.io.output.fire() && ((op >= mul) && (op <= ruw))) {
-    io.output.data  := alu.io.output.bits.asUInt
     data            := alu.io.output.bits.asUInt
-    io.nextVR.VALID := 1.B
     NVALID          := 1.B
     op              := 0.U
   }
