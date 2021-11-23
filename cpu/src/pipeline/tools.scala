@@ -55,8 +55,8 @@ object ExecSpecials {
 object InstrTypes { val i::u::s::r::j::b::c::invalid::clsp::cssp::cldst::cj::cni::cb::c540::clui::caddi16::caddi4::cinv::Nil = Enum(19) }
 
 object NumTypes {
-  val numtypes: List[UInt] = Enum(16)
-  val non::rs1::rs2::imm::four::pc::csr::tmp::rs1c::rs2c::rs1p::rs2p::rd1c::rd1p::two::x2::Nil = numtypes
+  val numtypes: List[UInt] = Enum(15)
+  val non::rs1::rs2::imm::four::pc::csr::rs1c::rs2c::rs1p::rs2p::rd1c::rd1p::two::x2::Nil = numtypes
 }
 
 case class RVInstr()(implicit val p: Parameters) extends CPUParams {
