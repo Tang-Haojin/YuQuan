@@ -59,7 +59,8 @@ class ALU(implicit p: Parameters) extends YQModule {
   private val shiftness = if (xlen != 32) Mux(io.input.bits.word, b(4, 0), b(5, 0)) else b(4, 0)
   private val sl = a.asUInt() << shiftness
   private val (lessthan, ulessthan, equal) = (a < b, a.asUInt < b.asUInt, a === b)
-  private var operates = Seq(
+  private val operates = Seq(
+    err  -> a,
     add  -> (a + b),
     sub  -> (a - b),
     and  -> (a & b),
@@ -83,18 +84,16 @@ class ALU(implicit p: Parameters) extends YQModule {
     max  -> Mux(lessthan, b, a),
     min  -> Mux(lessthan, a, b),
     maxu -> Mux(ulessthan, b, a),
-    minu -> Mux(ulessthan, a, b)
-  )
-  if (xlen == 64) operates ++= Seq(
+    minu -> Mux(ulessthan, a, b)) ++ (if (xlen == 64) Seq(
     sllw -> (sl(31, 0).asSInt),
     srlw -> ((Cat(0.U((xlen - 32).W), a(31, 0)) >> b(4, 0)).asSInt),
     sraw -> ((Cat(Fill(xlen - 32, a(31)), a(31, 0)) >> b(4, 0)).asSInt),
     divw -> (divTop.io.output.bits.quotient(31, 0).asSInt),
     remw -> (divTop.io.output.bits.remainder(31, 0).asSInt),
     duw  -> (divTop.io.output.bits.quotient(31, 0).asSInt),
-    ruw  -> (divTop.io.output.bits.remainder(31, 0).asSInt)
+    ruw  -> (divTop.io.output.bits.remainder(31, 0).asSInt)) else Nil
   )
-  result := MuxLookup(io.input.bits.op, io.input.bits.a, operates)
+  result := Mux1H(operates.map(x => (io.input.bits.op === x._1, x._2)))
 
   when(io.input.bits.word) { io.output.bits := (Fill(32, result(31)) ## result(31, 0)).asSInt }
 }
