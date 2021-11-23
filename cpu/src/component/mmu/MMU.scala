@@ -31,10 +31,10 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
   private val tlb = new TLB
   private val crossCache = RegInit(0.B)
   private val crossAddrP = RegInit(0.U((39 - Offset).W))
-  private val crossAddr  = Fill(valen - 39, crossAddrP(39 - Offset - 1)) ## crossAddrP ## 0.U(Offset.W)
-  private val ifVaddr  = Mux(crossCache, crossAddr, io.ifIO.pipelineReq.cpuReq.addr).asTypeOf(new Vaddr)
-  private val memVaddr = io.memIO.pipelineReq.cpuReq.addr.asTypeOf(new Vaddr)
-  private val vaddr    = RegInit(new Vaddr, 0.U.asTypeOf(new Vaddr))
+  private val crossAddr  = if (ext('C')) Fill(valen - 39, crossAddrP(39 - Offset - 1)) ## crossAddrP ## 0.U(Offset.W) else 0.U
+  private val ifVaddr  = if (ext('S')) Mux(crossCache, crossAddr, io.ifIO.pipelineReq.cpuReq.addr).asTypeOf(new Vaddr) else null
+  private val memVaddr = if (ext('S')) io.memIO.pipelineReq.cpuReq.addr.asTypeOf(new Vaddr) else null
+  private val vaddr    = if (ext('S')) RegInit(new Vaddr, 0.U.asTypeOf(new Vaddr)) else null
   private val satp     = UseSatp(io.satp)
   private val pte      = RegInit(new PTE, 0.U.asTypeOf(new PTE))
   private val newPte   = io.dcacheIO.cpuResult.data.asTypeOf(new PTE)
@@ -93,20 +93,20 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
     io.memIO.pipelineResult.cause := memCause
   }
 
-  io.icacheIO.cpuReq.addr := Mux(isSv39_i, tlb.translate(ifVaddr), ifVaddr.asUInt())
-  io.dcacheIO.cpuReq.addr := Mux(isSv39_d, tlb.translate(memVaddr), memVaddr.asUInt())
-  when(isSv39_i && !tlb.isHit(ifVaddr)) {
+  if (ext('S') || ext('C')) io.icacheIO.cpuReq.addr := Mux(isSv39_i, tlb.translate(ifVaddr), ifVaddr.asUInt())
+  if (ext('S') || ext('C')) io.dcacheIO.cpuReq.addr := Mux(isSv39_d, tlb.translate(memVaddr), memVaddr.asUInt())
+  if (ext('S')) when(isSv39_i && !tlb.isHit(ifVaddr)) {
     ifDel := 1.B
     ifReady := 0.B
     icacheValid := 0.B
   }
-  when(isSv39_d && (!tlb.isHit(memVaddr) || (isWrite && !tlb.isDirty(memVaddr)))) {
+  if (ext('S')) when(isSv39_d && (!tlb.isHit(memVaddr) || (isWrite && !tlb.isDirty(memVaddr)))) {
     memDel := 1.B
     memReady := 0.B
     dcacheValid := 0.B
   }
 
-  when(isSv39_i || isSv39_d) {
+  if (ext('S')) when(isSv39_i || isSv39_d) {
     when(stage === walking) {
       dcacheValid := 1.B
       io.dcacheIO.cpuReq.rw    := 0.B
@@ -172,11 +172,11 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
   )) {
     io.dcacheIO.cpuReq.valid := 0.B
     MemRaiseException(Mux(isWrite, 6.U, 4.U), false) // load/store/amo address misaligned
-  }.elsewhen(io.ifIO.pipelineReq.cpuReq.valid && ifVaddr.offset(1, 0) =/= 0.U && (!ext('C')).B) {
+  }.elsewhen(io.ifIO.pipelineReq.cpuReq.valid && io.ifIO.pipelineReq.cpuReq.addr(1, 0) =/= 0.U && (!ext('C')).B) {
     icacheValid := 0.B
     IfRaiseException(0.U, false) // Instruction address misaligned
   }.otherwise {
-    when(isSv39_i && io.ifIO.pipelineReq.cpuReq.valid) {
+    if (ext('S')) when(isSv39_i && io.ifIO.pipelineReq.cpuReq.valid) {
       when(ifVaddr.getHigher.andR =/= ifVaddr.getHigher.orR) { IfRaiseException(12.U, false); io.icacheIO.cpuReq.valid := 0.B } // Instruction page fault
       .elsewhen(tlb.isHit(ifVaddr)) {
         when(isU_i && !tlb.isUser(ifVaddr) || isS_i && tlb.isUser(ifVaddr)) { IfRaiseException(12.U, false); io.icacheIO.cpuReq.valid := 0.B } // Instruction page fault
@@ -189,7 +189,7 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
       }
     }
 
-    when(isSv39_d && io.memIO.pipelineReq.cpuReq.valid && stage === idle) {
+    if (ext('S')) when(isSv39_d && io.memIO.pipelineReq.cpuReq.valid && stage === idle) {
       val willWalk = WireDefault(0.B)
       when(memVaddr.getHigher.andR =/= memVaddr.getHigher.orR) { MemRaiseException(Mux(isWrite, 15.U, 13.U), false); io.dcacheIO.cpuReq.valid := 0.B } // load/store/amo page fault
       .elsewhen(tlb.isHit(memVaddr)) {
