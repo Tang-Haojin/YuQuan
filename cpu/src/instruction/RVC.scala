@@ -77,19 +77,19 @@ case class RVC()(implicit val p: Parameters) extends CPUParams {
     C_XOR      -> List(cni    , rd1p, rs2p, non , non , xor , 1.U, ExecSpecials.non   ),
     C_OR       -> List(cni    , rd1p, rs2p, non , non , or  , 1.U, ExecSpecials.non   ),
     C_AND      -> List(cni    , rd1p, rs2p, non , non , and , 1.U, ExecSpecials.non   ),
-    C_J        -> List(cj     , pc  , two , imm , non , add , 0.U, ExecSpecials.jump  ),
-    C_BEQZ     -> List(cb     , rs1p, non , imm , non , equ , 0.U, ExecSpecials.branch),
-    C_BNEZ     -> List(cb     , rs1p, non , imm , non , neq , 0.U, ExecSpecials.branch)) ++ (if (xlen == 32) List(
-    C_JAL      -> List(cj     , pc  , two , imm , non , add , 1.U, ExecSpecials.jump  )) else List(
+    C_J        -> List(cj     , pc  , two , imm , non , add , 0.U, ExecSpecials.non   ),
+    C_BEQZ     -> List(cb     , rs1p, non , imm , non , equ , 0.U, ExecSpecials.non   ),
+    C_BNEZ     -> List(cb     , rs1p, non , imm , non , neq , 0.U, ExecSpecials.non   )) ++ (if (xlen == 32) List(
+    C_JAL      -> List(cj     , pc  , two , imm , non , add , 1.U, ExecSpecials.non   )) else List(
     C_ADDIW    -> List(c540   , rd1c, imm , non , non , add , 1.U, ExecSpecials.word  ),
     C_SUBW     -> List(cni    , rd1p, rs2p, non , non , sub , 1.U, ExecSpecials.word  ),
     C_ADDW     -> List(cni    , rd1p, rs2p, non , non , add , 1.U, ExecSpecials.word  ))) ++ List( // quadrant 2
     C_SLLI     -> List(c540   , rd1c, imm , non , non , sll , 1.U, ExecSpecials.non   ),
     C_LWSP     -> List(clsp   , non , non , x2  , imm , non , 1.U, ExecSpecials.ld    ),
-    C_JR       -> List(cni    , pc  , two , non , rs1c, add , 0.U, ExecSpecials.jalr  ),
+    C_JR       -> List(cni    , pc  , two , non , rs1c, add , 0.U, ExecSpecials.non   ),
     C_MV       -> List(cni    , non , rs2c, non , non , add , 1.U, ExecSpecials.non   ),
     C_EBREAK   -> List(cni    , non , non , non , non , non , 0.U, ExecSpecials.ebreak),
-    C_JALR     -> List(cni    , pc  , two , non , rs1c, add , 1.U, ExecSpecials.jalr  ),
+    C_JALR     -> List(cni    , pc  , two , non , rs1c, add , 1.U, ExecSpecials.non   ),
     C_ADD      -> List(cni    , rd1c, rs2c, non , non , add , 1.U, ExecSpecials.non   ),
     C_SWSP     -> List(cssp   , rs2c, non , x2  , imm , add , 0.U, ExecSpecials.st    )) ++ (if (xlen != 32) List(
     C_LDSP     -> List(clsp   , non , non , x2  , imm , non , 1.U, ExecSpecials.ld    ),
