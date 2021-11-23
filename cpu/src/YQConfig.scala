@@ -35,7 +35,7 @@ object YQConfig {
     case ILEN          => 32 // base instruction set supported only
     case REG_CONF      => new RegConf
     case TLB_ENTRIES   => 16
-    case VALEN         => 64
+    case VALEN         => site(GEN_NAME) match { case "ysyx" => 64; case "zmb" => 32 }
     case USESLAVE      => site(GEN_NAME) match { case "ysyx" => true; case "zmb" => false }
   }
 
