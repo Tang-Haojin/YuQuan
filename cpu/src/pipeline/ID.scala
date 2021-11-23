@@ -204,10 +204,12 @@ class ID(implicit p: Parameters) extends YQModule {
   private val instrBranch = io.input.instrCode === "b1100011".U || (ext('C').B && wireInstr(1, 0) === "b01".U && wireFunct3c(2, 1) === "b11".U)
   private val instrJalr = io.input.instrCode === "b1100111".U || (ext('C').B && isCJR)
   private val wireJmpBch = WireDefault(Bool(), instrJump || instrJalr || (instrBranch && willBranch))
-  when(decoded(7) === csr) {
-    when(VecInit(Seq(csrsAddr.Fflags, csrsAddr.Frm, csrsAddr.Fcsr).map(wireInstr(31, 20) === _)).asUInt().orR()) {
+  private val isZicsr = io.input.instrCode === "b1110011".U && wireInstr(13, 12) =/= "b00".U
+  when(isZicsr) {
+    when(ext('S').B && VecInit(Seq(csrsAddr.Fflags, csrsAddr.Frm, csrsAddr.Fcsr).map(wireInstr(31, 20) === _)).asUInt().orR()) {
       wireExcept(2) := 1.B
     }.otherwise {
+      wireSpecial := csr
       wireIsWcsr := 1.B
       wireCsr(0) := wireInstr(31, 20)
       when(wireCsr(0) === csrsAddr.Satp) { wireIsSatp := 1.B }
