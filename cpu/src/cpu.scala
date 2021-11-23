@@ -139,7 +139,6 @@ class CPU(implicit p: Parameters) extends YQModule {
 
   if (Debug) {
     io.debug.exit     := moduleWB.io.debug.exit
-    io.debug.data     := moduleGPRs.io.gprsR.rdata(2)
     io.debug.wbPC     := moduleWB.io.debug.pc
     io.debug.wbValid  := moduleWB.io.retire
     io.debug.wbRd     := moduleWB.io.debug.rd

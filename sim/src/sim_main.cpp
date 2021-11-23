@@ -176,7 +176,7 @@ int main(int argc, char **argv, char **env) {
     if (top->io_exit == 1) {
       printf(DEBUG "Exit after %ld clock cycles.\n", cycles / 2);
       printf(DEBUG);
-      if (top->io_data) {
+      if (top->io_gprs_10) {
         printf("\33[1;31mHIT BAD TRAP");
         ret = 1;
       }
