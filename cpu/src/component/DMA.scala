@@ -18,7 +18,9 @@ class DMA(implicit p: Parameters) extends YQModule {
   private val read::write::Nil = Enum(2)
   private val state = RegInit(UInt(1.W), idle)
   private val current = RegInit(UInt(1.W), read)
-  private val rrRW = RegInit(0.B); rrRW := !rrRW // Round-Robin policy
+
+  private val reading = RegInit(0.B)
+  private val writing = RegInit(0.B)
 
   private val AWREADY = RegInit(1.B); io.memIO.aw.ready := AWREADY
   private val WREADY  = RegInit(0.B); io.memIO.w .ready := WREADY
@@ -49,11 +51,6 @@ class DMA(implicit p: Parameters) extends YQModule {
   io.memIO.r.bits.user := DontCare
   io.memIO.r.bits.resp := 0.U
 
-  when((ARREADY && io.memIO.ar.valid) && (AWREADY && io.memIO.aw.valid)) {
-    io.memIO.ar.ready := !rrRW
-    io.memIO.aw.ready := rrRW
-  }
-
   io.cpuIO.cpuReq.addr   := Mux(current === read, ARADDR, AWADDR)
   io.cpuIO.cpuReq.valid  := state === busy && Mux(current === read, !ARREADY && !RVALID, !AWREADY && !WREADY && !BVALID)
   io.cpuIO.cpuReq.data   := WDATA
@@ -66,7 +63,7 @@ class DMA(implicit p: Parameters) extends YQModule {
   when(io.cpuIO.cpuResult.ready) {
     io.cpuIO.cpuReq.valid := 0.B
     when(current === read) { RVALID := 1.B; RDATA := io.cpuIO.cpuResult.data }
-    .elsewhen(AWLEN =/= 0.U) { WREADY := 1.B; AWADDR := AWADDR + wireWStep; AWLEN  := AWLEN - 1.U }
+    .elsewhen(AWLEN =/= 0.U) { WREADY := 1.B; AWADDR := AWADDR + wireWStep; AWLEN := AWLEN - 1.U }
     .otherwise { BVALID := 1.B }
   }
 
@@ -75,16 +72,19 @@ class DMA(implicit p: Parameters) extends YQModule {
     when(ARLEN === 0.U) {
       ARREADY := 1.B
       io.memIO.r.bits.last := 1.B
-      state := idle
+      state := Mux(writing, busy, idle)
+      reading := 0.B
+      current := write
     }.otherwise {
       ARADDR := ARADDR + wireRStep
       ARLEN  := ARLEN - 1.U
     }
-  }
+  }.elsewhen(io.memIO.r.valid && !io.memIO.r.ready && io.memIO.w.valid && current === read) { current := write }
   
   when(io.memIO.ar.fire()) {
     current := read
     state   := busy
+    reading := 1.B
     RID     := io.memIO.ar.bits.id
     ARADDR  := io.memIO.ar.bits.addr(alen - 1, axSize) ## 0.U(axSize.W)
     ARREADY := 0.B
@@ -95,6 +95,7 @@ class DMA(implicit p: Parameters) extends YQModule {
   when(io.memIO.aw.fire()) {
     current := write
     state   := busy
+    writing := 1.B
     AWADDR  := io.memIO.aw.bits.addr(alen - 1, axSize) ## 0.U(axSize.W)
     BID     := io.memIO.aw.bits.id
     AWREADY := 0.B
@@ -107,11 +108,13 @@ class DMA(implicit p: Parameters) extends YQModule {
     WREADY := 0.B
     WDATA  := io.memIO.w.bits.data
     WSTRB  := io.memIO.w.bits.strb
-  }
+  }.elsewhen(io.memIO.w.ready && !io.memIO.w.valid && io.memIO.r.ready && current === write) { current := read }
 
   when(io.memIO.b.fire()) {
     AWREADY := 1.B
     BVALID := 0.B
-    state := idle
+    state := Mux(reading && !(io.memIO.r.fire() && io.memIO.r.bits.last), busy, idle)
+    writing := 0.B
+    current := read
   }
 }
