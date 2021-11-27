@@ -58,8 +58,8 @@ object SimConfig {
   class DMAC extends MMAP {
     override val BASE = 0x50000000L
     override val SIZE = 0x1000L
-    val DEVICE_ADDR_REG = BASE
-    val MEMORY_ADDR_REG = BASE + 8
+    val READ_ADDR_REG = BASE
+    val WRITE_ADDR_REG = BASE + 8
     val TRANS_LENTH_REG = BASE + 16
     val DMAC_STATUS_REG = BASE + 24
   }
