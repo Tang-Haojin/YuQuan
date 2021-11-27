@@ -12,6 +12,7 @@ import sim._
 import peripheral.ram._
 import peripheral.uart._
 import peripheral.spiFlash._
+import peripheral.dmac._
 import peripheral.sdcard._
 
 class TestTop_Traditional(io: DEBUG, clock: Clock, reset: Reset)(implicit val p: Parameters) extends SimParams {
@@ -22,36 +23,40 @@ class TestTop_Traditional(io: DEBUG, clock: Clock, reset: Reset)(implicit val p:
   val spi       = Module(new AxiFlash)
   val sd        = Module(new SDCard)
   val nemu_uart = Module(new Nemu_Uart)
+  val dmac      = Module(new DMAC)
   val router    = Module(new ROUTER)
 
   io <> cpu.io.debug
 
   cpu.io.master <> router.io.input
-  cpu.io.slave  := DontCare
+  cpu.io.slave  <> dmac.io.toCPU
 
   router.io.DramIO      <> mem.io.channel
   router.io.UartIO      <> uart.io.channel
   router.io.PLICIO      <> plic.io.channel
   router.io.SpiIO       <> spi.io.channel
   router.io.Nemu_UartIO <> nemu_uart.io.channel
+  router.io.Dmac        <> dmac.io.fromCPU.channel
   router.io.SdIO        <> sd.io.channel
 
   plic.io.inter     := VecInit(Seq.fill(plic.io.inter.length)(0.B))
   plic.io.inter(10) := uart.io.interrupt
   cpu.io.interrupt  := plic.io.eip
 
-  mem.io.basic.ACLK          := clock
-  mem.io.basic.ARESETn       := !reset.asBool
-  uart.io.basic.ACLK         := clock
-  uart.io.basic.ARESETn      := !reset.asBool
-  plic.io.basic.ACLK         := clock
-  plic.io.basic.ARESETn      := !reset.asBool
-  spi.io.basic.ACLK          := clock
-  spi.io.basic.ARESETn       := !reset.asBool
-  nemu_uart.io.basic.ACLK    := clock
-  nemu_uart.io.basic.ARESETn := !reset.asBool
-  sd.io.basic.ACLK           := clock
-  sd.io.basic.ARESETn        := !reset.asBool
-  router.io.basic.ACLK       := clock
-  router.io.basic.ARESETn    := !reset.asBool
+  mem.io.basic.ACLK             := clock
+  mem.io.basic.ARESETn          := !reset.asBool
+  uart.io.basic.ACLK            := clock
+  uart.io.basic.ARESETn         := !reset.asBool
+  plic.io.basic.ACLK            := clock
+  plic.io.basic.ARESETn         := !reset.asBool
+  spi.io.basic.ACLK             := clock
+  spi.io.basic.ARESETn          := !reset.asBool
+  nemu_uart.io.basic.ACLK       := clock
+  nemu_uart.io.basic.ARESETn    := !reset.asBool
+  dmac.io.fromCPU.basic.ACLK    := clock
+  dmac.io.fromCPU.basic.ARESETn := !reset.asBool
+  sd.io.basic.ACLK              := clock
+  sd.io.basic.ARESETn           := !reset.asBool
+  router.io.basic.ACLK          := clock
+  router.io.basic.ARESETn       := !reset.asBool
 }

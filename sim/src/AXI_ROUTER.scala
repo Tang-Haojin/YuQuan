@@ -14,13 +14,14 @@ class AxiRouterIO(implicit val p: Parameters) extends Bundle with SimParams {
   val PLICIO      = new AXI_BUNDLE
   val SpiIO       = new AXI_BUNDLE
   val Nemu_UartIO = new AXI_BUNDLE
+  val Dmac        = new AXI_BUNDLE
   val SdIO        = new AXI_BUNDLE
 }
 
 class ROUTER(implicit val p: Parameters) extends RawModule with SimParams {
   val io = IO(new AxiRouterIO)
 
-  val dram::uart::plic::spiflash::nemu_uart::sd_card::Nil = Enum(6)
+  val dram::uart::plic::spiflash::nemu_uart::dmac::sd_card::Nil = Enum(7)
 
   for (i <- 2 until io.getElements.length) {
     val devIO = io.getElements.reverse(i).asInstanceOf[AXI_BUNDLE]
@@ -92,6 +93,7 @@ class ROUTER(implicit val p: Parameters) extends RawModule with SimParams {
     AddDevice(plic, PLIC, io.PLICIO)
     AddDevice(spiflash, SPIFLASH, io.SpiIO )
     AddDevice(nemu_uart, NEMU_UART, io.Nemu_UartIO)
+    AddDevice(dmac, DMAC, io.Dmac)
     AddDevice(sd_card, SD_CARD, io.SdIO)
 
     when(io.input.r.fire()) {

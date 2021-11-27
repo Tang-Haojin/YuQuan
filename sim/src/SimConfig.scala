@@ -40,7 +40,7 @@ object SimConfig {
     case ENABLE_DEBUG   => true
     case TLB_ENTRIES    => 16
     case VALEN          => 64
-    case USESLAVE       => false
+    case USESLAVE       => true
   }
 
   val basicConfig: (View, View, View) => PartialFunction[Any, Any] = (site, here, up) => basePartFunc.orElse({
