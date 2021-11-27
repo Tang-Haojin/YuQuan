@@ -2,10 +2,12 @@ package cpu.instruction
 
 import chisel3._
 import chisel3.util._
-
-import cpu.pipeline._
-import cpu.pipeline.NumTypes._
 import chipsalliance.rocketchip.config._
+
+import cpu.pipeline.ExecSpecials._
+import cpu.pipeline.InstrTypes._
+import cpu.pipeline.NumTypes._
+import cpu.component.Operators._
 import cpu.tools._
 import cpu._
 
@@ -17,9 +19,9 @@ case class Privileged()(implicit val p: Parameters) extends CPUParams {
   def SFENCE_VMA = BitPat("b0001001_?????_?????_000_00000_1110011")
 
   val table = List(
-    //                |    Type    |num1 |num2 |num3 |num4 |op1_2| WB |     Special        |
-    MRET       -> List(InstrTypes.i, non , non , non , non , non , 0.U, ExecSpecials.mret  ),
-    WFI        -> List(InstrTypes.i, non , non , non , non , non , 0.U, ExecSpecials.non   )) /* do nothing */ ++ (if(ext('S')) List(
-    SRET       -> List(InstrTypes.i, non , non , non , non , non , 0.U, ExecSpecials.sret  ),
-    SFENCE_VMA -> List(InstrTypes.i, non , non , non , non , non , 0.U, ExecSpecials.sfence)) else Nil)
+    //                |Type|num1 |num2 |num3 |num4 |op1_2| WB |Special|
+    MRET       -> List(  i , non , non , non , non , nop , 0.U, mret  ),
+    WFI        -> List(  i , non , non , non , non , nop , 0.U, norm  )) /* do nothing */ ++ (if(ext('S')) List(
+    SRET       -> List(  i , non , non , non , non , nop , 0.U, sret  ),
+    SFENCE_VMA -> List(  i , non , non , non , non , nop , 0.U, sfence)) else Nil)
 }

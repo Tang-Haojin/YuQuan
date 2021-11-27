@@ -2,10 +2,12 @@ package cpu.instruction
 
 import chisel3._
 import chisel3.util._
+import chipsalliance.rocketchip.config._
 
 import cpu.pipeline.NumTypes._
-import cpu.pipeline._
-import chipsalliance.rocketchip.config._
+import cpu.component.Operators._
+import cpu.pipeline.ExecSpecials._
+import cpu.pipeline.InstrTypes._
 import cpu.tools._
 import cpu._
 
@@ -18,12 +20,12 @@ case class Zicsr()(implicit val p: Parameters) extends CPUParams {
   def CSRRCI = BitPat("b????????????_?????_111_?????_1110011")
 
   val table = Array(
-    //            |    Type    |num1 |num2 |num3 |num4 |op1_2| WB |     Special     |
-    CSRRW  -> List(InstrTypes.c, csr , rs1 , non , non , non , 1.U, ExecSpecials.non),
-    CSRRS  -> List(InstrTypes.c, csr , rs1 , non , non , non , 1.U, ExecSpecials.non),
-    CSRRC  -> List(InstrTypes.c, csr , rs1 , non , non , non , 1.U, ExecSpecials.non),
-    CSRRWI -> List(InstrTypes.c, csr , imm , non , non , non , 1.U, ExecSpecials.non),
-    CSRRSI -> List(InstrTypes.c, csr , imm , non , non , non , 1.U, ExecSpecials.non),
-    CSRRCI -> List(InstrTypes.c, csr , imm , non , non , non , 1.U, ExecSpecials.non)
+    //            |Type|num1 |num2 |num3 |num4 |op1_2| WB |Special|
+    CSRRW  -> List(  c , csr , rs1 , non , non , nop , 1.U,  norm ),
+    CSRRS  -> List(  c , csr , rs1 , non , non , nop , 1.U,  norm ),
+    CSRRC  -> List(  c , csr , rs1 , non , non , nop , 1.U,  norm ),
+    CSRRWI -> List(  c , csr , imm , non , non , nop , 1.U,  norm ),
+    CSRRSI -> List(  c , csr , imm , non , non , nop , 1.U,  norm ),
+    CSRRCI -> List(  c , csr , imm , non , non , nop , 1.U,  norm )
   )
 }

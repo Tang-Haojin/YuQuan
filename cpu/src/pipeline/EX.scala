@@ -100,7 +100,7 @@ class EX(implicit p: Parameters) extends YQModule {
   when(io.invIch.fire()) { invalidateICache := 0.B }
   when(io.wbDch.fire())  { writebackDCache  := 0.B }
 
-  when(io.input.special === csr) {
+  when(io.input.special === zicsr) {
     case class csrsAddr()(implicit val p: Parameters) extends cpu.CPUParams with cpu.privileged.CSRsAddr
     val oldValue = io.input.num(0).asTypeOf(new MipBundle)
     val newValue = WireDefault(new MipBundle, oldValue)

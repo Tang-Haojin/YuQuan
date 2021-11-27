@@ -49,10 +49,10 @@ class EXOutput(implicit p: Parameters) extends YQBundle {
 // ID
 object ExecSpecials {
   val specials: List[UInt] = Enum(17)
-  val non::ld::st::trap::inv::word::csr::mret::exception::mu::msu::ecall::ebreak::sret::fencei::amo::sfence::Nil = specials
+  val norm::ld::st::trap::inv::word::zicsr::mret::exception::mu::msu::ecall::ebreak::sret::fencei::amo::sfence::Nil = specials
 }
 
-object InstrTypes { val i::u::s::r::j::b::c::invalid::clsp::cssp::cldst::cj::cni::cb::c540::clui::caddi16::caddi4::cinv::Nil = Enum(19) }
+object InstrTypes { val i::u::s::r::j::b::c::err::clsp::cssp::cldst::cj::cni::cb::c540::clui::caddi16::caddi4::cinv::Nil = Enum(19) }
 
 object NumTypes {
   val numtypes: List[UInt] = Enum(15)

@@ -7,7 +7,7 @@ import chipsalliance.rocketchip.config._
 import cpu.pipeline.NumTypes._
 import cpu.component.Operators._
 import cpu.pipeline.InstrTypes._
-import cpu.pipeline._
+import cpu.pipeline.ExecSpecials._
 import cpu.tools._
 import cpu._
 
@@ -59,39 +59,39 @@ case class RVC()(implicit val p: Parameters) extends CPUParams {
   def C_SDSP     = BitPat("b????????????????_111_?_?????_?????_10") // RV64/128
 
   val table = List(
-    //                | Type  |num1 |num2 |num3 |num4 |op1_2| WB |     Special        |
-    C_ERR      -> List(7.U    , pc  , non , non , non , non , 0.U, ExecSpecials.inv   ), // quadrant 0
-    C_ADDI4SPN -> List(caddi4 , x2  , imm , non , non , add , 1.U, ExecSpecials.non   ),
-    C_LW       -> List(cldst  , non , non , rs1p, imm , non , 1.U, ExecSpecials.ld    ),
-    C_SW       -> List(cldst  , rs2p, non , rs1p, imm , add , 0.U, ExecSpecials.st    )) ++ (if (xlen != 32) List(
-    C_LD       -> List(cldst  , non , non , rs1p, imm , non , 1.U, ExecSpecials.ld    ),
-    C_SD       -> List(cldst  , rs2p, non , rs1p, imm , add , 0.U, ExecSpecials.st    )) else Nil) ++ List( // quadrant 1
-    C_ADDI     -> List(c540   , rd1c, imm , non , non , add , 1.U, ExecSpecials.non   ),
-    C_LI       -> List(c540   , non , imm , non , non , add , 1.U, ExecSpecials.non   ),
-    C_ADDI16SP -> List(caddi16, rd1c, imm , non , non , add , 1.U, ExecSpecials.non   ),
-    C_LUI      -> List(clui   , non , imm , non , non , add , 1.U, ExecSpecials.non   ),
-    C_SRLI     -> List(c540   , rd1p, imm , non , non , srl , 1.U, ExecSpecials.non   ),
-    C_SRAI     -> List(c540   , rd1p, imm , non , non , sra , 1.U, ExecSpecials.non   ),
-    C_ANDI     -> List(c540   , rd1p, imm , non , non , and , 1.U, ExecSpecials.non   ),
-    C_SUB      -> List(cni    , rd1p, rs2p, non , non , sub , 1.U, ExecSpecials.non   ),
-    C_XOR      -> List(cni    , rd1p, rs2p, non , non , xor , 1.U, ExecSpecials.non   ),
-    C_OR       -> List(cni    , rd1p, rs2p, non , non , or  , 1.U, ExecSpecials.non   ),
-    C_AND      -> List(cni    , rd1p, rs2p, non , non , and , 1.U, ExecSpecials.non   ),
-    C_J        -> List(cj     , pc  , two , imm , non , add , 0.U, ExecSpecials.non   ),
-    C_BEQZ     -> List(cb     , rs1p, non , imm , non , equ , 0.U, ExecSpecials.non   ),
-    C_BNEZ     -> List(cb     , rs1p, non , imm , non , neq , 0.U, ExecSpecials.non   )) ++ (if (xlen == 32) List(
-    C_JAL      -> List(cj     , pc  , two , imm , non , add , 1.U, ExecSpecials.non   )) else List(
-    C_ADDIW    -> List(c540   , rd1c, imm , non , non , add , 1.U, ExecSpecials.word  ),
-    C_SUBW     -> List(cni    , rd1p, rs2p, non , non , sub , 1.U, ExecSpecials.word  ),
-    C_ADDW     -> List(cni    , rd1p, rs2p, non , non , add , 1.U, ExecSpecials.word  ))) ++ List( // quadrant 2
-    C_SLLI     -> List(c540   , rd1c, imm , non , non , sll , 1.U, ExecSpecials.non   ),
-    C_LWSP     -> List(clsp   , non , non , x2  , imm , non , 1.U, ExecSpecials.ld    ),
-    C_JR       -> List(cni    , pc  , two , non , rs1c, add , 0.U, ExecSpecials.non   ),
-    C_MV       -> List(cni    , non , rs2c, non , non , add , 1.U, ExecSpecials.non   ),
-    C_EBREAK   -> List(cni    , non , non , non , non , non , 0.U, ExecSpecials.ebreak),
-    C_JALR     -> List(cni    , pc  , two , non , rs1c, add , 1.U, ExecSpecials.non   ),
-    C_ADD      -> List(cni    , rd1c, rs2c, non , non , add , 1.U, ExecSpecials.non   ),
-    C_SWSP     -> List(cssp   , rs2c, non , x2  , imm , add , 0.U, ExecSpecials.st    )) ++ (if (xlen != 32) List(
-    C_LDSP     -> List(clsp   , non , non , x2  , imm , non , 1.U, ExecSpecials.ld    ),
-    C_SDSP     -> List(cssp   , rs2c, non , x2  , imm , add , 0.U, ExecSpecials.st    )) else Nil)
+    //                | Type  |num1 |num2 |num3 |num4 |op1_2| WB |Special|
+    C_ERR      -> List(err    , pc  , non , non , non , nop , 0.U, inv   ), // quadrant 0
+    C_ADDI4SPN -> List(caddi4 , x2  , imm , non , non , add , 1.U, norm  ),
+    C_LW       -> List(cldst  , non , non , rs1p, imm , nop , 1.U, ld    ),
+    C_SW       -> List(cldst  , rs2p, non , rs1p, imm , add , 0.U, st    )) ++ (if (xlen != 32) List(
+    C_LD       -> List(cldst  , non , non , rs1p, imm , nop , 1.U, ld    ),
+    C_SD       -> List(cldst  , rs2p, non , rs1p, imm , add , 0.U, st    )) else Nil) ++ List( // quadrant 1
+    C_ADDI     -> List(c540   , rd1c, imm , non , non , add , 1.U, norm  ),
+    C_LI       -> List(c540   , non , imm , non , non , add , 1.U, norm  ),
+    C_ADDI16SP -> List(caddi16, rd1c, imm , non , non , add , 1.U, norm  ),
+    C_LUI      -> List(clui   , non , imm , non , non , add , 1.U, norm  ),
+    C_SRLI     -> List(c540   , rd1p, imm , non , non , srl , 1.U, norm  ),
+    C_SRAI     -> List(c540   , rd1p, imm , non , non , sra , 1.U, norm  ),
+    C_ANDI     -> List(c540   , rd1p, imm , non , non , and , 1.U, norm  ),
+    C_SUB      -> List(cni    , rd1p, rs2p, non , non , sub , 1.U, norm  ),
+    C_XOR      -> List(cni    , rd1p, rs2p, non , non , xor , 1.U, norm  ),
+    C_OR       -> List(cni    , rd1p, rs2p, non , non , or  , 1.U, norm  ),
+    C_AND      -> List(cni    , rd1p, rs2p, non , non , and , 1.U, norm  ),
+    C_J        -> List(cj     , pc  , two , imm , non , add , 0.U, norm  ),
+    C_BEQZ     -> List(cb     , rs1p, non , imm , non , equ , 0.U, norm  ),
+    C_BNEZ     -> List(cb     , rs1p, non , imm , non , neq , 0.U, norm  )) ++ (if (xlen == 32) List(
+    C_JAL      -> List(cj     , pc  , two , imm , non , add , 1.U, norm  )) else List(
+    C_ADDIW    -> List(c540   , rd1c, imm , non , non , add , 1.U, word  ),
+    C_SUBW     -> List(cni    , rd1p, rs2p, non , non , sub , 1.U, word  ),
+    C_ADDW     -> List(cni    , rd1p, rs2p, non , non , add , 1.U, word  ))) ++ List( // quadrant 2
+    C_SLLI     -> List(c540   , rd1c, imm , non , non , sll , 1.U, norm  ),
+    C_LWSP     -> List(clsp   , non , non , x2  , imm , nop , 1.U, ld    ),
+    C_JR       -> List(cni    , pc  , two , non , rs1c, add , 0.U, norm  ),
+    C_MV       -> List(cni    , non , rs2c, non , non , add , 1.U, norm  ),
+    C_EBREAK   -> List(cni    , non , non , non , non , nop , 0.U, ebreak),
+    C_JALR     -> List(cni    , pc  , two , non , rs1c, add , 1.U, norm  ),
+    C_ADD      -> List(cni    , rd1c, rs2c, non , non , add , 1.U, norm  ),
+    C_SWSP     -> List(cssp   , rs2c, non , x2  , imm , add , 0.U, st    )) ++ (if (xlen != 32) List(
+    C_LDSP     -> List(clsp   , non , non , x2  , imm , nop , 1.U, ld    ),
+    C_SDSP     -> List(cssp   , rs2c, non , x2  , imm , add , 0.U, st    )) else Nil)
 }

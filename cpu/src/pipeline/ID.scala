@@ -168,7 +168,7 @@ class ID(implicit p: Parameters) extends YQModule {
 
   private val immMap = Map(
     r       -> 0.U(xlen.W),
-    invalid -> 0.U(xlen.W),
+    err     -> 0.U(xlen.W),
     i       -> Fill(xlen - 12, wireInstr(31)) ## wireInstr(31, 20),
     u       -> Fill(xlen - 32, wireInstr(31)) ## wireInstr(31, 12) ## 0.U(12.W),
     j       -> Cat(Fill(xlen - 20, wireInstr(31)), wireInstr(19, 12), wireInstr(20), wireInstr(30, 21), 0.B),
@@ -212,7 +212,7 @@ class ID(implicit p: Parameters) extends YQModule {
     when(ext('S').B && VecInit(Seq(csrsAddr.Fflags, csrsAddr.Frm, csrsAddr.Fcsr).map(wireInstr(31, 20) === _)).asUInt().orR()) {
       wireExcept(2) := 1.B
     }.otherwise {
-      wireSpecial := csr
+      wireSpecial := zicsr
       wireIsWcsr := 1.B
       wireCsr(0) := wireInstr(31, 20)
       if (ext('S')) when(wireCsr(0) === csrsAddr.Satp) { wireIsSatp := 1.B }
@@ -299,7 +299,7 @@ class ID(implicit p: Parameters) extends YQModule {
       jbAddr     := wireJbAddr
       when(wireJmpBch && wireJbAddr =/= io.input.pc + Mux(wireInstr(1, 0).andR() || !ext('C').B, 4.U, 2.U)) { jmpBch := 1.B; jbPend := 1.B }
       if (Debug) {
-        rcsr := Mux(wireSpecial === csr, wireInstr(31, 20), 0xfff.U)
+        rcsr := Mux(wireSpecial === zicsr, wireInstr(31, 20), 0xfff.U)
         intr := wireIntr
         rvc  := !wireInstr(1, 0).andR()
       }

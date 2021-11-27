@@ -60,7 +60,7 @@ class ALU(implicit p: Parameters) extends YQModule {
   private val sl = a.asUInt() << shiftness
   private val (lessthan, ulessthan, equal) = (a < b, a.asUInt < b.asUInt, a === b)
   private val operates = Seq(
-    err  -> a,
+    nop  -> a,
     add  -> (a + b),
     sub  -> (a - b),
     and  -> (a & b),
@@ -100,7 +100,7 @@ class ALU(implicit p: Parameters) extends YQModule {
 
 object Operators {
   var operators = Enum(32)
-  val err::add::sub::and::or::xor::sll::sra::Nil = operators.take(8)
+  val nop::add::sub::and::or::xor::sll::sra::Nil = operators.take(8)
   operators = operators.drop(8)
   val srl::lts::ltu::equ::neq::sllw::srlw::sraw::Nil = operators.take(8)
   operators = operators.drop(8)
