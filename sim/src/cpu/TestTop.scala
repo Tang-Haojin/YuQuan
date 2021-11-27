@@ -8,9 +8,5 @@ import sim.SimParams
 
 class TestTop(implicit val p: Parameters) extends Module with SimParams {
   val io = IO(new DEBUG)
-  val imp =
-    if (UseChipLink)
-      new TestTop_ChipLink(io, clock, reset)
-    else
-      new TestTop_Traditional(io, clock, reset)
+  val imp = new TestTop_Traditional(io, clock, reset)
 }

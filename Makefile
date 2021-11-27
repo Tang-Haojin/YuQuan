@@ -20,12 +20,6 @@ ifeq ($(STORAGE),1)
 CFLAGS += -DSTORAGE
 endif
 
-ifeq ($(CHIPLINK),1)
-param += CHIPLINK
-override UART = 1
-VFLAGS += --threads $(cpuNum)
-endif
-
 ifeq ($(UART),1)
 param += UART
 CFLAGS += -DUART

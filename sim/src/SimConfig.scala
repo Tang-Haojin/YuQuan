@@ -46,14 +46,12 @@ object SimConfig {
   val basicConfig: (View, View, View) => PartialFunction[Any, Any] = (site, here, up) => basePartFunc.orElse({
     case AxSIZE         => log2Ceil(here(XLEN) / 8)
     case ISREALUART     => false
-    case USECHIPLINK    => false
     case USEFLASH       => false
   })
   
   val chipLinkConfig: (View, View, View) => PartialFunction[Any, Any] = (site, here, up) => basePartFunc.orElse({
     case AxSIZE         => log2Ceil(here(XLEN) / 8)
     case ISREALUART     => true
-    case USECHIPLINK    => true
     case USEFLASH       => false
   })
 
@@ -83,4 +81,3 @@ case object DMAC_MMAP      extends Field[SimConfig.DMAC]
 case object NEMU_UART_MMAP extends Field[SimConfig.NEMU_UART]
 case object SD_CARD_MMAP   extends Field[SimConfig.SD_CARD]
 case object ISREALUART     extends Field[Boolean]
-case object USECHIPLINK    extends Field[Boolean]
