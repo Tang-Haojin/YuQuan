@@ -21,11 +21,11 @@ case class Zicsr()(implicit val p: Parameters) extends CPUParams {
 
   val table = Array(
     //            |Type|num1 |num2 |num3 |num4 |op1_2| WB |Special|
-    CSRRW  -> List(  c , csr , rs1 , non , non , nop , 1.U,  norm ),
-    CSRRS  -> List(  c , csr , rs1 , non , non , nop , 1.U,  norm ),
-    CSRRC  -> List(  c , csr , rs1 , non , non , nop , 1.U,  norm ),
-    CSRRWI -> List(  c , csr , imm , non , non , nop , 1.U,  norm ),
-    CSRRSI -> List(  c , csr , imm , non , non , nop , 1.U,  norm ),
-    CSRRCI -> List(  c , csr , imm , non , non , nop , 1.U,  norm )
+    CSRRW  -> List(  c , csr , rs1 , non , non , nop , 1.B,  norm ),
+    CSRRS  -> List(  c , csr , rs1 , non , non , nop , 1.B,  norm ),
+    CSRRC  -> List(  c , csr , rs1 , non , non , nop , 1.B,  norm ),
+    CSRRWI -> List(  c , csr , imm , non , non , nop , 1.B,  norm ),
+    CSRRSI -> List(  c , csr , imm , non , non , nop , 1.B,  norm ),
+    CSRRCI -> List(  c , csr , imm , non , non , nop , 1.B,  norm )
   )
 }

@@ -16,6 +16,6 @@ case class Zifencei()(implicit val p: Parameters) extends CPUParams {
 
   val table = Array(
     //             |Type|num1 |num2 |num3 |num4 |op1_2| WB |Special|
-    FENCE_I -> List(  i , non , non , non , non , nop, 0.U, fencei)
+    FENCE_I -> List(  i , non , non , non , non , nop , 0.B, fencei)
   )
 }

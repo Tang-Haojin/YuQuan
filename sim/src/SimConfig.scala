@@ -9,7 +9,6 @@ import _root_.cpu._
 import _root_.peripheral._
 
 class SimConfig extends Config(SimConfig.basicConfig)
-class SimChipLinkConfig extends Config(SimConfig.chipLinkConfig)
 
 object SimConfig {
   private val basePartFunc: PartialFunction[Any, Any] = {
@@ -46,12 +45,6 @@ object SimConfig {
   val basicConfig: (View, View, View) => PartialFunction[Any, Any] = (site, here, up) => basePartFunc.orElse({
     case AxSIZE         => log2Ceil(here(XLEN) / 8)
     case ISREALUART     => false
-    case USEFLASH       => false
-  })
-  
-  val chipLinkConfig: (View, View, View) => PartialFunction[Any, Any] = (site, here, up) => basePartFunc.orElse({
-    case AxSIZE         => log2Ceil(here(XLEN) / 8)
-    case ISREALUART     => true
     case USEFLASH       => false
   })
 

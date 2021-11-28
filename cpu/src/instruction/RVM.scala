@@ -29,17 +29,17 @@ case class RVM()(implicit val p: Parameters) extends CPUParams {
 
   val table = List(
     //            |Type|num1 |num2 |num3 |num4 |op1_2| WB |Special|
-    MUL    -> List(  r , rs1 , rs2 , non , non , mul , 1.U,  norm ),
-    MULH   -> List(  r , rs1 , rs2 , non , non , mulh, 1.U,  norm ),
-    MULHSU -> List(  r , rs1 , rs2 , non , non , mulh, 1.U,  msu  ),
-    MULHU  -> List(  r , rs1 , rs2 , non , non , mulh, 1.U,  mu   ),
-    DIV    -> List(  r , rs1 , rs2 , non , non , div , 1.U,  norm ),
-    DIVU   -> List(  r , rs1 , rs2 , non , non , divu, 1.U,  norm ),
-    REM    -> List(  r , rs1 , rs2 , non , non , rem , 1.U,  norm ),
-    REMU   -> List(  r , rs1 , rs2 , non , non , remu, 1.U,  norm )) ++ (if (xlen != 32) List(
-    MULW   -> List(  r , rs1 , rs2 , non , non , mul , 1.U,  word ),
-    DIVW   -> List(  r , rs1 , rs2 , non , non , divw, 1.U,  word ),
-    DIVUW  -> List(  r , rs1 , rs2 , non , non , duw , 1.U,  word ),
-    REMW   -> List(  r , rs1 , rs2 , non , non , remw, 1.U,  word ),
-    REMUW  -> List(  r , rs1 , rs2 , non , non , ruw , 1.U,  word )) else Nil)
+    MUL    -> List(  r , rs1 , rs2 , non , non , mul , 1.B,  norm ),
+    MULH   -> List(  r , rs1 , rs2 , non , non , mulh, 1.B,  norm ),
+    MULHSU -> List(  r , rs1 , rs2 , non , non , mulh, 1.B,  msu  ),
+    MULHU  -> List(  r , rs1 , rs2 , non , non , mulh, 1.B,  mu   ),
+    DIV    -> List(  r , rs1 , rs2 , non , non , div , 1.B,  norm ),
+    DIVU   -> List(  r , rs1 , rs2 , non , non , divu, 1.B,  norm ),
+    REM    -> List(  r , rs1 , rs2 , non , non , rem , 1.B,  norm ),
+    REMU   -> List(  r , rs1 , rs2 , non , non , remu, 1.B,  norm )) ++ (if (xlen != 32) List(
+    MULW   -> List(  r , rs1 , rs2 , non , non , mul , 1.B,  word ),
+    DIVW   -> List(  r , rs1 , rs2 , non , non , divw, 1.B,  word ),
+    DIVUW  -> List(  r , rs1 , rs2 , non , non , duw , 1.B,  word ),
+    REMW   -> List(  r , rs1 , rs2 , non , non , remw, 1.B,  word ),
+    REMUW  -> List(  r , rs1 , rs2 , non , non , ruw , 1.B,  word )) else Nil)
 }

@@ -20,8 +20,8 @@ case class Privileged()(implicit val p: Parameters) extends CPUParams {
 
   val table = List(
     //                |Type|num1 |num2 |num3 |num4 |op1_2| WB |Special|
-    MRET       -> List(  i , non , non , non , non , nop , 0.U, mret  ),
-    WFI        -> List(  i , non , non , non , non , nop , 0.U, norm  )) /* do nothing */ ++ (if(ext('S')) List(
-    SRET       -> List(  i , non , non , non , non , nop , 0.U, sret  ),
-    SFENCE_VMA -> List(  i , non , non , non , non , nop , 0.U, sfence)) else Nil)
+    MRET       -> List(  i , non , non , non , non , nop , 0.B, mret  ),
+    WFI        -> List(  i , non , non , non , non , nop , 0.B, norm  )) /* do nothing */ ++ (if(ext('S')) List(
+    SRET       -> List(  i , non , non , non , non , nop , 0.B, sret  ),
+    SFENCE_VMA -> List(  i , non , non , non , non , nop , 0.B, sfence)) else Nil)
 }
