@@ -59,7 +59,7 @@ class ID(implicit p: Parameters) extends YQModule {
 
   private val num = RegInit(VecInit(Seq.fill(4)(0.U(xlen.W))))
 
-  private val decoded = ListLookup(io.input.instr, List(7.U, 0.U, 0.U, 0.U, 0.U, 0.U, 0.U, inv), RVInstr().table)
+  private val decoded = RVInstrDecoder(io.input.instr)
 
   private val wireInstr   = io.input.instr
   private val wireFunct3c = io.input.instr(15, 13)

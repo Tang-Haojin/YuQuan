@@ -2,6 +2,7 @@ package cpu.pipeline
 
 import chisel3._
 import chisel3.util._
+import chisel3.util.experimental.decode._
 import chipsalliance.rocketchip.config._
 
 import utils._
@@ -52,19 +53,30 @@ object ExecSpecials {
   val norm::ld::st::trap::inv::word::zicsr::mret::exception::mu::msu::ecall::ebreak::sret::fencei::amo::sfence::Nil = specials
 }
 
-object InstrTypes { val i::u::s::r::j::b::c::err::clsp::cssp::cldst::cj::cni::cb::c540::clui::caddi4::cinv::Nil = Enum(18) }
+object InstrTypes {
+  val instrTypes: List[UInt] = Enum(18)
+  val i::u::s::r::j::b::c::err::clsp::cssp::cldst::cj::cni::cb::c540::clui::caddi4::cinv::Nil = instrTypes 
+}
 
 object NumTypes {
   val numtypes: List[UInt] = Enum(15)
   val non::rs1::rs2::imm::four::pc::csr::rs1c::rs2c::rs1p::rs2p::rd1c::rd1p::x2::two::Nil = numtypes
 }
 
-case class RVInstr()(implicit val p: Parameters) extends CPUParams {
-  val table: Array[(BitPat, List[UInt])] = (
-    RVI().table ++ Zicsr().table ++ Privileged().table ++ Zifencei().table ++
-    (if (ext('M')) RVM().table else Nil) ++ (if (ext('A')) RVA().table else Nil) ++
-    (if (ext('C')) RVC().table else Nil)
-  ).toArray
+object RVInstrDecoder {
+  def apply(instr: UInt)(implicit p: Parameters): Seq[UInt] = {
+    case class RVInstr()(implicit val p: Parameters) extends CPUParams {
+      val table = (
+        RVI().table ++ Zicsr().table ++ Privileged().table ++ Zifencei().table ++
+        (if (ext('M')) RVM().table else Nil) ++ (if (ext('A')) RVA().table else Nil) ++
+        (if (ext('C')) RVC().table else Nil)
+      ).toArray
+    }
+    val table = RVInstr().table
+    val splitTable = Seq.tabulate(table.head._2.length)(x => table.map(y => (y._1, BitPat(y._2(x)))))
+    val decodeSeq = splitTable zip (Seq(InstrTypes.err) ++ Seq.fill(4)(NumTypes.non) ++ Seq(cpu.component.Operators.nop, 0.B, ExecSpecials.inv)).map(BitPat(_))
+    decodeSeq.map(x => decoder.qmc(instr, TruthTable(x._1, x._2)))
+  }
 }
 
 class IDOutput(implicit p: Parameters) extends YQBundle {
