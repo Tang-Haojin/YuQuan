@@ -4,3 +4,6 @@
 [submodule "difftest"]
 	path = difftest
 	url = git@github.com:Tang-Haojin/riscv-isa-sim.git
+[submodule "sim/bin"]
+	path = sim/bin
+	url = git@github.com:Tang-Haojin/YuQuan-Ready-to-Run.git

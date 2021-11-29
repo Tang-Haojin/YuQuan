@@ -11,11 +11,9 @@ test_run_dir/
 lib/
 
 build/
-bin/
 *.fst
 *.hier
 .config
 .mill-version
-*.bin
 obj_dir/
 *.log
