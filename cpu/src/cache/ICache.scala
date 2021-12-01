@@ -23,7 +23,7 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   private val willDrop = RegInit(0.B)
 
   private val addr       = RegInit(0.U(alen.W))
-  private val addrOffset = addr(Offset - 1, 1)
+  private val addrOffset = addr(Offset - 1, if (ext('C')) 1 else 2)
   private val addrIndex  = addr(Index + Offset - 1, Offset)
   private val addrTag    = addr(alen - 1, Index + Offset)
   private val memAddr    = addr(alen - 1, Offset) ## 0.U(Offset.W)
@@ -46,9 +46,10 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
 
   private val way = RegInit(0.U(log2Ceil(Associativity).W))
   private val writeBuffer = RegInit(VecInit(Seq.fill(BurstLen)(0.U(Buslen.W))))
-  private val wordData = VecInit((0 until BlockSize / 2 - 1).map { i =>
+  private val wordData = if (ext('C')) VecInit((0 until BlockSize / 2 - 1).map { i =>
     data(grp)(i * 16 + 31, i * 16)
   } :+ 0.U(16.W) ## data(grp)((BlockSize / 2 - 1) * 16 + 15, (BlockSize / 2 - 1) * 16))
+  else VecInit((0 until BlockSize / 4).map { i => data(grp)(i * 32 + 31, i * 32) })
 
   private val wdata     = io.memIO.r.bits.data ## VecInit(writeBuffer.dropRight(1)).asUInt
   private val vecWvalid = VecInit(Seq.fill(Associativity)(1.U))
@@ -113,9 +114,10 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   when(state === answering) {
     hit := ~willDrop
     willDrop := 0.B
-    io.cpuIO.cpuResult.data := VecInit((0 until BlockSize / 2 - 1).map { i =>
+    io.cpuIO.cpuResult.data := (if (ext('C')) VecInit((0 until BlockSize / 2 - 1).map { i =>
       writeBuffer.asUInt()(i * 16 + 31, i * 16)
-    } :+ 0.U(16.W) ## writeBuffer.asUInt()((BlockSize / 2 - 1) * 16 + 15, (BlockSize / 2 - 1) * 16))(addrOffset)
+    } :+ 0.U(16.W) ## writeBuffer.asUInt()((BlockSize / 2 - 1) * 16 + 15, (BlockSize / 2 - 1) * 16))
+    else VecInit((0 until BlockSize / 4).map { i => writeBuffer.asUInt()(i * 32 + 31, i * 32) }))(addrOffset)
     state := Mux(willDrop, idle, Mux(io.cpuIO.cpuReq.valid, Mux(isPeripheral, passing, starting), idle))
   }
   when(state === passing) {
