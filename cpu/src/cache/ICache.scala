@@ -45,7 +45,7 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   private val data     = ramData .read   (addrIndex, ren)
 
   private val way = RegInit(0.U(log2Ceil(Associativity).W))
-  private val writeBuffer = RegInit(VecInit(Seq.fill(BurstLen)(0.U(xlen.W))))
+  private val writeBuffer = RegInit(VecInit(Seq.fill(BurstLen)(0.U(Buslen.W))))
   private val wordData = VecInit((0 until BlockSize / 2 - 1).map { i =>
     data(grp)(i * 16 + 31, i * 16)
   } :+ 0.U(16.W) ## data(grp)((BlockSize / 2 - 1) * 16 + 15, (BlockSize / 2 - 1) * 16))

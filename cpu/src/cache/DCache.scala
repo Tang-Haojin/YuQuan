@@ -33,7 +33,7 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
   private val reqRw      = RegInit(0.B)
   private val reqSize    = RegInit(0.U(3.W))
   private val reqWMask   = RegInit(0.U((xlen / 8).W))
-  private val addrOffset = addr(Offset - 1, 3)
+  private val addrOffset = addr(Offset - 1, log2Ceil(xlen / 8))
   private val addrIndex  = addr(Index + Offset - 1, Offset)
   private val addrTag    = addr(alen - 1, Index + Offset)
   private val memAddr    = addr(alen - 1, Offset) ## 0.U(Offset.W)
@@ -53,7 +53,7 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
 
   io.memIO.r.ready := RREADY
 
-  private val rbytes = WireDefault(VecInit((0 until 8).map { i => io.memIO.r.bits.data(i * 8 + 7, i * 8) }))
+  private val rbytes = WireDefault(VecInit((0 until Buslen / 8).map { i => io.memIO.r.bits.data(i * 8 + 7, i * 8) }))
 
   private val ramValid = SyncReadRegs(1, IndexSize, Associativity)
   private val ramDirty = SyncReadRegs(1, IndexSize, Associativity)
@@ -84,7 +84,7 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
   private val wbBuffer    = WbBuffer(io.memIO, data(way), tag(way) ## addrIndex ## 0.U(Offset.W))
   private val passThrough = PassThrough(false)(io.memIO, wbBuffer.ready, addr, reqData, reqWMask, reqRw, reqSize)
 
-  private val inBuffer = RegInit(VecInit(Seq.fill(BurstLen)(0.U(xlen.W))))
+  private val inBuffer = RegInit(VecInit(Seq.fill(BurstLen)(0.U(Buslen.W))))
 
   private val dwordData = WireDefault(VecInit((0 until BlockSize / 8).map { i =>
     data(grp)(i * 64 + 63, i * 64)
@@ -150,7 +150,7 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
         vecWdirty(grp) := 1.B
         vecWdata(grp)  := byteDatas
         for (i <- 0 until xlen / 8)
-          when(reqWMask(i)) { byteData(addrOffset ## i.U(3.W)) := reqData(i * 8 + 7, i * 8) }
+          when(reqWMask(i)) { byteData(addrOffset ## i.U(log2Ceil(xlen / 8).W)) := reqData(i * 8 + 7, i * 8) }
       }
     }.elsewhen(useEmpty || (!useEmpty && !dirty(way))) { // have empty or clean cache line
       when(wbBufferGo) {
@@ -167,13 +167,13 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
       ARVALID := !writingBackAll
       state := Mux(writingBackAll, backall, allocate)
       way   := Mux(writingBackAll, Mux(way === (Associativity - 1).U, 0.U, way + 1.U), way)
-      addr  := Mux(writingBackAll && (way === (Associativity - 1).U), addrTag ## (addrIndex + 1.U) ## addrOffset ## 0.U(3.W), addr)
+      addr  := Mux(writingBackAll && (way === (Associativity - 1).U), addrTag ## (addrIndex + 1.U) ## addrOffset ## 0.U(log2Ceil(xlen / 8).W), addr)
     }
   }
   when(state === allocate) {
     when(io.memIO.r.fire()) {
       inBuffer(received) := rbytes.asUInt()
-      when(reqRw === 1.U && received === addrOffset) { (0 until xlen / 8).foreach(i => when(reqWMask(i)) { rbytes(i.U(3.W)) := reqData(i * 8 + 7, i * 8) }) }
+      when(reqRw === 1.U && received === addrOffset) { (0 until Buslen / 8).foreach(i => when(reqWMask(i)) { rbytes(i.U(axSize.W)) := reqData(i * 8 + 7, i * 8) }) }
       when(received === (BurstLen - 1).U) {
         received       := 0.U
         state          := answering
@@ -204,7 +204,7 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
       when(preValid(way) && preDirty(way)) { state := writeback }
       .otherwise {
         way  := Mux(way === (Associativity - 1).U, 0.U, way + 1.U)
-        addr := Mux(way === (Associativity - 1).U, addrTag ## (addrIndex + 1.U) ## addrOffset ## 0.U(3.W), addr)
+        addr := Mux(way === (Associativity - 1).U, addrTag ## (addrIndex + 1.U) ## addrOffset ## 0.U(log2Ceil(xlen / 8).W), addr)
       }
       when(way === (Associativity - 1).U && addrIndex === (IndexSize - 1).U) { backAllInnerState := ending }
     }

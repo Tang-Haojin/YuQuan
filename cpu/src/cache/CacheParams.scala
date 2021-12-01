@@ -11,6 +11,7 @@ import cpu._
 abstract trait CacheParams {
   implicit val p: Parameters
   
+  val Buslen        = p(BUSLEN)
   val CacheSize     = p(CACHE_SIZE)
   val Associativity = p(ASSOCIATIVITY)
   val BlockSize     = p(BLOCK_SIZE)

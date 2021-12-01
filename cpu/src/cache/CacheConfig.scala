@@ -12,6 +12,7 @@ class CacheConfig extends Config(CacheConfig.f)
 
 object CacheConfig {
   val f: (View, View, View) => PartialFunction[Any,Any] = (site, here, up) => {
+    case BUSLEN        => up(XLEN)
     case CACHE_SIZE    => site(GEN_NAME) match { case "ysyx" => 4 * 1024; case "zmb" => 4 * 1024 } // in byte
     case ASSOCIATIVITY => 4
     case BLOCK_SIZE    => site(GEN_NAME) match { case "ysyx" => 16; case "zmb" => 16 } // in byte
@@ -26,6 +27,7 @@ object CacheConfig {
   def apply(): CacheConfig = new CacheConfig
 }
 
+case object BUSLEN         extends Field[Int]
 case object CACHE_SIZE     extends Field[Int]
 case object ASSOCIATIVITY  extends Field[Int]
 case object BLOCK_SIZE     extends Field[Int]
