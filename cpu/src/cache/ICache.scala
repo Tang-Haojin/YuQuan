@@ -17,7 +17,7 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   })
 
   private val rand = MaximalPeriodGaloisLFSR(2)
-  private val idle::starting::compare::allocate::passing::Nil = Enum(5)
+  private val idle::starting::compare::allocate::answering::passing::Nil = Enum(6)
   private val state = RegInit(UInt(3.W), idle)
   private val received = RegInit(0.U(LogBurstLen.W))
   private val willDrop = RegInit(0.B)
@@ -36,21 +36,21 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   private val ramData  = SinglePortRam(clock, BlockSize * 8, IndexSize, Associativity)
 
   private val hit = WireDefault(0.B)
-  private val grp = WireDefault(0.U(log2Ceil(Associativity).W))
+  private val grp = RegInit(0.U(log2Ceil(Associativity).W))
   private val wen = WireDefault(VecInit(Seq.fill(Associativity)(0.B)))
   private val ren = { var x = 1.B; for (i <- wen.indices) { x = x | ~wen(i) }; x }
 
-  private val valid = ramValid.read(addrIndex, ren)
-  private val tag   = ramTag  .read(addrIndex, ren)
-  private val data  = ramData .read(addrIndex, ren)
+  private val preValid = ramValid.preRead(addrIndex, ren)
+  private val preTag   = ramTag  .preRead(addrIndex, ren)
+  private val data     = ramData .read   (addrIndex, ren)
 
   private val way = RegInit(0.U(log2Ceil(Associativity).W))
-  private val writeBuffer = RegInit(VecInit(Seq.fill(BurstLen - 1)(0.U(xlen.W))))
+  private val writeBuffer = RegInit(VecInit(Seq.fill(BurstLen)(0.U(xlen.W))))
   private val wordData = VecInit((0 until BlockSize / 2 - 1).map { i =>
     data(grp)(i * 16 + 31, i * 16)
   } :+ 0.U(16.W) ## data(grp)((BlockSize / 2 - 1) * 16 + 15, (BlockSize / 2 - 1) * 16))
 
-  private val wdata     = io.memIO.r.bits.data ## writeBuffer.asUInt
+  private val wdata     = io.memIO.r.bits.data ## VecInit(writeBuffer.dropRight(1)).asUInt
   private val vecWvalid = VecInit(Seq.fill(Associativity)(1.U))
   private val vecWtag   = VecInit(Seq.fill(Associativity)(addrTag))
   private val vecWdata  = VecInit(Seq.fill(Associativity)(wdata))
@@ -65,6 +65,8 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   private val isPeripheral = IsPeripheral(io.cpuIO.cpuReq.addr)
   private val passThrough  = PassThrough(true)(io.memIO, 0.B, addr, 0.U, 0.U, 0.B)
 
+  private val compareHit = RegInit(0.B)
+
   when(io.cpuIO.cpuReq.valid && state =/= allocate) { addr := Mux(state === passing && !isPeripheral, addr, io.cpuIO.cpuReq.addr) }
 
   io.inv.ready := 0.B
@@ -74,16 +76,19 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
       when(isPeripheral) { state := passing }
     }.elsewhen(io.inv.valid) { ramValid.reset; io.inv.ready := 1.B }
   }
-  when(state === starting) { state := compare }
+  when(state === starting) {
+    state := Mux(willDrop, idle, compare)
+    willDrop := 0.B
+    compareHit := VecInit(Seq.tabulate(Associativity)(i => preValid(i) && preTag(i) === addrTag)).asUInt.orR
+    grp := Mux1H(Seq.tabulate(Associativity)(i => (preValid(i) && preTag(i) === addrTag) -> i.U))
+    way := MuxLookup(0.B, rand, preValid zip Seq.tabulate(Associativity)(_.U))
+  }
   when(state === compare) {
-    ARVALID := 1.B
+    ARVALID := ~compareHit
     state   := allocate
-    hit := VecInit(Seq.tabulate(Associativity)(i => valid(i) && tag(i) === addrTag)).asUInt.orR
-    grp := Mux1H(Seq.tabulate(Associativity)(i => (valid(i) && tag(i) === addrTag) -> i.U))
-    way := MuxLookup(0.B, rand, valid zip Seq.tabulate(Associativity)(_.U))
-    when(hit) {
+    hit     := compareHit
+    when(compareHit) {
       state := idle
-      ARVALID := 0.B
       when(io.cpuIO.cpuReq.valid) {
         state := starting
         when(isPeripheral) { state := passing }
@@ -92,19 +97,26 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   }
   when(state === allocate) {
     when(io.memIO.r.fire()) {
+      writeBuffer(received) := io.memIO.r.bits.data
       when(received === (BurstLen - 1).U) {
         received := 0.U
-        state    := idle
+        state    := Mux(willDrop, idle, answering)
+        willDrop := 0.B
         wen(way) := 1.B
         RREADY   := 0.B
-      }.otherwise {
-        received              := received + 1.U
-        writeBuffer(received) := io.memIO.r.bits.data
-      }
+      }.otherwise { received := received + 1.U }
     }.elsewhen(io.memIO.ar.fire()) {
       ARVALID := 0.B
       RREADY  := 1.B
     }
+  }
+  when(state === answering) {
+    hit := ~willDrop
+    willDrop := 0.B
+    io.cpuIO.cpuResult.data := VecInit((0 until BlockSize / 2 - 1).map { i =>
+      writeBuffer.asUInt()(i * 16 + 31, i * 16)
+    } :+ 0.U(16.W) ## writeBuffer.asUInt()((BlockSize / 2 - 1) * 16 + 15, (BlockSize / 2 - 1) * 16))(addrOffset)
+    state := Mux(willDrop, idle, Mux(io.cpuIO.cpuReq.valid, Mux(isPeripheral, passing, starting), idle))
   }
   when(state === passing) {
     hit := Mux(willDrop || io.jmpBch, 0.B, passThrough.finish)
@@ -120,7 +132,10 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
     }.elsewhen(io.jmpBch && (!passThrough.ready || !io.cpuIO.cpuReq.valid)) { willDrop := 1.B }
   }
 
-  when(io.jmpBch && state <= compare) { ARVALID := 0.B; state := idle }
+  when(io.jmpBch) {
+     when(state <= compare) { ARVALID := 0.B; state := idle }
+     .elsewhen(state === allocate || state === answering) { willDrop := 1.B }
+  }
 }
 
 object ICache {

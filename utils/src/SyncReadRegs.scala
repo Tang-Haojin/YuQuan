@@ -47,6 +47,8 @@ private class SyncReadRegWrapper(bits: Int = 128, wordDepth: Int = 64)(implicit 
 
   def preRead: UInt = sregs.io.PQ
 
+  def preRead(x: UInt, en: Bool = 1.B): UInt = { rAddr := x; sregs.io.PQ }
+
   def reset: Unit = sregs.io.RST := 1.B
 }
 
@@ -60,6 +62,7 @@ class SyncReadRegs(bits: Int = 128, wordDepth: Int = 64, associativity: Int = 4)
   def read(x: UInt, en: Bool = 1.B): Vec[UInt] = VecInit(Seq.tabulate(associativity)(y => Regs(y).read(x, en)))
   def write(idx: UInt, data: Vec[UInt], mask: Vec[Bool]): Unit = for (i <- Regs.indices) { Regs(i).write(idx, data(i), mask(i)) }
   def preRead: Vec[UInt] = VecInit(Seq.tabulate(associativity)(y => Regs(y).preRead))
+  def preRead(x: UInt, en: Bool = 1.B): Vec[UInt] = VecInit(Seq.tabulate(associativity)(y => Regs(y).preRead(x, en)))
   def reset: Unit = Regs.foreach(_.reset)
 }
 
