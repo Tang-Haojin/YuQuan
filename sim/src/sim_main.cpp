@@ -124,7 +124,6 @@ int main(int argc, char **argv, char **env) {
         goto reg_diff;
       }
       bool skip = top->io_wbIntr || top->io_exit || top->io_wbRcsr == 0x344 ||
-                  top->io_wbRcsr == 0x301 || in_pmpaddr(top->io_wbRcsr) ||
                   top->io_wbRcsr == 0xC01 || top->io_wbMMIO;
       if (!skip) {
         difftest_exec(1);

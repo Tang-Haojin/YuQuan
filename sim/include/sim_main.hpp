@@ -65,8 +65,6 @@ void difftest_exec(uint64_t n);
 void difftest_regcpy(void *dut, bool direction);
 void difftest_memcpy(paddr_t addr, void *buf, size_t n, bool direction);
 
-#define in_pmpaddr(x) ((x) >= 0x3B0 && (x) <= 0x3BF)
-
 #define add_diff(reg)                            \
   if (diff_regs[pc_csr::reg] != top->io_##reg) { \
     strcpy(name, #reg);                          \
