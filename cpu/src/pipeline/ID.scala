@@ -209,7 +209,7 @@ class ID(implicit p: Parameters) extends YQModule {
   private val wireJmpBch = WireDefault(Bool(), instrJump || instrJalr || (instrBranch && willBranch))
   private val isZicsr = io.input.instrCode === "b1110011".U && wireInstr(13, 12) =/= "b00".U
   when(isZicsr) {
-    when(ext('S').B && VecInit(Seq(csrsAddr.Fflags, csrsAddr.Frm, csrsAddr.Fcsr).map(wireInstr(31, 20) === _)).asUInt().orR()) {
+    when(ext('S').B && (wireInstr(31, 28) === "b0000".U /*fpu*/|| wireInstr(31, 25) === "b0011101".U /*pmp*/)) {
       wireExcept(2) := 1.B
     }.otherwise {
       wireSpecial := zicsr
