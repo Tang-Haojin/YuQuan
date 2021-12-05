@@ -51,7 +51,7 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   } :+ 0.U(16.W) ## data(grp)((BlockSize / 2 - 1) * 16 + 15, (BlockSize / 2 - 1) * 16))
   else VecInit((0 until BlockSize / 4).map { i => data(grp)(i * 32 + 31, i * 32) })
 
-  private val wdata     = io.memIO.r.bits.data ## VecInit(writeBuffer.dropRight(1)).asUInt
+  private val wdata     = writeBuffer.asUInt
   private val vecWvalid = VecInit(Seq.fill(Associativity)(1.U))
   private val vecWtag   = VecInit(Seq.fill(Associativity)(addrTag))
   private val vecWdata  = VecInit(Seq.fill(Associativity)(wdata))
@@ -67,15 +67,15 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   private val passThrough  = PassThrough(true)(io.memIO, 0.B, addr, 0.U, 0.U, 0.B)
 
   private val compareHit = RegInit(0.B)
+  private val fakeAnswer = RegInit(0.B)
+  when(fakeAnswer) { wen(way) := 1.B; fakeAnswer := 0.B }
 
   when(io.cpuIO.cpuReq.valid && state =/= allocate) { addr := Mux(state === passing && !isPeripheral, addr, io.cpuIO.cpuReq.addr) }
 
   io.inv.ready := 0.B
   when(state === idle) {
-    when(io.cpuIO.cpuReq.valid) {
-      state := starting
-      when(isPeripheral) { state := passing }
-    }.elsewhen(io.inv.valid) { ramValid.reset; io.inv.ready := 1.B }
+    when(io.cpuIO.cpuReq.valid) { state := Mux(isPeripheral, passing, starting) }
+    .elsewhen(io.inv.valid) { ramValid.reset; io.inv.ready := 1.B }
   }
   when(state === starting) {
     state := Mux(willDrop, idle, compare)
@@ -100,11 +100,11 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
     when(io.memIO.r.fire()) {
       writeBuffer(received) := io.memIO.r.bits.data
       when(received === (BurstLen - 1).U) {
-        received := 0.U
-        state    := Mux(willDrop, idle, answering)
-        willDrop := 0.B
-        wen(way) := 1.B
-        RREADY   := 0.B
+        received   := 0.U
+        state      := Mux(willDrop, idle, answering)
+        fakeAnswer := willDrop
+        willDrop   := 0.B
+        RREADY     := 0.B
       }.otherwise { received := received + 1.U }
     }.elsewhen(io.memIO.ar.fire()) {
       ARVALID := 0.B
@@ -112,6 +112,7 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
     }
   }
   when(state === answering) {
+    wen(way) := 1.B
     hit := ~willDrop
     willDrop := 0.B
     io.cpuIO.cpuResult.data := (if (ext('C')) VecInit((0 until BlockSize / 2 - 1).map { i =>
