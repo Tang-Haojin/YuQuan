@@ -20,6 +20,9 @@ abstract trait CPUParams extends UtilsParams {
   val Debug        = p(ENABLE_DEBUG)
   val valen        = p(VALEN)
   val useSlave     = p(USESLAVE)
+  val usePlic      = p(USEPLIC)
+  val useClint     = p(USECLINT)
+  val handleMisaln = p(HANDLEMISALIGN)
   
   def ext(extension: Char): Boolean = extensions.contains(extension)
 }

@@ -40,6 +40,9 @@ object SimConfig {
     case TLB_ENTRIES      => 16
     case VALEN            => 64
     case USESLAVE         => false
+    case USEPLIC          => true
+    case USECLINT         => true
+    case HANDLEMISALIGN   => true
   }
 
   val basicConfig: (View, View, View) => PartialFunction[Any, Any] = (site, here, up) => basePartFunc.orElse({

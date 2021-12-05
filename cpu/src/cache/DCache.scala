@@ -77,14 +77,18 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
   private val way = RegInit(0.U(log2Ceil(Associativity).W))
 
   private val isPeripheral = IsPeripheral(io.cpuIO.cpuReq.addr)
-  private val isClint      = IsClint     (io.cpuIO.cpuReq.addr)
-  io.clintIO.addr  := isClint.address
-  io.clintIO.wdata := reqData
-  io.clintIO.wen   := state === clint && reqRw
-  private val isPlic       = IsPlic      (io.cpuIO.cpuReq.addr)
-  io.plicIO.addr   := isPlic.address
-  io.plicIO.wdata  := Mux(isPlic.address(2), reqData(63, 32), reqData(31, 0))
-  io.plicIO.wen    := state === plic && reqRw
+  private val isClint      = if (useClint) IsClint(io.cpuIO.cpuReq.addr) else null
+  if (useClint) {
+    io.clintIO.addr  := isClint.address
+    io.clintIO.wdata := reqData
+    io.clintIO.wen   := state === clint && reqRw
+  } else io.clintIO <> DontCare
+  private val isPlic = if (usePlic) IsPlic(io.cpuIO.cpuReq.addr) else null
+  if (usePlic) {
+    io.plicIO.addr  := isPlic.address
+    io.plicIO.wdata := Mux(isPlic.address(2), reqData(63, 32), reqData(31, 0))
+    io.plicIO.wen   := state === plic && reqRw
+  } else io.plicIO <> DontCare
 
   private val wbBuffer    = WbBuffer(io.memIO, data(way), tag(way) ## addrIndex ## 0.U(Offset.W))
   private val passThrough = PassThrough(false)(io.memIO, wbBuffer.ready, addr, reqData, reqWMask, reqRw, reqSize)
@@ -134,8 +138,8 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
     when(io.cpuIO.cpuReq.valid) {
       state := starting
       when(isPeripheral) { state := passing }
-      when(isClint)      { state := clint   }
-      when(isPlic)       { state := plic    }
+      if (useClint) when(isClint) { state := clint }
+      if (usePlic)  when(isPlic)  { state := plic  }
     }
     .elsewhen(io.wb.valid) { state := backall; addr := 0.U; way := 0.U; writingBackAll := 1.B }
   }
@@ -222,12 +226,12 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
       ramDirty.reset
     }
   }
-  when(state === clint) {
+  if (useClint) when(state === clint) {
     hit   := 1.B
     state := idle
     io.cpuIO.cpuResult.data := io.clintIO.rdata
   }
-  when(state === plic) {
+  if (usePlic) when(state === plic) {
     val rhit  = RegInit(0.B)
     val rdata = RegNext(io.plicIO.rdata, 0.U(32.W))
     when(hit) { state := idle }

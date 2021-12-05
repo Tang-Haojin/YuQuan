@@ -165,14 +165,14 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
     tlb.flush
     memDel := !memDel; memReady := 1.B; memCause := 0.U; memExcpt := 0.B
     io.dcacheIO.cpuReq.valid := 0.B
-  }.elsewhen(io.memIO.pipelineReq.cpuReq.valid && (
+  }.elsewhen(handleMisaln.B && io.memIO.pipelineReq.cpuReq.valid && (
     (io.memIO.pipelineReq.cpuReq.size === 1.U && io.memIO.pipelineReq.cpuReq.addr(0)) ||
     (io.memIO.pipelineReq.cpuReq.size === 2.U && io.memIO.pipelineReq.cpuReq.addr(1, 0) =/= 0.U) ||
     (io.memIO.pipelineReq.cpuReq.size === 3.U && io.memIO.pipelineReq.cpuReq.addr(2, 0) =/= 0.U)
   )) {
     io.dcacheIO.cpuReq.valid := 0.B
     MemRaiseException(Mux(isWrite, 6.U, 4.U), false) // load/store/amo address misaligned
-  }.elsewhen(io.ifIO.pipelineReq.cpuReq.valid && io.ifIO.pipelineReq.cpuReq.addr(1, 0) =/= 0.U && (!ext('C')).B) {
+  }.elsewhen(handleMisaln.B && io.ifIO.pipelineReq.cpuReq.valid && io.ifIO.pipelineReq.cpuReq.addr(1, 0) =/= 0.U && (!ext('C')).B) {
     icacheValid := 0.B
     IfRaiseException(0.U, false) // Instruction address misaligned
   }.otherwise {

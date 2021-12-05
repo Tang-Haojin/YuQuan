@@ -38,6 +38,9 @@ object YQConfig {
     case TLB_ENTRIES      => 16
     case VALEN            => site(GEN_NAME) match { case "ysyx" => 64; case "zmb" => 32 }
     case USESLAVE         => site(GEN_NAME) match { case "ysyx" => true; case "zmb" => false }
+    case USEPLIC          => site(GEN_NAME) match { case "ysyx" => true; case "zmb" => false }
+    case USECLINT         => site(GEN_NAME) match { case "ysyx" => true; case "zmb" => false }
+    case HANDLEMISALIGN   => site(GEN_NAME) match { case "ysyx" => true; case "zmb" => false }
   }
 
   class CLINT extends MMAP {
@@ -76,17 +79,20 @@ object YQConfig {
   def apply(): YQConfig = new YQConfig
 }
 
-case object GEN_NAME          extends Field[String]
-case object EXTENSIONS        extends Field[List[Char]]
-case object CLINT_MMAP        extends Field[YQConfig.CLINT]
-case object SIMPLE_PLIC_MMAP  extends Field[YQConfig.SIMPLEPLIC]
-case object DRAM_MMAP         extends Field[YQConfig.DRAM]
-case object ALUTYPEWIDTH      extends Field[Int]
-case object USEFLASH          extends Field[Boolean]
-case object ENABLE_DEBUG      extends Field[Boolean]
-case object IALIGN            extends Field[Int]
-case object ILEN              extends Field[Int]
-case object REG_CONF          extends Field[YQConfig.RegConf]
-case object TLB_ENTRIES       extends Field[Int]
-case object VALEN             extends Field[Int]
-case object USESLAVE          extends Field[Boolean]
+case object GEN_NAME         extends Field[String]
+case object EXTENSIONS       extends Field[List[Char]]
+case object CLINT_MMAP       extends Field[YQConfig.CLINT]
+case object SIMPLE_PLIC_MMAP extends Field[YQConfig.SIMPLEPLIC]
+case object DRAM_MMAP        extends Field[YQConfig.DRAM]
+case object ALUTYPEWIDTH     extends Field[Int]
+case object USEFLASH         extends Field[Boolean]
+case object ENABLE_DEBUG     extends Field[Boolean]
+case object IALIGN           extends Field[Int]
+case object ILEN             extends Field[Int]
+case object REG_CONF         extends Field[YQConfig.RegConf]
+case object TLB_ENTRIES      extends Field[Int]
+case object VALEN            extends Field[Int]
+case object USESLAVE         extends Field[Boolean]
+case object USEPLIC          extends Field[Boolean]
+case object USECLINT         extends Field[Boolean]
+case object HANDLEMISALIGN   extends Field[Boolean]

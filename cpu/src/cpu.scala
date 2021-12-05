@@ -35,8 +35,8 @@ class CPU(implicit p: Parameters) extends YQModule {
   private val moduleICache = ICache()
   private val moduleDCache = DCache()
   private val moduleMMU    = Module(new MMU)
-  private val moduleClint  = Module(new Clint)
-  private val modulePlic   = Module(new SimplePlic)
+  private val moduleClint  = if (useClint) Module(new Clint) else null
+  private val modulePlic   = if (usePlic) Module(new SimplePlic) else null
 
   private val moduleIF  = Module(new IF)
   private val moduleID  = Module(new ID)
@@ -81,23 +81,23 @@ class CPU(implicit p: Parameters) extends YQModule {
   moduleEX.io.nextVR  <> moduleMEM.io.lastVR
   moduleMEM.io.nextVR <> moduleWB.io.lastVR
 
-  moduleMMU.io.icacheIO  <> moduleICache.io.cpuIO
-  moduleMMU.io.ifIO      <> moduleIF.io.immu
-  moduleMMU.io.memIO     <> moduleMEM.io.dmmu
-  moduleMMU.io.satp      <> moduleCSRs.io.satp
-  moduleMMU.io.priv      <> moduleCSRs.io.currentPriv
-  moduleMMU.io.sum       <> moduleCSRs.io.sum
-  moduleMMU.io.mprv      <> moduleCSRs.io.mprv
-  moduleMMU.io.mpp       <> moduleCSRs.io.mpp
-  moduleMMU.io.jmpBch    <> moduleID.io.jmpBch
-  moduleEX.io.invIch     <> moduleICache.io.inv
-  moduleEX.io.wbDch      <> moduleDCache.io.wb
-  moduleID.io.jmpBch     <> moduleICache.io.jmpBch
-  moduleID.io.mtip       <> moduleClint.io.mtip
-  moduleID.io.msip       <> moduleClint.io.msip
-  moduleClint.io.clintIO <> moduleDCache.io.clintIO
-  modulePlic.io.plicIO   <> moduleDCache.io.plicIO
-  modulePlic.io.int      <> io.interrupt
+  moduleMMU.io.icacheIO   <> moduleICache.io.cpuIO
+  moduleMMU.io.ifIO       <> moduleIF.io.immu
+  moduleMMU.io.memIO      <> moduleMEM.io.dmmu
+  moduleMMU.io.satp       <> moduleCSRs.io.satp
+  moduleMMU.io.priv       <> moduleCSRs.io.currentPriv
+  moduleMMU.io.sum        <> moduleCSRs.io.sum
+  moduleMMU.io.mprv       <> moduleCSRs.io.mprv
+  moduleMMU.io.mpp        <> moduleCSRs.io.mpp
+  moduleMMU.io.jmpBch     <> moduleID.io.jmpBch
+  moduleEX.io.invIch      <> moduleICache.io.inv
+  moduleEX.io.wbDch       <> moduleDCache.io.wb
+  moduleID.io.jmpBch      <> moduleICache.io.jmpBch
+  moduleID.io.mtip        <> (if (useClint) moduleClint.io.mtip else 0.B)
+  moduleID.io.msip        <> (if (useClint) moduleClint.io.msip else 0.B)
+  moduleDCache.io.clintIO <> (if (useClint) moduleClint.io.clintIO else DontCare)
+  moduleDCache.io.plicIO  <> (if (usePlic) modulePlic.io.plicIO else DontCare)
+  if (usePlic) modulePlic.io.int <> io.interrupt
 
   moduleBypass.io.rregs  <> moduleGPRs.io.rregs
   moduleBypass.io.idOut.valid  := moduleID.io.nextVR.VALID
@@ -131,14 +131,14 @@ class CPU(implicit p: Parameters) extends YQModule {
   moduleEX.io.seip := moduleCSRs.io.bareSEIP
   moduleEX.io.ueip := moduleCSRs.io.bareUEIP
 
-  moduleCSRs.io.eip         <> modulePlic.io.eip
+  moduleCSRs.io.eip         <> (if (usePlic) modulePlic.io.eip else 0.B)
   moduleCSRs.io.retire      <> moduleWB.io.retire
   moduleCSRs.io.changePriv  <> moduleWB.io.isPriv
   moduleCSRs.io.newPriv     <> moduleWB.io.priv
   moduleCSRs.io.currentPriv <> moduleID.io.currentPriv
-  moduleCSRs.io.mtime       <> moduleClint.io.mtime
-  moduleCSRs.io.mtip        <> moduleClint.io.mtip
-  moduleCSRs.io.msip        <> moduleClint.io.msip
+  moduleCSRs.io.mtime       <> (if (useClint) moduleClint.io.mtime else DontCare)
+  moduleCSRs.io.mtip        <> (if (useClint) moduleClint.io.mtip else 0.B)
+  moduleCSRs.io.msip        <> (if (useClint) moduleClint.io.msip else 0.B)
 
   if (Debug) {
     io.debug.exit     := moduleWB.io.debug.exit

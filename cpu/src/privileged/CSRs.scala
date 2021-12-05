@@ -156,16 +156,16 @@ class CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
   private val mip = RegInit(new MipBundle, 0.U.asTypeOf(new MipBundle))
   private val mie = RegInit(new MieBundle, 0.U.asTypeOf(new MieBundle))
 
-  private val sstatus    = new Sstatus(mstatus)
-  private val sie        = new Sie(mie)
-  private val stvec      = RegInit(0.U(xlen.W))
+  private val sstatus    = if (ext('S')) new Sstatus(mstatus) else null
+  private val sie        = if (ext('S')) new Sie(mie) else null
+  private val stvec      = if (ext('S')) RegInit(0.U(xlen.W)) else null
   private val scounteren = 0.U(32.W) // a simple legal implementation
-  private val sscratch   = RegInit(0.U(xlen.W))
-  private val sepc       = RegInit(0.U(xlen.W))
-  private val scause     = RegInit(0.U(5.W))
-  private val stval      = RegInit(0.U(xlen.W))
-  private val sip        = new Sip(mip)
-  private val satp       = UseSatp(RegInit(new SatpBundle, 0.U.asTypeOf(new SatpBundle)))
+  private val sscratch   = if (ext('S')) RegInit(0.U(xlen.W)) else null
+  private val sepc       = if (ext('S')) RegInit(0.U(xlen.W)) else null
+  private val scause     = if (ext('S')) RegInit(0.U(5.W)) else null
+  private val stval      = if (ext('S')) RegInit(0.U(xlen.W)) else null
+  private val sip        = if (ext('S')) new Sip(mip) else null
+  private val satp       = if (ext('S')) UseSatp(RegInit(new SatpBundle, 0.U.asTypeOf(new SatpBundle))) else null
 
   private val currentPriv = RegEnable(io.newPriv, 3.U(2.W), io.changePriv)
   io.currentPriv := (if (ext('S') || ext('U')) currentPriv else "b11".U)
@@ -201,26 +201,23 @@ class CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
         when(io.csrsW.wcsr(i) === Mepc) { mepc := (if (ext('C')) io.csrsW.wdata(i)(xlen - 1, 1) ## 0.B else io.csrsW.wdata(i)(xlen - 1, 2) ## 0.U(2.W)) }
         when(io.csrsW.wcsr(i) === Mcause) { mcause := io.csrsW.wdata(i)(xlen - 1) ## io.csrsW.wdata(i)(3, 0) }
         when(io.csrsW.wcsr(i) === Mtval) { mtval := io.csrsW.wdata(i) }
-        when((io.csrsW.wcsr(i) === Pmpcfg0) || (io.csrsW.wcsr(i) === Pmpcfg2)) {} // Currently do nothing.
-        when((io.csrsW.wcsr(i) >= Pmpaddr(0.U)) && (io.csrsW.wcsr(i) <= Pmpaddr(15.U))) {} // Currently do nothing.
-        when(io.csrsW.wcsr(i) === Sstatus) { sstatus := io.csrsW.wdata(i) }
-        when(io.csrsW.wcsr(i) === Sie) { sie := io.csrsW.wdata(i) }
-        when(io.csrsW.wcsr(i) === Stvec) { stvec := io.csrsW.wdata(i)(xlen - 1, 2) ## Mux(io.csrsW.wdata(i)(1, 0) >= 2.U, stvec(1, 0), io.csrsW.wdata(i)(1, 0)) }
-        when(io.csrsW.wcsr(i) === Scounteren) {} // do nothing
-        when(io.csrsW.wcsr(i) === Sscratch) { sscratch := io.csrsW.wdata(i) }
-        when(io.csrsW.wcsr(i) === Sepc) { sepc := (if (ext('C')) io.csrsW.wdata(i)(xlen - 1, 1) ## 0.B else io.csrsW.wdata(i)(xlen - 1, 2) ## 0.U(2.W)) }
-        when(io.csrsW.wcsr(i) === Scause) { scause := io.csrsW.wdata(i)(xlen - 1) ## io.csrsW.wdata(i)(3, 0) }
-        when(io.csrsW.wcsr(i) === Stval) { stval := io.csrsW.wdata(i) }
-        when(io.csrsW.wcsr(i) === Sip) { sip := io.csrsW.wdata(i) }
-        when(io.csrsW.wcsr(i) === Satp) { satp := io.csrsW.wdata(i) }
+        if (ext('S')) when(io.csrsW.wcsr(i) === Sstatus) { sstatus := io.csrsW.wdata(i) }
+        if (ext('S')) when(io.csrsW.wcsr(i) === Sie) { sie := io.csrsW.wdata(i) }
+        if (ext('S')) when(io.csrsW.wcsr(i) === Stvec) { stvec := io.csrsW.wdata(i)(xlen - 1, 2) ## Mux(io.csrsW.wdata(i)(1, 0) >= 2.U, stvec(1, 0), io.csrsW.wdata(i)(1, 0)) }
+        if (ext('S')) when(io.csrsW.wcsr(i) === Scounteren) {} // do nothing
+        if (ext('S')) when(io.csrsW.wcsr(i) === Sscratch) { sscratch := io.csrsW.wdata(i) }
+        if (ext('S')) when(io.csrsW.wcsr(i) === Sepc) { sepc := (if (ext('C')) io.csrsW.wdata(i)(xlen - 1, 1) ## 0.B else io.csrsW.wdata(i)(xlen - 1, 2) ## 0.U(2.W)) }
+        if (ext('S')) when(io.csrsW.wcsr(i) === Scause) { scause := io.csrsW.wdata(i)(xlen - 1) ## io.csrsW.wdata(i)(3, 0) }
+        if (ext('S')) when(io.csrsW.wcsr(i) === Stval) { stval := io.csrsW.wdata(i) }
+        if (ext('S')) when(io.csrsW.wcsr(i) === Sip) { sip := io.csrsW.wdata(i) }
+        if (ext('S')) when(io.csrsW.wcsr(i) === Satp) { satp := io.csrsW.wdata(i) }
         when(io.csrsW.wcsr(i) === Mideleg) { if (ext('S')) mideleg := io.csrsW.wdata(i) }
         when(io.csrsW.wcsr(i) === Medeleg) { if (ext('S')) medeleg := io.csrsW.wdata(i) }
 
         if (xlen == 32) {
-          when((io.csrsW.wcsr(i) === Pmpcfg1) || (io.csrsW.wcsr(i) === Pmpcfg3)) {} // Currently do nothing.
-          .elsewhen(io.csrsW.wcsr(i) === Mcycleh) { mcycle(63, 32) := io.csrsW.wdata(i) }
-          .elsewhen(io.csrsW.wcsr(i) === Minstreth) { minstret(63, 32) := io.csrsW.wdata(i) }
-          .elsewhen(io.csrsW.wcsr(i) >= Mhpmcounterh(3.U) && io.csrsW.wcsr(i) <= Mhpmcounterh(31.U)) {} // Do nothing.
+          when(io.csrsW.wcsr(i) === Mcycleh) { mcycle(63, 32) := io.csrsW.wdata(i) }
+          when(io.csrsW.wcsr(i) === Minstreth) { minstret(63, 32) := io.csrsW.wdata(i) }
+          when(io.csrsW.wcsr(i) >= Mhpmcounterh(3.U) && io.csrsW.wcsr(i) <= Mhpmcounterh(31.U)) {} // Do nothing.
         }
       }
     }
@@ -250,34 +247,31 @@ class CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
     when(io.csrsR.rcsr(i) === Mscratch) { io.csrsR.rdata(i) := mscratch }
     when(io.csrsR.rcsr(i) === Mepc) { io.csrsR.rdata(i) := (if (ext('C')) mepc(xlen - 1, 1) ## 0.B else mepc(xlen - 1, 2) ## 0.U(2.W)) }
     when(io.csrsR.rcsr(i) === Mcause) { io.csrsR.rdata(i) := mcause(4) ## 0.U((xlen - 5).W) ## mcause(3, 0) }
-    when(io.csrsR.rcsr(i) === Mtval) { io.csrsR.rdata(i) := mtval } // A simple implementation.
-    when((io.csrsR.rcsr(i) === Pmpcfg0) || (io.csrsR.rcsr(i) === Pmpcfg2)) { io.csrsR.rdata(i) := 0.U }
-    when((io.csrsR.rcsr(i) >= Pmpaddr(0.U)) && (io.csrsR.rcsr(i) <= Pmpaddr(15.U))) { io.csrsR.rdata(i) := 0.U }
-    when(io.csrsR.rcsr(i) === Sstatus) { io.csrsR.rdata(i) := sstatus}
-    when(io.csrsR.rcsr(i) === Sie) { io.csrsR.rdata(i) := sie }
-    when(io.csrsR.rcsr(i) === Stvec) { io.csrsR.rdata(i) := stvec }
-    when(io.csrsR.rcsr(i) === Scounteren) { io.csrsR.rdata(i) := scounteren }
-    when(io.csrsR.rcsr(i) === Sscratch) { io.csrsR.rdata(i) := sscratch }
-    when(io.csrsR.rcsr(i) === Sepc) { io.csrsR.rdata(i) := (if (ext('C')) sepc(xlen - 1, 1) ## 0.B else sepc(xlen - 1, 2) ## 0.U(2.W)) }
-    when(io.csrsR.rcsr(i) === Scause) { io.csrsR.rdata(i) := scause(4) ## 0.U((xlen - 5).W) ## scause(3, 0) }
-    when(io.csrsR.rcsr(i) === Stval) { io.csrsR.rdata(i) := stval }
-    when(io.csrsR.rcsr(i) === Sip) { io.csrsR.rdata(i) := sip }
-    when(io.csrsR.rcsr(i) === Satp) { io.csrsR.rdata(i) := satp }
+    when(io.csrsR.rcsr(i) === Mtval) { io.csrsR.rdata(i) := mtval }
+    if (ext('S')) when(io.csrsR.rcsr(i) === Sstatus) { io.csrsR.rdata(i) := sstatus}
+    if (ext('S')) when(io.csrsR.rcsr(i) === Sie) { io.csrsR.rdata(i) := sie }
+    if (ext('S')) when(io.csrsR.rcsr(i) === Stvec) { io.csrsR.rdata(i) := stvec }
+    if (ext('S')) when(io.csrsR.rcsr(i) === Scounteren) { io.csrsR.rdata(i) := scounteren }
+    if (ext('S')) when(io.csrsR.rcsr(i) === Sscratch) { io.csrsR.rdata(i) := sscratch }
+    if (ext('S')) when(io.csrsR.rcsr(i) === Sepc) { io.csrsR.rdata(i) := (if (ext('C')) sepc(xlen - 1, 1) ## 0.B else sepc(xlen - 1, 2) ## 0.U(2.W)) }
+    if (ext('S')) when(io.csrsR.rcsr(i) === Scause) { io.csrsR.rdata(i) := scause(4) ## 0.U((xlen - 5).W) ## scause(3, 0) }
+    if (ext('S')) when(io.csrsR.rcsr(i) === Stval) { io.csrsR.rdata(i) := stval }
+    if (ext('S')) when(io.csrsR.rcsr(i) === Sip) { io.csrsR.rdata(i) := sip }
+    if (ext('S')) when(io.csrsR.rcsr(i) === Satp) { io.csrsR.rdata(i) := satp }
     when(io.csrsR.rcsr(i) === Mideleg) { if (ext('S')) io.csrsR.rdata(i) := mideleg.asUInt }
     when(io.csrsR.rcsr(i) === Medeleg) { if (ext('S')) io.csrsR.rdata(i) := medeleg }
-    when(io.csrsR.rcsr(i) === Time) { io.csrsR.rdata(i) := io.mtime }
+    if (useClint) when(io.csrsR.rcsr(i) === Time) { io.csrsR.rdata(i) := io.mtime }
 
     if (xlen == 32) {
-      when((io.csrsR.rcsr(i) === Pmpcfg1) || (io.csrsR.rcsr(i) === Pmpcfg3)) { io.csrsR.rdata(i) := 0.U }
       when(io.csrsR.rcsr(i) === Mcycleh || io.csrsR.rcsr(i) === Cycleh) { io.csrsR.rdata(i) := mcycle(63, 32) }
       when(io.csrsR.rcsr(i) === Minstreth || io.csrsR.rcsr(i) === Instreth) { io.csrsR.rdata(i) := minstret(63, 32) }
       when(io.csrsR.rcsr(i) >= Mhpmcounterh(3.U) && io.csrsR.rcsr(i) <= Mhpmcounterh(31.U)) { io.csrsR.rdata(i) := 0.U }
-      when(io.csrsR.rcsr(i) === Timeh) { io.csrsR.rdata(i) := io.mtime(63, 32) }
+      if (useClint) when(io.csrsR.rcsr(i) === Timeh) { io.csrsR.rdata(i) := io.mtime(63, 32) }
     }
   }
 
   io.bareSEIP := mip.SEIP; io.bareUEIP := mip.UEIP
-  io.satp := satp
+  io.satp := (if (ext('S')) satp else DontCare)
   io.sum  := mstatus.SUM
   io.mprv := mstatus.MPRV
   io.mpp  := mstatus.MPP
@@ -286,14 +280,14 @@ class CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
     io.debug.priv     := currentPriv
     io.debug.mstatus  := mstatus.asUInt
     io.debug.mepc     := mepc
-    io.debug.sepc     := sepc
     io.debug.mtvec    := mtvec
-    io.debug.stvec    := stvec
     io.debug.mcause   := mcause(4) ## 0.U((xlen - 5).W) ## mcause(3, 0)
-    io.debug.scause   := scause(4) ## 0.U((xlen - 5).W) ## scause(3, 0)
     io.debug.mtval    := mtval
-    io.debug.stval    := stval
     io.debug.mie      := mie.asUInt
     io.debug.mscratch := mscratch
+    if (ext('S')) io.debug.sepc   := sepc
+    if (ext('S')) io.debug.stvec  := stvec
+    if (ext('S')) io.debug.scause := scause(4) ## 0.U((xlen - 5).W) ## scause(3, 0)
+    if (ext('S')) io.debug.stval  := stval
   }
 }
