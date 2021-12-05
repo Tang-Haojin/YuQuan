@@ -1,13 +1,11 @@
 pwd := $(shell pwd)
 NO_ERR = >>/dev/null 2>&1 | echo >>/dev/null 2>&1
-site = https://tanghaojin.site/static
-BUILD_DIR = ./build
+BUILD_DIR = $(pwd)/build
 LIB_DIR   = $(pwd)/difftest/difftest/build
 simSrcDir = $(pwd)/sim/src
 srcDir    = $(pwd)/cpu/src
 cpuNum    = $(shell echo $$((`lscpu -p=CORE | tail -n 1` + 1)))
 nobin     = $(shell echo "\e[31mNo BIN file specified\e[0m")
-$(shell mkdir -p $(pwd)/sim/bin $(NO_ERR))
 
 ISA := riscv64
 
@@ -56,10 +54,6 @@ endif
 ifneq ($(BIN),)
 binFile = $(pwd)/sim/bin/$(BIN)-$(ISA)-nemu.bin
 flashBinFile = $(pwd)/sim/bin/$(BIN)~flash-$(ISA)-nemu.bin
-storageBinFile = $(pwd)/sim/bin/$(BIN)~storage-$(ISA)-nemu.bin
-ifeq ($(wildcard $(binFile)),)
-$(shell wget $(site)/$(BIN)-$(ISA)-nemu.bin -O $(binFile) || rm $(binFile))
-endif
 endif
 
 SIMBIN = $(filter-out yield rtthread fw_payload xv6 xv6-cake xv6-full dma-c dma-large-c dma-multi-c linux linux-c debian debian-disk,$(shell cd $(pwd)/sim/bin && ls *-$(ISA)-nemu.bin | grep -oP ".*(?=-$(ISA)-nemu.bin)"))
@@ -113,7 +107,7 @@ sim: $(LIB_SPIKE) verilate
 ifeq ($(BIN),)
 	$(error $(nobin))
 endif
-	@$(BUILD_DIR)/sim/obj_dir/VTestTop $(binFile) $(flashBinFile) $(storageBinFile)
+	@$(BUILD_DIR)/sim/obj_dir/VTestTop $(binFile) $(flashBinFile)
 
 simall: $(LIB_SPIKE) verilate
 	@for x in $(SIMBIN); do \
