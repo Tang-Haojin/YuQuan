@@ -22,6 +22,12 @@ class TlbEntryBundle extends Bundle {
   def flush: Unit = this := 0.U.asTypeOf(new TlbEntryBundle)
   def apply(x: Int): Bool = asUInt()(x)
   def apply(x: Int, y: Int): UInt = asUInt()(x, y)
+  def PPN(n: Int): UInt = { require(n >= 0 && n <= 2); n match {
+    case 0 => ppn(8, 0)
+    case 1 => ppn(17, 9)
+    case 2 => ppn(43, 18)
+    case _ => 0.U
+  }}
 }
 
 class TLB(implicit val p: Parameters) extends CacheParams {
@@ -35,11 +41,11 @@ class TLB(implicit val p: Parameters) extends CacheParams {
     case 2 => vaddr.vpn(2)                 === getTlbE(vaddr)(2).vpn(2)
   }) && getTlbE(vaddr)(x).i === x.U))
   def isHit(vaddr: Vaddr): Bool = isHitLevel(vaddr).asUInt().orR()
-  def translate(vaddr: Vaddr): UInt = Mux1H(Seq(
-    isHitLevel(vaddr)(0) -> getTlbE(vaddr)(0).ppn                                         ## vaddr.offset,
-    isHitLevel(vaddr)(1) -> getTlbE(vaddr)(1).ppn(43, 9)                  ## vaddr.vpn(0) ## vaddr.offset,
-    isHitLevel(vaddr)(2) -> getTlbE(vaddr)(2).ppn(43, 18) ## vaddr.vpn(1) ## vaddr.vpn(0) ## vaddr.offset
-  ))
+  def translate(vaddr: Vaddr): UInt = { val tlbEntry = getTlbE(vaddr); Mux1H(Seq(
+    isHitLevel(vaddr)(0) -> tlbEntry(0).PPN(2) ## tlbEntry(0).PPN(1) ## tlbEntry(0).PPN(0) ## vaddr.offset,
+    isHitLevel(vaddr)(1) -> tlbEntry(1).PPN(2) ## tlbEntry(1).PPN(1) ## vaddr      .vpn(0) ## vaddr.offset,
+    isHitLevel(vaddr)(2) -> tlbEntry(2).PPN(2) ## vaddr      .vpn(1) ## vaddr      .vpn(0) ## vaddr.offset
+  ))}
   def isDirty (vaddr: Vaddr): Bool = VecInit(Seq.tabulate(3)(x => isHitLevel(vaddr)(x) && getTlbE(vaddr)(x).d)).asUInt().orR()
   def isGlobal(vaddr: Vaddr): Bool = VecInit(Seq.tabulate(3)(x => isHitLevel(vaddr)(x) && getTlbE(vaddr)(x).g)).asUInt().orR()
   def isUser  (vaddr: Vaddr): Bool = VecInit(Seq.tabulate(3)(x => isHitLevel(vaddr)(x) && getTlbE(vaddr)(x).u)).asUInt().orR()
