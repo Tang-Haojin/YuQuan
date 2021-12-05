@@ -16,10 +16,6 @@ param += FLASH
 CFLAGS += -DFLASH
 endif
 
-ifeq ($(STORAGE),1)
-CFLAGS += -DSTORAGE
-endif
-
 ifeq ($(UART),1)
 param += UART
 CFLAGS += -DUART
@@ -27,7 +23,6 @@ endif
 
 CSRCS   += $(simSrcDir)/sim_main.cpp $(simSrcDir)/peripheral/ram/ram.cpp
 CSRCS   += $(simSrcDir)/peripheral/spiFlash/spiFlash.cpp
-CSRCS   += $(simSrcDir)/peripheral/storage/storage.cpp
 CSRCS   += $(simSrcDir)/peripheral/uart/scanKbd.cpp
 CSRCS   += $(simSrcDir)/peripheral/uart/uart.cpp
 CSRCS   += $(simSrcDir)/peripheral/sdcard/sdcard.cpp
