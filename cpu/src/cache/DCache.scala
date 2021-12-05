@@ -94,7 +94,7 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
     data(grp)(i * 8 + 7, i * 8)
   })); private val byteDatas = byteData.asUInt()
 
-  private val wdata     = rbytes.asUInt() ## VecInit(inBuffer.dropRight(1)).asUInt
+  private val wdata     = inBuffer.asUInt()
   private val vecWvalid = VecInit(Seq.fill(Associativity)(1.U))
   private val vecWdirty = VecInit(Seq.fill(Associativity)(0.U))
   private val vecWtag   = VecInit(Seq.fill(Associativity)(addrTag))
@@ -177,8 +177,6 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
       when(received === (BurstLen - 1).U) {
         received       := 0.U
         state          := answering
-        wen(way)       := 1.B
-        vecWdirty(way) := reqRw
         RREADY         := 0.B
       }.otherwise { received := received + 1.U }
     }.elsewhen(io.memIO.ar.fire()) {
@@ -187,6 +185,8 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
     }
   }
   when(state === answering) {
+    wen(way) := 1.B
+    vecWdirty(way) := reqRw
     hit := ~willDrop
     io.cpuIO.cpuResult.data := inBuffer(addrOffset)
     state := Mux(io.cpuIO.cpuReq.valid, Mux(isPeripheral, passing, starting), idle)
