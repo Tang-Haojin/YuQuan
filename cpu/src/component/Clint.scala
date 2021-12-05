@@ -5,13 +5,9 @@ import chisel3.util._
 import chipsalliance.rocketchip.config._
 
 import cpu.tools._
+import utils._
 
-class ClintIO extends Bundle {
-  val wen   = Input (Bool())
-  val addr  = Input (UInt(2.W))
-  val rdata = Output(UInt(64.W)) // 64 bits are cross-XLEN
-  val wdata = Input (UInt(64.W))
-}
+class ClintIO extends SimpleRWIO(2, 64)
 
 class Clint(implicit p: Parameters) extends YQModule {
   val io = IO(new Bundle {

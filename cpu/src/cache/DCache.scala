@@ -13,12 +13,13 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
     val cpuIO   = new CpuIO
     val memIO   = new AXI_BUNDLE
     val clintIO = Flipped(new cpu.component.ClintIO)
+    val plicIO  = Flipped(new cpu.component.SimplePlicIO)
     val wb      = Flipped(Irrevocable(Bool()))
   })
 
   private val rand = MaximalPeriodGaloisLFSR(2)
 
-  private val idle::starting::compare::writeback::allocate::answering::passing::backall::clint::Nil = Enum(9)
+  private val idle::starting::compare::writeback::allocate::answering::passing::backall::clint::plic::Nil = Enum(10)
   private val state = RegInit(UInt(4.W), idle)
   private val received = RegInit(0.U(LogBurstLen.W))
   private val backAllInnerState = RegInit(0.U(1.W))
@@ -80,6 +81,10 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
   io.clintIO.addr  := isClint.address
   io.clintIO.wdata := reqData
   io.clintIO.wen   := state === clint && reqRw
+  private val isPlic       = IsPlic      (io.cpuIO.cpuReq.addr)
+  io.plicIO.addr   := isPlic.address
+  io.plicIO.wdata  := Mux(isPlic.address(2), reqData(63, 32), reqData(31, 0))
+  io.plicIO.wen    := state === plic && reqRw
 
   private val wbBuffer    = WbBuffer(io.memIO, data(way), tag(way) ## addrIndex ## 0.U(Offset.W))
   private val passThrough = PassThrough(false)(io.memIO, wbBuffer.ready, addr, reqData, reqWMask, reqRw, reqSize)
@@ -130,6 +135,7 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
       state := starting
       when(isPeripheral) { state := passing }
       when(isClint)      { state := clint   }
+      when(isPlic)       { state := plic    }
     }
     .elsewhen(io.wb.valid) { state := backall; addr := 0.U; way := 0.U; writingBackAll := 1.B }
   }
@@ -220,6 +226,14 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
     hit   := 1.B
     state := idle
     io.cpuIO.cpuResult.data := io.clintIO.rdata
+  }
+  when(state === plic) {
+    val rhit  = RegInit(0.B)
+    val rdata = RegNext(io.plicIO.rdata, 0.U(32.W))
+    when(hit) { state := idle }
+    hit := reqRw || rhit
+    rhit := ~hit
+    io.cpuIO.cpuResult.data := rdata ## rdata
   }
 
   when(readBack) {

@@ -10,6 +10,7 @@ import peripheral._
 abstract trait CPUParams extends UtilsParams {
   val extensions   = p(EXTENSIONS)
   val CLINT        = p(CLINT_MMAP)
+  val SIMPLEPLIC   = p(SIMPLE_PLIC_MMAP)
   val DRAM         = p(DRAM_MMAP)
   val AluTypeWidth = p(ALUTYPEWIDTH)
   val UseFlash     = p(USEFLASH)

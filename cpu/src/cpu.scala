@@ -36,6 +36,7 @@ class CPU(implicit p: Parameters) extends YQModule {
   private val moduleDCache = DCache()
   private val moduleMMU    = Module(new MMU)
   private val moduleClint  = Module(new Clint)
+  private val modulePlic   = Module(new SimplePlic)
 
   private val moduleIF  = Module(new IF)
   private val moduleID  = Module(new ID)
@@ -95,6 +96,8 @@ class CPU(implicit p: Parameters) extends YQModule {
   moduleID.io.mtip       <> moduleClint.io.mtip
   moduleID.io.msip       <> moduleClint.io.msip
   moduleClint.io.clintIO <> moduleDCache.io.clintIO
+  modulePlic.io.plicIO   <> moduleDCache.io.plicIO
+  modulePlic.io.int      <> io.interrupt
 
   moduleBypass.io.rregs  <> moduleGPRs.io.rregs
   moduleBypass.io.idOut.valid  := moduleID.io.nextVR.VALID
@@ -128,7 +131,7 @@ class CPU(implicit p: Parameters) extends YQModule {
   moduleEX.io.seip := moduleCSRs.io.bareSEIP
   moduleEX.io.ueip := moduleCSRs.io.bareUEIP
 
-  moduleCSRs.io.eip         <> io.interrupt
+  moduleCSRs.io.eip         <> modulePlic.io.eip
   moduleCSRs.io.retire      <> moduleWB.io.retire
   moduleCSRs.io.changePriv  <> moduleWB.io.isPriv
   moduleCSRs.io.newPriv     <> moduleWB.io.priv

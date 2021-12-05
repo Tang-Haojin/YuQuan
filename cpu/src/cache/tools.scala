@@ -250,3 +250,19 @@ object IsClint {
   import scala.language.implicitConversions
   implicit def getResult(x: IsClint): Bool = x.isClint
 }
+
+class IsPlic(addr: UInt)(implicit p: Parameters) {
+  private val Plic = p(SIMPLE_PLIC_MMAP)
+  val isPlic = addr >= Plic.BASE.U && addr < (Plic.BASE + Plic.SIZE).U
+  val address = RegEnable(addr, 0.U, isPlic)
+}
+
+object IsPlic {
+  /** Construct an [[IsPlic]]
+   * @param addr The address that to be examined
+   */
+  def apply(addr: UInt)(implicit p: Parameters): IsPlic = new IsPlic(addr)
+
+  import scala.language.implicitConversions
+  implicit def getResult(x: IsPlic): Bool = x.isPlic
+}
