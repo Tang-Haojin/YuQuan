@@ -22,7 +22,6 @@ object PeripheralConfig {
     case USEREGION     => 0
     case UART_MMAP     => new UART
     case PLIC_MMAP     => new PLIC
-    case CHIPLINK_MMAP => new CHIPLINK
     case SPI_MMAP      => new SPI
   }
 
@@ -45,11 +44,6 @@ object PeripheralConfig {
     val S_CLAIM  = (context: Int) => S_threshold(context) + 4 // supervisor claim & complete
   }
 
-  class CHIPLINK extends MMAP {
-    override val BASE = 0x40000000L
-    override val SIZE = 0x40000000L
-  }
-  
   class SPI extends MMAP {
     override val BASE = 0x10001000L
     override val SIZE = 0x1000L // spi controller
@@ -65,6 +59,5 @@ object PeripheralConfig {
 
 case object UART_MMAP     extends Field[PeripheralConfig.UART]
 case object PLIC_MMAP     extends Field[PeripheralConfig.PLIC]
-case object CHIPLINK_MMAP extends Field[PeripheralConfig.CHIPLINK]
 case object SPI_MMAP      extends Field[PeripheralConfig.SPI]
 case object SPIFLASH_MMAP extends Field[PeripheralConfig.SPIFLASH]

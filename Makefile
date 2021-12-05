@@ -41,7 +41,7 @@ VFLAGS  += -I$(pwd)/utils/src/axi2apb/inner
 VFLAGS  += -I$(pwd)/peripheral/src/spi/rtl -j $(cpuNum) -O3
 VFLAGS  += -I$(simSrcDir)/peripheral/spiFlash
 VFLAGS  += -I$(simSrcDir)/peripheral/sdcard
-VFLAGS  += -cc TestTop.v $(pwd)/peripheral/src/chiplink/chiplink.v $(pwd)/peripheral/src/chiplink/top.v
+VFLAGS  += -cc TestTop.v
 
 ifeq ($(TRACE),1)
 VFLAGS += --trace-fst --trace-threads 2
