@@ -55,14 +55,14 @@ class Plic(implicit val p: Parameters) extends RawModule with PeripheralParams {
       offset := io.channel.ar.bits.addr
       ARREADY := 0.B
       RVALID  := 1.B
-      for (i <- 0 until 16) when(io.channel.ar.bits.addr === PLIC.Isp(i).U) { RDATA := isp(i) }
-      for (i <- 0 until 0x80) when(io.channel.ar.bits.addr === PLIC.Ipb(i).U) { RDATA := io.inter(i) }
-      when(io.channel.ar.bits.addr === PLIC.Ieb(10, 0).U) { RDATA := ieb(0) }
-      when(io.channel.ar.bits.addr === PLIC.Ipt(0).U) { RDATA := ipt(0) }
-      when(io.channel.ar.bits.addr === PLIC.Ic(0).U) { when(io.inter(10)) { RDATA := 10.U } }
-      when(io.channel.ar.bits.addr === PLIC.SIeb(10, 0).U) { RDATA := sieb(0) }
-      when(io.channel.ar.bits.addr === PLIC.SIpt(0).U) { RDATA := sipt(0) }
-      when(io.channel.ar.bits.addr === PLIC.SIc(0).U) { when(io.inter(10)) { RDATA := 10.U } }
+      for (i <- 0 until 16) when(io.channel.ar.bits.addr === PLIC.M_Priority(i).U) { RDATA := isp(i) }
+      for (i <- 0 until 0x80) when(io.channel.ar.bits.addr === PLIC.M_Pending(i).U) { RDATA := io.inter(i) }
+      when(io.channel.ar.bits.addr === PLIC.M_Enable(10, 0).U) { RDATA := ieb(0) }
+      when(io.channel.ar.bits.addr === PLIC.M_Threshold(0).U) { RDATA := ipt(0) }
+      when(io.channel.ar.bits.addr === PLIC.M_CLAIM(0).U) { when(io.inter(10)) { RDATA := 10.U } }
+      when(io.channel.ar.bits.addr === PLIC.S_Enable(10, 0).U) { RDATA := sieb(0) }
+      when(io.channel.ar.bits.addr === PLIC.S_threshold(0).U) { RDATA := sipt(0) }
+      when(io.channel.ar.bits.addr === PLIC.S_CLAIM(0).U) { when(io.inter(10)) { RDATA := 10.U } }
     }
 
     when(io.channel.aw.fire()) {
@@ -81,11 +81,11 @@ class Plic(implicit val p: Parameters) extends RawModule with PeripheralParams {
       AWREADY := 1.B
       WREADY  := 1.B
       BVALID  := 1.B
-      for (i <- 1 until 16) when(WADDR === PLIC.Isp(i).U) { isp(i) := WDATA }
-      when(WADDR === PLIC.Ieb(10, 0).U) { ieb(0) := WDATA }
-      when(WADDR === PLIC.Ipt(0).U) { ipt(0) := WDATA }
-      when(WADDR === PLIC.SIeb(10, 0).U) { sieb(0) := WDATA }
-      when(WADDR === PLIC.SIpt(0).U) { sipt(0) := WDATA }
+      for (i <- 1 until 16) when(WADDR === PLIC.M_Priority(i).U) { isp(i) := WDATA }
+      when(WADDR === PLIC.M_Enable(10, 0).U) { ieb(0) := WDATA }
+      when(WADDR === PLIC.M_Threshold(0).U) { ipt(0) := WDATA }
+      when(WADDR === PLIC.S_Enable(10, 0).U) { sieb(0) := WDATA }
+      when(WADDR === PLIC.S_threshold(0).U) { sipt(0) := WDATA }
     }
 
     when(io.channel.b.fire()) {

@@ -34,15 +34,15 @@ object PeripheralConfig {
   class PLIC extends MMAP {
     override val BASE = 0x0c000000L
     override val SIZE = 0x04000000L
-    val Isp = (source: Int) => BASE + 4 * source // Interrupt source n priority
-    val Ipb = (source: Int) => BASE + 0x1000 + 4 * (source / 32) // Interrupt Pending bit
-    val Ieb = (source: Int, context: Int) => BASE + 0x2000 + 0x80 * context + 4 * (source / 32) // Interrupt Enable Bits
-    val Ipt = (context: Int) => BASE + 0x200000 + 0x1000 * context // threshold
-    val Ic  = (context: Int) => Ipt(context) + 4 // claim & complete
+    val M_Priority = (source: Int) => BASE + 4 * source // Interrupt source n priority
+    val M_Pending = (source: Int) => BASE + 0x1000 + 4 * (source / 32) // Interrupt Pending bit
+    val M_Enable = (source: Int, context: Int) => BASE + 0x2000 + 0x80 * context + 4 * (source / 32) // Interrupt Enable Bits
+    val M_Threshold = (context: Int) => BASE + 0x200000 + 0x1000 * context // threshold
+    val M_CLAIM  = (context: Int) => M_Threshold(context) + 4 // claim & complete
 
-    val SIeb = (source: Int, context: Int) => BASE + 0x2080 + 0x80 * context + 4 * (source / 32) // Supervisor Interrupt Enable Bits
-    val SIpt = (context: Int) => BASE + 0x201000 + 0x1000 * context // supervisor threshold
-    val SIc  = (context: Int) => SIpt(context) + 4 // supervisor claim & complete
+    val S_Enable = (source: Int, context: Int) => BASE + 0x2080 + 0x80 * context + 4 * (source / 32) // Supervisor Interrupt Enable Bits
+    val S_threshold = (context: Int) => BASE + 0x201000 + 0x1000 * context // supervisor threshold
+    val S_CLAIM  = (context: Int) => S_threshold(context) + 4 // supervisor claim & complete
   }
 
   class CHIPLINK extends MMAP {

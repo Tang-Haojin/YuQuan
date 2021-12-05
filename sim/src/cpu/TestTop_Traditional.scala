@@ -19,7 +19,6 @@ class TestTop_Traditional(io: DEBUG, clock: Clock, reset: Reset)(implicit val p:
   val cpu       = Module(new CPU)
   val mem       = Module(new RAM)
   val uart      = Module(if (IsRealUart) new UartReal else new UartSim)
-  val plic      = Module(new Plic)
   val spi       = Module(new AxiFlash)
   val sd        = Module(new SDCard)
   val nemu_uart = Module(new Nemu_Uart)
@@ -33,22 +32,17 @@ class TestTop_Traditional(io: DEBUG, clock: Clock, reset: Reset)(implicit val p:
 
   router.io.DramIO      <> mem.io.channel
   router.io.UartIO      <> uart.io.channel
-  router.io.PLICIO      <> plic.io.channel
   router.io.SpiIO       <> spi.io.channel
   router.io.Nemu_UartIO <> nemu_uart.io.channel
   router.io.Dmac        <> dmac.io.fromCPU.channel
   router.io.SdIO        <> sd.io.channel
 
-  plic.io.inter     := VecInit(Seq.fill(plic.io.inter.length)(0.B))
-  plic.io.inter(10) := uart.io.interrupt
-  cpu.io.interrupt  := plic.io.eip
+  cpu.io.interrupt  := uart.io.interrupt
 
   mem.io.basic.ACLK             := clock
   mem.io.basic.ARESETn          := !reset.asBool
   uart.io.basic.ACLK            := clock
   uart.io.basic.ARESETn         := !reset.asBool
-  plic.io.basic.ACLK            := clock
-  plic.io.basic.ARESETn         := !reset.asBool
   spi.io.basic.ACLK             := clock
   spi.io.basic.ARESETn          := !reset.asBool
   nemu_uart.io.basic.ACLK       := clock

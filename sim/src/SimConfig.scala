@@ -12,34 +12,34 @@ class SimConfig extends Config(SimConfig.basicConfig)
 
 object SimConfig {
   private val basePartFunc: PartialFunction[Any, Any] = {
-    case XLEN           => 64
-    case ALEN           => 32
-    case IDLEN          => 4
-    case USRLEN         => 0
-    case USEQOS         => 0
-    case USEPROT        => 0
-    case USECACHE       => 0
-    case USELOCK        => 0
-    case USEREGION      => 0
-    case AXIRENAME      => true
-    case EXTENSIONS     => List('I', 'M', 'S', 'A', 'U', 'C')
-    case DMAC_MMAP      => new DMAC
-    case UART_MMAP      => new PeripheralConfig.UART
-    case PLIC_MMAP      => new PeripheralConfig.PLIC
-    case CHIPLINK_MMAP  => new PeripheralConfig.CHIPLINK
-    case NEMU_UART_MMAP => new NEMU_UART
-    case SD_CARD_MMAP   => new SD_CARD
-    case CLINT_MMAP     => new YQConfig.CLINT
-    case DRAM_MMAP      => new YQConfig.DRAM
-    case SPI_MMAP       => new PeripheralConfig.SPI
-    case SPIFLASH_MMAP  => new PeripheralConfig.SPIFLASH
-    case ALUTYPEWIDTH   => 5
-    case MODULE_PREFIX  => s""
-    case REG_CONF       => new YQConfig.RegConf
-    case ENABLE_DEBUG   => true
-    case TLB_ENTRIES    => 16
-    case VALEN          => 64
-    case USESLAVE       => true
+    case XLEN             => 64
+    case ALEN             => 32
+    case IDLEN            => 4
+    case USRLEN           => 0
+    case USEQOS           => 0
+    case USEPROT          => 0
+    case USECACHE         => 0
+    case USELOCK          => 0
+    case USEREGION        => 0
+    case AXIRENAME        => true
+    case EXTENSIONS       => List('I', 'M', 'S', 'A', 'U', 'C')
+    case DMAC_MMAP        => new DMAC
+    case UART_MMAP        => new PeripheralConfig.UART
+    case PLIC_MMAP        => new PeripheralConfig.PLIC
+    case SIMPLE_PLIC_MMAP => new YQConfig.SIMPLEPLIC
+    case NEMU_UART_MMAP   => new NEMU_UART
+    case SD_CARD_MMAP     => new SD_CARD
+    case CLINT_MMAP       => new YQConfig.CLINT
+    case DRAM_MMAP        => new YQConfig.DRAM
+    case SPI_MMAP         => new PeripheralConfig.SPI
+    case SPIFLASH_MMAP    => new PeripheralConfig.SPIFLASH
+    case ALUTYPEWIDTH     => 5
+    case MODULE_PREFIX    => s""
+    case REG_CONF         => new YQConfig.RegConf
+    case ENABLE_DEBUG     => true
+    case TLB_ENTRIES      => 16
+    case VALEN            => 64
+    case USESLAVE         => false
   }
 
   val basicConfig: (View, View, View) => PartialFunction[Any, Any] = (site, here, up) => basePartFunc.orElse({
