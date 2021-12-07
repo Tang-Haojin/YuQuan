@@ -32,30 +32,30 @@ class SimplePlic(implicit p: Parameters) extends YQModule {
   io.seip := Mux(used, s_enable && (priority > s_threshold), 1.B) && interrupt
   io.plicIO.rdata := 0.U
 
-  when(io.plicIO.addr >= SIMPLEPLIC.M_Priority(0).U(25, 0) && io.plicIO.addr < SIMPLEPLIC.M_Pending(0).U(25, 0)) {
+  when(io.plicIO.addr >= SIMPLEPLIC.Priority(0).U(25, 0) && io.plicIO.addr < SIMPLEPLIC.Pending(0).U(25, 0)) {
     when(io.plicIO.wen) { priority := io.plicIO.wdata }
     io.plicIO.rdata := priority
   }
-  when(io.plicIO.addr >= SIMPLEPLIC.M_Pending(0).U(25, 0) && io.plicIO.addr < SIMPLEPLIC.M_Enable(0, 0).U(25, 0)) {
+  when(io.plicIO.addr >= SIMPLEPLIC.Pending(0).U(25, 0) && io.plicIO.addr < SIMPLEPLIC.Enable(0, 0).U(25, 0)) {
     io.plicIO.rdata := UIntToOH(source(4, 0)) & Fill(32, interrupt)
   }
-  when(io.plicIO.addr >= SIMPLEPLIC.M_Enable(0, 0).U(25, 0) && io.plicIO.addr < SIMPLEPLIC.M_Enable(0, 1).U(25, 0)) {
+  when(io.plicIO.addr >= SIMPLEPLIC.Enable(0, 0).U(25, 0) && io.plicIO.addr < SIMPLEPLIC.Enable(0, 1).U(25, 0)) {
     when(io.plicIO.wen) { m_enable := io.plicIO.wdata.orR(); source := io.plicIO.addr(6, 2) ## OHToUInt(io.plicIO.wdata) }
     io.plicIO.rdata := UIntToOH(source(4, 0)) & Fill(32, m_enable)
   }
-  when(io.plicIO.addr >= SIMPLEPLIC.M_Enable(0, 1).U(25, 0) && io.plicIO.addr < SIMPLEPLIC.M_Enable(0, 2).U(25, 0)) {
+  when(io.plicIO.addr >= SIMPLEPLIC.Enable(0, 1).U(25, 0) && io.plicIO.addr < SIMPLEPLIC.Enable(0, 2).U(25, 0)) {
     when(io.plicIO.wen) { s_enable := io.plicIO.wdata.orR(); source := io.plicIO.addr(6, 2) ## OHToUInt(io.plicIO.wdata) }
     io.plicIO.rdata := UIntToOH(source(4, 0)) & Fill(32, s_enable)
   }
-  when(io.plicIO.addr === SIMPLEPLIC.M_Threshold(0).U(25, 0)) {
+  when(io.plicIO.addr === SIMPLEPLIC.Threshold(0).U(25, 0)) {
     when(io.plicIO.wen) { m_threshold := io.plicIO.wdata }
     io.plicIO.rdata := m_threshold
   }
-  when(io.plicIO.addr === SIMPLEPLIC.M_Threshold(1).U(25, 0)) {
+  when(io.plicIO.addr === SIMPLEPLIC.Threshold(1).U(25, 0)) {
     when(io.plicIO.wen) { s_threshold := io.plicIO.wdata }
     io.plicIO.rdata := s_threshold
   }
-  when(io.plicIO.addr === SIMPLEPLIC.M_CLAIM(0).U(25, 0) || io.plicIO.addr === SIMPLEPLIC.M_CLAIM(1).U(25, 0)) {
+  when(io.plicIO.addr === SIMPLEPLIC.CLAIM(0).U(25, 0) || io.plicIO.addr === SIMPLEPLIC.CLAIM(1).U(25, 0)) {
     io.plicIO.rdata := source
   }
   

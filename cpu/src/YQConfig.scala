@@ -27,7 +27,6 @@ object YQConfig {
     case CLINT_MMAP       => new CLINT
     case SIMPLE_PLIC_MMAP => new SIMPLEPLIC
     case DRAM_MMAP        => new DRAM
-    case PLIC_MMAP        => new PeripheralConfig.PLIC
     case ALUTYPEWIDTH     => 6
     case USEFLASH         => site(GEN_NAME) match { case "ysyx" => true; case "zmb" => false }
     case SPIFLASH_MMAP    => new PeripheralConfig.SPIFLASH
@@ -54,15 +53,11 @@ object YQConfig {
   class SIMPLEPLIC extends MMAP {
     override val BASE = 0x0c000000L
     override val SIZE = 0x04000000L
-    val M_Priority = (source: Int) => BASE + 4 * source // Interrupt source n priority
-    val M_Pending = (source: Int) => BASE + 0x1000 + 4 * (source / 32) // Interrupt Pending bit
-    val M_Enable = (source: Int, context: Int) => BASE + 0x2000 + 0x80 * context + 4 * (source / 32) // Interrupt Enable Bits
-    val M_Threshold = (context: Int) => BASE + 0x200000 + 0x1000 * context // threshold
-    val M_CLAIM  = (context: Int) => M_Threshold(context) + 4 // claim & complete
-
-    val S_Enable = (source: Int, context: Int) => BASE + 0x2080 + 0x80 * context + 4 * (source / 32) // Supervisor Interrupt Enable Bits
-    val S_threshold = (context: Int) => BASE + 0x201000 + 0x1000 * context // supervisor threshold
-    val S_CLAIM  = (context: Int) => S_threshold(context) + 4 // supervisor claim & complete
+    val Priority = (source: Int) => BASE + 4 * source // Interrupt source n priority
+    val Pending = (source: Int) => BASE + 0x1000 + 4 * (source / 32) // Interrupt Pending bit
+    val Enable = (source: Int, context: Int) => BASE + 0x2000 + 0x80 * context + 4 * (source / 32) // Interrupt Enable Bits
+    val Threshold = (context: Int) => BASE + 0x200000 + 0x1000 * context // threshold
+    val CLAIM  = (context: Int) => Threshold(context) + 4 // claim & complete
   }
 
   class DRAM extends MMAP {

@@ -24,8 +24,7 @@ object SimConfig {
     case AXIRENAME        => true
     case EXTENSIONS       => List('I', 'M', 'S', 'A', 'U', 'C')
     case DMAC_MMAP        => new DMAC
-    case UART_MMAP        => new PeripheralConfig.UART
-    case PLIC_MMAP        => new PeripheralConfig.PLIC
+    case UART_MMAP        => new UART
     case SIMPLE_PLIC_MMAP => new YQConfig.SIMPLEPLIC
     case NEMU_UART_MMAP   => new NEMU_UART
     case SD_CARD_MMAP     => new SD_CARD
@@ -49,6 +48,11 @@ object SimConfig {
     case AxSIZE         => log2Ceil(here(XLEN) / 8)
     case USEFLASH       => false
   })
+
+  class UART extends MMAP {
+    override val BASE = 0x10000000L
+    override val SIZE = 0x1000L
+  }
 
   class DMAC extends MMAP {
     override val BASE = 0x50000000L
@@ -75,3 +79,4 @@ object SimConfig {
 case object DMAC_MMAP      extends Field[SimConfig.DMAC]
 case object NEMU_UART_MMAP extends Field[SimConfig.NEMU_UART]
 case object SD_CARD_MMAP   extends Field[SimConfig.SD_CARD]
+case object UART_MMAP      extends Field[SimConfig.UART]
