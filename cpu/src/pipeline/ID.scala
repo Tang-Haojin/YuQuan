@@ -59,7 +59,7 @@ class ID(implicit p: Parameters) extends YQModule {
 
   private val num = RegInit(VecInit(Seq.fill(4)(0.U(xlen.W))))
 
-  private val decoded = RVInstrDecoder(io.input.instr)
+  private val decoded = if (p(GEN_NAME) == "zmb") ListLookup(io.input.instr, List(7.U, 0.U, 0.U, 0.U, 0.U, 0.U, 0.U, inv), RVInstr().table) else RVInstrDecoder(io.input.instr)
 
   private val wireInstr   = io.input.instr
   private val wireFunct3c = io.input.instr(15, 13)
@@ -208,7 +208,7 @@ class ID(implicit p: Parameters) extends YQModule {
   private val instrJalr = io.input.instrCode === "b1100111".U || (ext('C').B && isCJR)
   private val wireJmpBch = WireDefault(Bool(), instrJump || instrJalr || (instrBranch && willBranch))
   private val isZicsr = io.input.instrCode === "b1110011".U && wireInstr(13, 12) =/= "b00".U
-  when(isZicsr) {
+  if (!isZmb) when(isZicsr) {
     when(ext('S').B && (wireInstr(31, 28) === "b0000".U /*fpu*/|| wireInstr(31, 25) === "b0011101".U /*pmp*/)) {
       wireExcept(2) := 1.B
     }.otherwise {
@@ -218,15 +218,15 @@ class ID(implicit p: Parameters) extends YQModule {
       if (ext('S')) when(wireCsr(0) === csrsAddr.Satp) { wireIsSatp := 1.B }
     }
   }
-  when(decoded(7) === inv) { wireExcept(2)  := 1.B } // illegal instruction
-  when(decoded(7) === ecall) {
+  if (!isZmb) when(decoded(7) === inv) { wireExcept(2)  := 1.B } // illegal instruction
+  if (!isZmb) when(decoded(7) === ecall) {
     when(io.currentPriv === "b11".U) { wireExcept(11) := 1.B } // environment call from M-mode
     if (ext('S')) when(io.currentPriv === "b01".U) { wireExcept( 9) := 1.B } // environment call from S-mode
     if (ext('U')) when(io.currentPriv === "b00".U) { wireExcept( 8) := 1.B } // environment call from U-mode
   }
-  when(decoded(7) === ebreak || (ext('C').B && io.input.instr(15, 0) === "b1001000000000010".U)) { wireExcept(3) := 1.B } // breakpoint
-  when(decoded(7) === fencei) { wireBlocked := 1.B }
-  when(decoded(7) === mret) {
+  if (!isZmb) when(decoded(7) === ebreak || (ext('C').B && io.input.instr(15, 0) === "b1001000000000010".U)) { wireExcept(3) := 1.B } // breakpoint
+  if (!isZmb) when(decoded(7) === fencei) { wireBlocked := 1.B }
+  if (!isZmb) when(decoded(7) === mret) {
     when(io.currentPriv =/= 3.U) { wireExcept(2) := 1.B } // illegal instruction
     .otherwise {
       wireIsWcsr := 1.B
@@ -270,7 +270,7 @@ class ID(implicit p: Parameters) extends YQModule {
   }
 
   when(io.input.except) { wireExcept(io.input.cause) := 1.B }
-  HandleException()
+  if (!isZmb) HandleException()
 
   io.lastVR.READY := io.nextVR.READY && !io.isWait && !blocked && amoStat === idle
 

@@ -112,10 +112,10 @@ case class RVI()(implicit val p: Parameters) extends CPUParams {
     SRL   -> List(r   , rs1 , rs2 , non , non , srl , 1.B, norm  ),
     SRA   -> List(r   , rs1 , rs2 , non , non , sra , 1.B, norm  ),
     OR    -> List(r   , rs1 , rs2 , non , non , or  , 1.B, norm  ),
-    AND   -> List(r   , rs1 , rs2 , non , non , and , 1.B, norm  ),
+    AND   -> List(r   , rs1 , rs2 , non , non , and , 1.B, norm  )) ++ (if (!isZmb) List(
     FENCE -> List(i   , non , non , non , non , nop , 0.B, norm  ), // do nothing
     ECALL -> List(i   , non , non , non , non , nop , 0.B, ecall ),
-    EBREAK-> List(i   , non , non , non , non , nop , 0.B, ebreak)) ++ (if (Debug) List(
+    EBREAK-> List(i   , non , non , non , non , nop , 0.B, ebreak)) else Nil) ++ (if (Debug) List(
     TRAP  -> List(i   , non , non , non , non , nop , 0.B, trap  )) else Nil) ++ (if (xlen != 32) List(
     LWU   -> List(i   , non , non , rs1 , imm , nop , 1.B, ld    ),
     LD    -> List(i   , non , non , rs1 , imm , nop , 1.B, ld    ),

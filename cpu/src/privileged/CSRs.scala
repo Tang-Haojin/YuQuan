@@ -172,7 +172,7 @@ class CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
   io.currentPriv := (if (ext('S') || ext('U')) currentPriv else "b11".U)
 
   mcycle := mcycle + 1.U
-  when(io.retire) { minstret := minstret + 1.U }
+  if (!isZmb) when(io.retire) { minstret := minstret + 1.U }
 
   for (i <- 0 until RegConf.writeCsrsPort) {
     when(io.csrsW.wen(i)) {
@@ -188,20 +188,21 @@ class CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
           // TODO: Raise an illegal instruction exception.
         }.elsewhen(io.csrsW.wcsr(i) === Mhartid) {
           // TODO: Raise an illegal instruction exception.
-        }.elsewhen(io.csrsW.wcsr(i) === Mstatus) { mstatus := io.csrsW.wdata(i) }
-        when(io.csrsW.wcsr(i) === Mtvec) { mtvec := io.csrsW.wdata(i)(xlen - 1, 2) ## Mux(io.csrsW.wdata(i)(1), mtvec(1, 0), io.csrsW.wdata(i)(1, 0)) }
-        when(io.csrsW.wcsr(i) === Mip) { mip := io.csrsW.wdata(i) }
-        when(io.csrsW.wcsr(i) === Mie) { mie := io.csrsW.wdata(i) }
-        when(io.csrsW.wcsr(i) === Mcycle) { if (xlen != 32) mcycle := io.csrsW.wdata(i) else mcycle(31, 0) := io.csrsW.wdata(i) }
-        when(io.csrsW.wcsr(i) === Minstret) { if (xlen != 32) minstret := io.csrsW.wdata(i) else minstret(31, 0) := io.csrsW.wdata(i) }
+        }
+        if (!isZmb) when(io.csrsW.wcsr(i) === Mstatus) { mstatus := io.csrsW.wdata(i) }
+        if (!isZmb) when(io.csrsW.wcsr(i) === Mtvec) { mtvec := io.csrsW.wdata(i)(xlen - 1, 2) ## Mux(io.csrsW.wdata(i)(1), mtvec(1, 0), io.csrsW.wdata(i)(1, 0)) }
+        if (!isZmb) when(io.csrsW.wcsr(i) === Mip) { mip := io.csrsW.wdata(i) }
+        if (!isZmb) when(io.csrsW.wcsr(i) === Mie) { mie := io.csrsW.wdata(i) }
+        if (!isZmb) when(io.csrsW.wcsr(i) === Mcycle) { if (xlen != 32) mcycle := io.csrsW.wdata(i) else mcycle(31, 0) := io.csrsW.wdata(i) }
+        if (!isZmb) when(io.csrsW.wcsr(i) === Minstret) { if (xlen != 32) minstret := io.csrsW.wdata(i) else minstret(31, 0) := io.csrsW.wdata(i) }
         when(io.csrsW.wcsr(i) >= Mhpmcounter(3.U) && io.csrsW.wcsr(i) <= Mhpmcounter(31.U)) {} // Do nothing.
         when(io.csrsW.wcsr(i) >= Mhpmevent(3.U) && io.csrsW.wcsr(i) <= Mhpmevent(31.U)) {} // Do nothing.
         when(io.csrsW.wcsr(i) === Mcounteren) {} // do nothing
         when(io.csrsW.wcsr(i) === Mcountinhibit) {} // do nothing
-        when(io.csrsW.wcsr(i) === Mscratch) { mscratch := io.csrsW.wdata(i) }
-        when(io.csrsW.wcsr(i) === Mepc) { mepc := (if (ext('C')) io.csrsW.wdata(i)(xlen - 1, 1) ## 0.B else io.csrsW.wdata(i)(xlen - 1, 2) ## 0.U(2.W)) }
-        when(io.csrsW.wcsr(i) === Mcause) { mcause := io.csrsW.wdata(i)(xlen - 1) ## io.csrsW.wdata(i)(3, 0) }
-        when(io.csrsW.wcsr(i) === Mtval) { mtval := io.csrsW.wdata(i) }
+        if (!isZmb) when(io.csrsW.wcsr(i) === Mscratch) { mscratch := io.csrsW.wdata(i) }
+        if (!isZmb) when(io.csrsW.wcsr(i) === Mepc) { mepc := (if (ext('C')) io.csrsW.wdata(i)(xlen - 1, 1) ## 0.B else io.csrsW.wdata(i)(xlen - 1, 2) ## 0.U(2.W)) }
+        if (!isZmb) when(io.csrsW.wcsr(i) === Mcause) { mcause := io.csrsW.wdata(i)(xlen - 1) ## io.csrsW.wdata(i)(3, 0) }
+        if (!isZmb) when(io.csrsW.wcsr(i) === Mtval) { mtval := io.csrsW.wdata(i) }
         if (ext('S')) when(io.csrsW.wcsr(i) === Sstatus) { sstatus := io.csrsW.wdata(i) }
         if (ext('S')) when(io.csrsW.wcsr(i) === Sie) { sie := io.csrsW.wdata(i) }
         if (ext('S')) when(io.csrsW.wcsr(i) === Stvec) { stvec := io.csrsW.wdata(i)(xlen - 1, 2) ## Mux(io.csrsW.wdata(i)(1, 0) >= 2.U, stvec(1, 0), io.csrsW.wdata(i)(1, 0)) }
@@ -212,12 +213,12 @@ class CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
         if (ext('S')) when(io.csrsW.wcsr(i) === Stval) { stval := io.csrsW.wdata(i) }
         if (ext('S')) when(io.csrsW.wcsr(i) === Sip) { sip := io.csrsW.wdata(i) }
         if (ext('S')) when(io.csrsW.wcsr(i) === Satp) { satp := io.csrsW.wdata(i) }
-        when(io.csrsW.wcsr(i) === Mideleg) { if (ext('S')) mideleg := io.csrsW.wdata(i) }
-        when(io.csrsW.wcsr(i) === Medeleg) { if (ext('S')) medeleg := io.csrsW.wdata(i) }
+        if (!isZmb) when(io.csrsW.wcsr(i) === Mideleg) { if (ext('S')) mideleg := io.csrsW.wdata(i) }
+        if (!isZmb) when(io.csrsW.wcsr(i) === Medeleg) { if (ext('S')) medeleg := io.csrsW.wdata(i) }
 
         if (xlen == 32) {
-          when(io.csrsW.wcsr(i) === Mcycleh) { mcycle(63, 32) := io.csrsW.wdata(i) }
-          when(io.csrsW.wcsr(i) === Minstreth) { minstret(63, 32) := io.csrsW.wdata(i) }
+          if (!isZmb) when(io.csrsW.wcsr(i) === Mcycleh) { mcycle(63, 32) := io.csrsW.wdata(i) }
+          if (!isZmb) when(io.csrsW.wcsr(i) === Minstreth) { minstret(63, 32) := io.csrsW.wdata(i) }
           when(io.csrsW.wcsr(i) >= Mhpmcounterh(3.U) && io.csrsW.wcsr(i) <= Mhpmcounterh(31.U)) {} // Do nothing.
         }
       }
@@ -226,29 +227,29 @@ class CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
 
   for (i <- 0 until RegConf.readCsrsPort) {
     io.csrsR.rdata(i) := 0.U
-    when(io.csrsR.rcsr(i) === Misa) { io.csrsR.rdata(i) := misa }
+    if (!isZmb) when(io.csrsR.rcsr(i) === Misa) { io.csrsR.rdata(i) := misa }
     when(io.csrsR.rcsr(i) === Mvendorid) { io.csrsR.rdata(i) := mvendorid }
     when(io.csrsR.rcsr(i) === Marchid) { io.csrsR.rdata(i) := marchid }
     when(io.csrsR.rcsr(i) === Mimpid) { io.csrsR.rdata(i) := mimpid }
     when(io.csrsR.rcsr(i) === Mhartid) { io.csrsR.rdata(i) := mhartid }
-    when(io.csrsR.rcsr(i) === Mstatus) { io.csrsR.rdata(i) := mstatus.asUInt }
-    when(io.csrsR.rcsr(i) === Mtvec) { io.csrsR.rdata(i) := mtvec }
-    when(io.csrsR.rcsr(i) === Mip) { io.csrsR.rdata(i) := { val data = WireDefault(new MipBundle, mip)
+    if (!isZmb) when(io.csrsR.rcsr(i) === Mstatus) { io.csrsR.rdata(i) := mstatus.asUInt }
+    if (!isZmb) when(io.csrsR.rcsr(i) === Mtvec) { io.csrsR.rdata(i) := mtvec }
+    if (!isZmb) when(io.csrsR.rcsr(i) === Mip) { io.csrsR.rdata(i) := { val data = WireDefault(new MipBundle, mip)
       data.WPRI_0 := 0.U; data.WPRI_1 := 0.B; data.WPRI_2 := 0.B; data.WPRI_3 := 0.B
       data.MEIP := io.meip; data.MTIP := io.mtip; data.SEIP := mip.SEIP || io.seip
       data.MSIP := io.msip; data.asUInt
     }}
-    when(io.csrsR.rcsr(i) === Mie) { io.csrsR.rdata(i) := mie.asUInt }
-    when(io.csrsR.rcsr(i) === Mcycle || io.csrsR.rcsr(i) === Cycle) { io.csrsR.rdata(i) := mcycle }
-    when(io.csrsR.rcsr(i) === Minstret || io.csrsR.rcsr(i) === Instret) { io.csrsR.rdata(i) := minstret }
+    if (!isZmb) when(io.csrsR.rcsr(i) === Mie) { io.csrsR.rdata(i) := mie.asUInt }
+    if (!isZmb) when(io.csrsR.rcsr(i) === Mcycle || io.csrsR.rcsr(i) === Cycle) { io.csrsR.rdata(i) := mcycle }
+    if (!isZmb) when(io.csrsR.rcsr(i) === Minstret || io.csrsR.rcsr(i) === Instret) { io.csrsR.rdata(i) := minstret }
     when(io.csrsR.rcsr(i) >= Mhpmcounter(3.U) && io.csrsR.rcsr(i) <= Mhpmcounter(31.U)) { io.csrsR.rdata(i) := 0.U }
     when(io.csrsR.rcsr(i) >= Mhpmevent(3.U) && io.csrsR.rcsr(i) <= Mhpmevent(31.U)) { io.csrsR.rdata(i) := 0.U }
     when(io.csrsR.rcsr(i) === Mcounteren) { io.csrsR.rdata(i) := mcounteren }
     when(io.csrsR.rcsr(i) === Mcountinhibit) { io.csrsR.rdata(i) := mcountinhibit }
-    when(io.csrsR.rcsr(i) === Mscratch) { io.csrsR.rdata(i) := mscratch }
-    when(io.csrsR.rcsr(i) === Mepc) { io.csrsR.rdata(i) := (if (ext('C')) mepc(xlen - 1, 1) ## 0.B else mepc(xlen - 1, 2) ## 0.U(2.W)) }
-    when(io.csrsR.rcsr(i) === Mcause) { io.csrsR.rdata(i) := mcause(4) ## 0.U((xlen - 5).W) ## mcause(3, 0) }
-    when(io.csrsR.rcsr(i) === Mtval) { io.csrsR.rdata(i) := mtval }
+    if (!isZmb) when(io.csrsR.rcsr(i) === Mscratch) { io.csrsR.rdata(i) := mscratch }
+    if (!isZmb) when(io.csrsR.rcsr(i) === Mepc) { io.csrsR.rdata(i) := (if (ext('C')) mepc(xlen - 1, 1) ## 0.B else mepc(xlen - 1, 2) ## 0.U(2.W)) }
+    if (!isZmb) when(io.csrsR.rcsr(i) === Mcause) { io.csrsR.rdata(i) := mcause(4) ## 0.U((xlen - 5).W) ## mcause(3, 0) }
+    if (!isZmb) when(io.csrsR.rcsr(i) === Mtval) { io.csrsR.rdata(i) := mtval }
     if (ext('S')) when(io.csrsR.rcsr(i) === Sstatus) { io.csrsR.rdata(i) := sstatus}
     if (ext('S')) when(io.csrsR.rcsr(i) === Sie) { io.csrsR.rdata(i) := sie }
     if (ext('S')) when(io.csrsR.rcsr(i) === Stvec) { io.csrsR.rdata(i) := stvec }
@@ -259,13 +260,13 @@ class CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
     if (ext('S')) when(io.csrsR.rcsr(i) === Stval) { io.csrsR.rdata(i) := stval }
     if (ext('S')) when(io.csrsR.rcsr(i) === Sip) { io.csrsR.rdata(i) := sip }
     if (ext('S')) when(io.csrsR.rcsr(i) === Satp) { io.csrsR.rdata(i) := satp }
-    when(io.csrsR.rcsr(i) === Mideleg) { if (ext('S')) io.csrsR.rdata(i) := mideleg.asUInt }
-    when(io.csrsR.rcsr(i) === Medeleg) { if (ext('S')) io.csrsR.rdata(i) := medeleg }
+    if (!isZmb) when(io.csrsR.rcsr(i) === Mideleg) { if (ext('S')) io.csrsR.rdata(i) := mideleg.asUInt }
+    if (!isZmb) when(io.csrsR.rcsr(i) === Medeleg) { if (ext('S')) io.csrsR.rdata(i) := medeleg }
     if (useClint) when(io.csrsR.rcsr(i) === Time) { io.csrsR.rdata(i) := io.mtime }
 
     if (xlen == 32) {
-      when(io.csrsR.rcsr(i) === Mcycleh || io.csrsR.rcsr(i) === Cycleh) { io.csrsR.rdata(i) := mcycle(63, 32) }
-      when(io.csrsR.rcsr(i) === Minstreth || io.csrsR.rcsr(i) === Instreth) { io.csrsR.rdata(i) := minstret(63, 32) }
+      if (!isZmb) when(io.csrsR.rcsr(i) === Mcycleh || io.csrsR.rcsr(i) === Cycleh) { io.csrsR.rdata(i) := mcycle(63, 32) }
+      if (!isZmb) when(io.csrsR.rcsr(i) === Minstreth || io.csrsR.rcsr(i) === Instreth) { io.csrsR.rdata(i) := minstret(63, 32) }
       when(io.csrsR.rcsr(i) >= Mhpmcounterh(3.U) && io.csrsR.rcsr(i) <= Mhpmcounterh(31.U)) { io.csrsR.rdata(i) := 0.U }
       if (useClint) when(io.csrsR.rcsr(i) === Timeh) { io.csrsR.rdata(i) := io.mtime(63, 32) }
     }

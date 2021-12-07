@@ -22,5 +22,6 @@ abstract trait CacheParams {
   val BurstLen      = p(BURST_LEN)
   val LogBurstLen   = p(LOG_BURST_LEN)
   val TlbEntries    = p(TLB_ENTRIES)
+  val FetchFromPeri = p(FETCHFROMPERI)
   val TlbIndex      = log2Ceil(TlbEntries)
 }

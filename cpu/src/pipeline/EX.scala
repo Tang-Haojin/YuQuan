@@ -112,7 +112,7 @@ class EX(implicit p: Parameters) extends YQModule {
       3.U -> (newValue & ~io.input.num(1))
     ))
   }
-  when(io.input.special === mret) {
+  if (!isZmb) when(io.input.special === mret) {
     wireCsrData(0) := Cat(
       io.input.num(0)(xlen - 1, 13),
       0.U(2.W),
@@ -131,7 +131,7 @@ class EX(implicit p: Parameters) extends YQModule {
     newMstatus.SPIE := 1.B
     wireCsrData(0)  := newMstatus.asUInt
   }
-  when(io.input.special === exception) {
+  if (!isZmb) when(io.input.special === exception) {
     val currentPriv = io.input.num(3)(xlen - 2, xlen - 3)
     val newPriv     = io.input.num(3)(xlen - 4, xlen - 5)
     val oldMstatus  = io.input.num(3).asTypeOf(new MstatusBundle)
@@ -217,8 +217,8 @@ class EX(implicit p: Parameters) extends YQModule {
     op      := wireOp
     isWord  := wireIsWord
 
-    invalidateICache := io.input.special === fencei
-    writebackDCache  := io.input.special === fencei
+    if (!isZmb) invalidateICache := io.input.special === fencei
+    if (!isZmb) writebackDCache  := io.input.special === fencei
 
     wireOp     := io.input.op1_2
     wireIsWord := (io.input.special === word)

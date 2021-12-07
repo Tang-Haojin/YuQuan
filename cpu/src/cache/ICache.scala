@@ -63,8 +63,8 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   io.cpuIO.cpuResult.ready := hit
   io.cpuIO.cpuResult.data  := wordData(addrOffset)
 
-  private val isPeripheral = IsPeripheral(io.cpuIO.cpuReq.addr)
-  private val passThrough  = PassThrough(true)(io.memIO, 0.B, addr, 0.U, 0.U, 0.B)
+  private val isPeripheral = if (FetchFromPeri) IsPeripheral(io.cpuIO.cpuReq.addr) else 0.B
+  private val passThrough  = if (FetchFromPeri) PassThrough(true)(io.memIO, 0.B, addr, 0.U, 0.U, 0.B) else null
 
   private val compareHit = RegInit(0.B)
   private val fakeAnswer = RegInit(0.B)
@@ -122,7 +122,7 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
     else VecInit((0 until BlockSize / 4).map { i => writeBuffer.asUInt()(i * 32 + 31, i * 32) }))(addrOffset)
     state := Mux(willDrop, idle, Mux(io.cpuIO.cpuReq.valid, Mux(isPeripheral, passing, starting), idle))
   }
-  when(state === passing) {
+  if (FetchFromPeri) when(state === passing) {
     hit := Mux(willDrop || revoke, 0.B, passThrough.finish)
     passThrough.valid := !revoke && !passThrough.finish
     io.cpuIO.cpuResult.data := VecInit(Seq.tabulate(xlen / 32)(x => passThrough.rdata(x * 32 + 31, x * 32)))(if (xlen == 32) 0.U else addr(axSize - 1, 2))

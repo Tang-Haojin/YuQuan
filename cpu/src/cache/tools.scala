@@ -31,22 +31,14 @@ class CpuIO(datalen: Int = 64)(implicit p: Parameters) extends YQBundle {
   val cpuResult = Output(new CpuResult(datalen))
 }
 
-class IsPeripheral(addr: UInt)(implicit p: Parameters) {
-  private val DRAM = p(DRAM_MMAP)
-  val isPeripheral = WireDefault(0.B)
-  when((addr < DRAM.BASE.U) || (addr >= (DRAM.BASE + DRAM.SIZE).U)) {
-    isPeripheral := 1.B
-  }
-}
-
 object IsPeripheral {
-  /** Construct an [[IsPeripheral]]
+  /** Examine if an address is peripheral
    * @param addr The address that to be examined
    */
-  def apply(addr: UInt)(implicit p: Parameters): IsPeripheral = new IsPeripheral(addr)
-
-  import scala.language.implicitConversions
-  implicit def getResult(x: IsPeripheral): Bool = x.isPeripheral
+  def apply(addr: UInt)(implicit p: Parameters): Bool = {
+    val DRAM = p(DRAM_MMAP)
+    (addr < DRAM.BASE.U) || (addr >= (DRAM.BASE + DRAM.SIZE).U)
+  }
 }
 
 class WbBuffer(memIO: AXI_BUNDLE, sendData: UInt, sendAddr: UInt)(implicit val p: Parameters) extends CPUParams with CacheParams {

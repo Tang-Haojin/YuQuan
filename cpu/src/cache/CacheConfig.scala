@@ -22,18 +22,20 @@ object CacheConfig {
     case TAG           => site(ALEN) - site(OFFSET) - site(INDEX)
     case BURST_LEN     => 8 * site(BLOCK_SIZE) / up(XLEN)
     case LOG_BURST_LEN => log2Ceil(site(BURST_LEN))
+    case FETCHFROMPERI => site(GEN_NAME) match { case "ysyx" => true; case "zmb" => false }
   }
 
   def apply(): CacheConfig = new CacheConfig
 }
 
-case object BUSLEN         extends Field[Int]
-case object CACHE_SIZE     extends Field[Int]
-case object ASSOCIATIVITY  extends Field[Int]
-case object BLOCK_SIZE     extends Field[Int]
-case object OFFSET         extends Field[Int]
-case object INDEX_SIZE     extends Field[Int]
-case object INDEX          extends Field[Int]
-case object TAG            extends Field[Int]
-case object BURST_LEN      extends Field[Int]
-case object LOG_BURST_LEN  extends Field[Int]
+case object BUSLEN        extends Field[Int]
+case object CACHE_SIZE    extends Field[Int]
+case object ASSOCIATIVITY extends Field[Int]
+case object BLOCK_SIZE    extends Field[Int]
+case object OFFSET        extends Field[Int]
+case object INDEX_SIZE    extends Field[Int]
+case object INDEX         extends Field[Int]
+case object TAG           extends Field[Int]
+case object BURST_LEN     extends Field[Int]
+case object LOG_BURST_LEN extends Field[Int]
+case object FETCHFROMPERI extends Field[Boolean]

@@ -54,7 +54,7 @@ object ExecSpecials {
 }
 
 object InstrTypes {
-  val instrTypes: List[UInt] = Enum(18)
+  val instrTypes: List[UInt] = Enum(18) /*(0 until 18).map(x => (1 << x).U(18.W)).toList*/
   val i::u::s::r::j::b::c::err::clsp::cssp::cldst::cj::cni::cb::c540::clui::caddi4::cinv::Nil = instrTypes 
 }
 
@@ -63,15 +63,16 @@ object NumTypes {
   val non::rs1::rs2::imm::four::pc::csr::rs1c::rs2c::rs1p::rs2p::rd1c::rd1p::x2::two::Nil = numtypes
 }
 
+case class RVInstr()(implicit val p: Parameters) extends CPUParams {
+  val table: Array[(BitPat, List[UInt])] = (
+    RVI().table ++ Zicsr().table ++ Privileged().table ++ (if (!isZmb) Zifencei().table else Nil) ++
+    (if (ext('M')) RVM().table else Nil) ++ (if (ext('A')) RVA().table else Nil) ++
+    (if (ext('C')) RVC().table else Nil)
+  ).toArray
+}
+
 object RVInstrDecoder {
   def apply(instr: UInt)(implicit p: Parameters): Seq[UInt] = {
-    case class RVInstr()(implicit val p: Parameters) extends CPUParams {
-      val table = (
-        RVI().table ++ Zicsr().table ++ Privileged().table ++ Zifencei().table ++
-        (if (ext('M')) RVM().table else Nil) ++ (if (ext('A')) RVA().table else Nil) ++
-        (if (ext('C')) RVC().table else Nil)
-      ).toArray
-    }
     val table = RVInstr().table
     val splitTable = Seq.tabulate(table.head._2.length)(x => table.map(y => (y._1, BitPat(y._2(x)))))
     val decodeSeq = splitTable zip (Seq(InstrTypes.err) ++ Seq.fill(4)(NumTypes.non) ++ Seq(cpu.component.Operators.nop, 0.B, ExecSpecials.inv)).map(BitPat(_))
