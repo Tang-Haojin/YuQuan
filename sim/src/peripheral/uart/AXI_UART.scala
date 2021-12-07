@@ -6,7 +6,6 @@ import chipsalliance.rocketchip.config._
 import freechips.rocketchip.diplomacy.ValName
 
 import utils._
-import peripheral.uart16550._
 import sim.SimParams
 
 class UartRead(implicit val p: Parameters) extends BlackBox with HasBlackBoxInline with SimParams {
@@ -159,22 +158,4 @@ class UartSim(implicit val p: Parameters) extends UartWrapper {
       BVALID  := 0.B
     }
   }
-}
-
-class UartReal(implicit val p: Parameters) extends UartWrapper {
-  val uart16550 = Module(new Uart16550)
-  withClockAndReset(io.basic.ACLK, !io.basic.ARESETn) {
-    val tty = Module(new TTY)
-    tty.io.srx       := uart16550.io.stx
-    uart16550.io.srx := tty.io.stx
-  }
-
-  io.basic <> uart16550.io.basic
-  io.channel.ar <> uart16550.io.channel.ar
-  io.channel.r  <> uart16550.io.channel.r
-  io.channel.aw <> uart16550.io.channel.aw
-  io.channel.w  <> uart16550.io.channel.w
-  io.channel.b  <> uart16550.io.channel.b
-
-  io.interrupt <> uart16550.io.interrupt
 }

@@ -38,11 +38,7 @@ typedef uint16_t ioaddr_t;
 
 #define PMEM_SIZE (128 * 1024 * 1024 + BSIZE * FSSIZE)
 
-#ifdef UART
- #define SCAN_OR_UART scan 
-#else
- #define SCAN_OR_UART uart
-#endif
+#define SCAN_OR_UART uart
 
 #define scan_uart(x) concat(SCAN_OR_UART, x)
 

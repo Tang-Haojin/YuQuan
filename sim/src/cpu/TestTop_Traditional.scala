@@ -18,7 +18,7 @@ import peripheral.sdcard._
 class TestTop_Traditional(io: DEBUG, clock: Clock, reset: Reset)(implicit val p: Parameters) extends SimParams {
   val cpu       = Module(new CPU)
   val mem       = Module(new RAM)
-  val uart      = Module(if (IsRealUart) new UartReal else new UartSim)
+  val uart      = Module(new UartSim)
   val spi       = Module(new AxiFlash)
   val sd        = Module(new SDCard)
   val nemu_uart = Module(new Nemu_Uart)

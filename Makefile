@@ -14,11 +14,6 @@ param += FLASH
 CFLAGS += -DFLASH
 endif
 
-ifeq ($(UART),1)
-param += UART
-CFLAGS += -DUART
-endif
-
 CSRCS   += $(simSrcDir)/sim_main.cpp $(simSrcDir)/peripheral/ram/ram.cpp
 CSRCS   += $(simSrcDir)/peripheral/spiFlash/spiFlash.cpp
 CSRCS   += $(simSrcDir)/peripheral/uart/scanKbd.cpp
