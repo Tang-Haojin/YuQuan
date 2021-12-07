@@ -71,6 +71,7 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   when(fakeAnswer) { wen(way) := 1.B; fakeAnswer := 0.B }
 
   when(io.cpuIO.cpuReq.valid && state =/= allocate) { addr := Mux(state === passing && !isPeripheral, addr, io.cpuIO.cpuReq.addr) }
+  private val revoke = io.jmpBch || io.cpuIO.cpuReq.revoke
 
   io.inv.ready := 0.B
   when(state === idle) {
@@ -122,8 +123,8 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
     state := Mux(willDrop, idle, Mux(io.cpuIO.cpuReq.valid, Mux(isPeripheral, passing, starting), idle))
   }
   when(state === passing) {
-    hit := Mux(willDrop || io.jmpBch, 0.B, passThrough.finish)
-    passThrough.valid := !io.jmpBch && !passThrough.finish
+    hit := Mux(willDrop || revoke, 0.B, passThrough.finish)
+    passThrough.valid := !revoke && !passThrough.finish
     io.cpuIO.cpuResult.data := VecInit(Seq.tabulate(xlen / 32)(x => passThrough.rdata(x * 32 + 31, x * 32)))(if (xlen == 32) 0.U else addr(axSize - 1, 2))
     when(passThrough.finish) {
       state := idle
@@ -132,10 +133,10 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
         state := starting
         when(isPeripheral) { state := passing }
       }
-    }.elsewhen(io.jmpBch && (!passThrough.ready || !io.cpuIO.cpuReq.valid)) { willDrop := 1.B }
+    }.elsewhen(revoke && (!passThrough.ready || !io.cpuIO.cpuReq.valid)) { willDrop := 1.B }
   }
 
-  when(io.jmpBch) {
+  when(revoke) {
      when(state <= compare) { ARVALID := 0.B; state := idle }
      .elsewhen(state === allocate || state === answering) { willDrop := 1.B }
   }
