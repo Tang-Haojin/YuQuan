@@ -131,7 +131,8 @@ class CPU(implicit p: Parameters) extends YQModule {
   moduleEX.io.seip := moduleCSRs.io.bareSEIP
   moduleEX.io.ueip := moduleCSRs.io.bareUEIP
 
-  moduleCSRs.io.eip         <> (if (usePlic) modulePlic.io.eip else 0.B)
+  moduleCSRs.io.meip        <> (if (usePlic) modulePlic.io.meip else 0.B)
+  moduleCSRs.io.seip        <> (if (usePlic) modulePlic.io.seip else 0.B)
   moduleCSRs.io.retire      <> moduleWB.io.retire
   moduleCSRs.io.changePriv  <> moduleWB.io.isPriv
   moduleCSRs.io.newPriv     <> moduleWB.io.priv

@@ -124,6 +124,9 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
   private val compareHit = RegInit(0.B)
   private val wbBufferGo = RegInit(0.B)
 
+  private val plicReadHit = RegInit(0.B)
+  private val plicRdata   = RegNext(io.plicIO.rdata, 0.U(32.W))
+
   when(io.cpuIO.cpuReq.valid && state =/= writeback && state =/= allocate && state =/= backall) {
     addr      := io.cpuIO.cpuReq.addr
     reqData   := io.cpuIO.cpuReq.data
@@ -232,12 +235,10 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
     io.cpuIO.cpuResult.data := io.clintIO.rdata
   }
   if (usePlic) when(state === plic) {
-    val rhit  = RegInit(0.B)
-    val rdata = RegNext(io.plicIO.rdata, 0.U(32.W))
     when(hit) { state := idle }
-    hit := reqRw || rhit
-    rhit := ~hit
-    io.cpuIO.cpuResult.data := rdata ## rdata
+    hit := reqRw || plicReadHit
+    plicReadHit := ~hit
+    io.cpuIO.cpuResult.data := plicRdata ## plicRdata
   }
 
   when(readBack) {

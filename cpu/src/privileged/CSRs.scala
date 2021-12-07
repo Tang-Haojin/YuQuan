@@ -90,7 +90,8 @@ class CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
   val io = IO(new YQBundle {
     val csrsW       = new CSRsW
     val csrsR       = new CSRsR
-    val eip         = Input (Bool())
+    val meip        = Input (Bool())
+    val seip        = Input (Bool())
     val retire      = Input (Bool())
     val currentPriv = Output(UInt(2.W))
     val bareSEIP    = Output(Bool())
@@ -234,7 +235,7 @@ class CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
     when(io.csrsR.rcsr(i) === Mtvec) { io.csrsR.rdata(i) := mtvec }
     when(io.csrsR.rcsr(i) === Mip) { io.csrsR.rdata(i) := { val data = WireDefault(new MipBundle, mip)
       data.WPRI_0 := 0.U; data.WPRI_1 := 0.B; data.WPRI_2 := 0.B; data.WPRI_3 := 0.B
-      data.MEIP := io.eip; data.MTIP := io.mtip; data.SEIP := mip.SEIP || io.eip
+      data.MEIP := io.meip; data.MTIP := io.mtip; data.SEIP := mip.SEIP || io.seip
       data.MSIP := io.msip; data.asUInt
     }}
     when(io.csrsR.rcsr(i) === Mie) { io.csrsR.rdata(i) := mie.asUInt }
