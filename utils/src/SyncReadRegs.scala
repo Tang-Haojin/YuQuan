@@ -60,7 +60,7 @@ class SyncReadRegs(bits: Int = 128, wordDepth: Int = 64, associativity: Int = 4)
   private val Regs = Seq.fill(associativity)(SyncReadRegWrapper(bits, wordDepth))
 
   def read(x: UInt, en: Bool = 1.B): Vec[UInt] = VecInit(Seq.tabulate(associativity)(y => Regs(y).read(x, en)))
-  def write(idx: UInt, data: Vec[UInt], mask: Vec[Bool]): Unit = for (i <- Regs.indices) { Regs(i).write(idx, data(i), mask(i)) }
+  def write(idx: UInt, data: UInt, mask: Vec[Bool]): Unit = for (i <- Regs.indices) { Regs(i).write(idx, data, mask(i)) }
   def preRead: Vec[UInt] = VecInit(Seq.tabulate(associativity)(y => Regs(y).preRead))
   def preRead(x: UInt, en: Bool = 1.B): Vec[UInt] = VecInit(Seq.tabulate(associativity)(y => Regs(y).preRead(x, en)))
   def reset: Unit = Regs.foreach(_.reset)
