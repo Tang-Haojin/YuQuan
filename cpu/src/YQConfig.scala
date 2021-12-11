@@ -40,6 +40,7 @@ object YQConfig {
     case USEPLIC          => site(GEN_NAME) match { case "ysyx" => true; case "zmb" => false }
     case USECLINT         => site(GEN_NAME) match { case "ysyx" => true; case "zmb" => false }
     case HANDLEMISALIGN   => site(GEN_NAME) match { case "ysyx" => true; case "zmb" => false }
+    case USEXILINX        => site(GEN_NAME) match { case "ysyx" => false; case "zmb" => true }
   }
 
   class CLINT extends MMAP {

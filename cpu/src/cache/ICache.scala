@@ -51,14 +51,13 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   } :+ 0.U(16.W) ## data(grp)((BlockSize / 2 - 1) * 16 + 15, (BlockSize / 2 - 1) * 16))
   else VecInit((0 until BlockSize / 4).map { i => data(grp)(i * 32 + 31, i * 32) })
 
-  private val wdata     = writeBuffer.asUInt
-  private val vecWvalid = VecInit(Seq.fill(Associativity)(1.U))
-  private val vecWtag   = VecInit(Seq.fill(Associativity)(addrTag))
-  private val vecWdata  = VecInit(Seq.fill(Associativity)(wdata))
+  private val wdata  = writeBuffer.asUInt()
+  private val wvalid = 1.B
+  private val wtag   = addrTag
 
-  ramValid.write(addrIndex, vecWvalid, wen)
-  ramTag  .write(addrIndex, vecWtag  , wen)
-  ramData .write(addrIndex, vecWdata , wen)
+  ramValid.write(addrIndex, wvalid, wen)
+  ramTag  .write(addrIndex, wtag  , wen)
+  ramData .write(addrIndex, wdata , wen)
 
   io.cpuIO.cpuResult.ready := hit
   io.cpuIO.cpuResult.data  := wordData(addrOffset)

@@ -42,6 +42,7 @@ object SimConfig {
     case USEPLIC          => true
     case USECLINT         => true
     case HANDLEMISALIGN   => true
+    case USEXILINX        => false
   }
 
   val basicConfig: (View, View, View) => PartialFunction[Any, Any] = (site, here, up) => basePartFunc.orElse({

@@ -18,6 +18,7 @@ abstract trait UtilsParams {
   val uselock   = p(USELOCK)
   val useregion = p(USEREGION)
   val axirename = p(AXIRENAME)
+  val useXilinx = p(USEXILINX)
 }
 
 case object XLEN      extends Field[Int]
@@ -31,6 +32,7 @@ case object USECACHE  extends Field[Int]
 case object USELOCK   extends Field[Int]
 case object USEREGION extends Field[Int]
 case object AXIRENAME extends Field[Boolean]
+case object USEXILINX extends Field[Boolean]
 
 abstract trait PrefixParams extends BaseModule {
   implicit val p: Parameters
