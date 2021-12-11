@@ -65,13 +65,11 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
   private val grp = RegInit(0.U(log2Ceil(Associativity).W))
   private val wen = WireDefault(VecInit(Seq.fill(Associativity)(0.B)))
 
-  private val valid = ramValid.read(addrIndex, 1.B)
-  private val dirty = ramDirty.read(addrIndex, 1.B)
   private val tag   = ramTag  .read(addrIndex, 1.B)
   private val data  = ramData .read(addrIndex, 1.B)
 
-  private val preValid = ramValid.preRead
-  private val preDirty = ramDirty.preRead
+  private val preValid = ramValid.preRead(addrIndex, 1.B)
+  private val preDirty = ramDirty.preRead(addrIndex, 1.B)
   private val preTag   = ramTag.preRead
 
   private val way = RegInit(0.U(log2Ceil(Associativity).W))
@@ -122,6 +120,7 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
   private val willDrop = RegInit(0.B)
 
   private val compareHit = RegInit(0.B)
+  private val compDirty  = RegInit(VecInit(Seq.fill(Associativity)(0.B)))
   private val wbBufferGo = RegInit(0.B)
 
   private val plicReadHit = RegInit(0.B)
@@ -151,6 +150,7 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
     grp := Mux1H(Seq.tabulate(Associativity)(i => (preValid(i) && preTag(i) === addrTag) -> i.U))
     compareHit := VecInit(Seq.tabulate(Associativity)(i => preValid(i) && preTag(i) === addrTag)).asUInt.orR
     way := MuxLookup(0.B, rand, preValid zip Seq.tabulate(Associativity)(_.U))
+    compDirty := preDirty
     useEmpty := !preValid.asUInt.andR
     wbBufferGo := wbBuffer.used && (io.memIO.ar.bits.addr === wbBuffer.wbAddr)
   }
@@ -165,7 +165,7 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
         for (i <- 0 until xlen / 8)
           when(reqWMask(i)) { byteData(addrOffset ## i.U(log2Ceil(xlen / 8).W)) := reqData(i * 8 + 7, i * 8) }
       }
-    }.elsewhen(useEmpty || (!useEmpty && !dirty(way))) { // have empty or clean cache line
+    }.elsewhen(useEmpty || !compDirty(way)) { // have empty cache line or the selected cacheline is clean
       when(wbBufferGo) {
         readBack := 1.B
         state := Mux(io.cpuIO.cpuReq.valid, Mux(isPeripheral, passing, starting), idle)
@@ -188,9 +188,9 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
       inBuffer(received) := rbytes.asUInt()
       when(reqRw === 1.U && received === addrOffset) { (0 until Buslen / 8).foreach(i => when(reqWMask(i)) { rbytes(i.U(axSize.W)) := reqData(i * 8 + 7, i * 8) }) }
       when(received === (BurstLen - 1).U) {
-        received       := 0.U
-        state          := answering
-        RREADY         := 0.B
+        received := 0.U
+        state    := answering
+        RREADY   := 0.B
       }.otherwise { received := received + 1.U }
     }.elsewhen(io.memIO.ar.fire()) {
       ARVALID := 0.B

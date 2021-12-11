@@ -12,7 +12,7 @@ class SRAM(bits: Int = 128, wordDepth: Int = 64) extends BlackBox with HasBlackB
     val A   = Input (UInt(log2Ceil(wordDepth).W))
     val D   = Input (UInt(bits.W))
   })
-  override val desiredName = s"S011HD1P_X32Y${wordDepth / 32}D${bits}"
+  override val desiredName = s"S011HD1P_X${wordDepth / 2}Y2D${bits}"
   this.setInline(s"${desiredName}.v",
   s"""|module ${desiredName}(
       |  output reg [${bits - 1}:0]                Q,
