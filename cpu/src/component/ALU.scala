@@ -58,7 +58,7 @@ class ALU(implicit p: Parameters) extends YQModule {
 
   private val shiftness = if (xlen != 32) Mux(io.input.bits.word, b(4, 0), b(5, 0)) else b(4, 0)
   private val sl = a.asUInt() << shiftness
-  private val (lessthan, ulessthan, equal) = (a < b, a.asUInt < b.asUInt, a === b)
+  private val (lessthan, ulessthan) = (a < b, a.asUInt() < b.asUInt())
   private val operates = Seq(
     nop  -> a,
     add  -> (a + b),
@@ -71,20 +71,16 @@ class ALU(implicit p: Parameters) extends YQModule {
     srl  -> ((a.asUInt >> (if (xlen == 64) b(5, 0) else b(4, 0))).asSInt),
     lts  -> (0.U((xlen - 1).W) ## lessthan).asSInt,
     ltu  -> (0.U((xlen - 1).W) ## ulessthan).asSInt,
-    equ  -> (0.U((xlen - 1).W) ## equal).asSInt,
-    neq  -> (0.U((xlen - 1).W) ## !equal).asSInt,
-    ges  -> (0.U((xlen - 1).W) ## !lessthan).asSInt,
-    geu  -> (0.U((xlen - 1).W) ## !ulessthan).asSInt,
     mul  -> (mulTop.io.output.bits(xlen - 1, 0).asSInt),
     rem  -> (divTop.io.output.bits.remainder.asSInt),
     div  -> (divTop.io.output.bits.quotient.asSInt),
     remu -> (divTop.io.output.bits.remainder.asSInt),
     divu -> (divTop.io.output.bits.quotient.asSInt),
-    mulh -> (mulTop.io.output.bits(2 * xlen - 1, xlen).asSInt),
+    mulh -> (mulTop.io.output.bits(2 * xlen - 1, xlen).asSInt)) ++ (if (ext('A')) Seq(
     max  -> Mux(lessthan, b, a),
     min  -> Mux(lessthan, a, b),
     maxu -> Mux(ulessthan, b, a),
-    minu -> Mux(ulessthan, a, b)) ++ (if (xlen == 64) Seq(
+    minu -> Mux(ulessthan, a, b)) else Nil) ++ (if (xlen == 64) Seq(
     sllw -> (sl(31, 0).asSInt),
     srlw -> ((Cat(0.U((xlen - 32).W), a(31, 0)) >> b(4, 0)).asSInt),
     sraw -> ((Cat(Fill(xlen - 32, a(31)), a(31, 0)) >> b(4, 0)).asSInt),

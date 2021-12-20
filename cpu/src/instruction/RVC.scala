@@ -71,8 +71,8 @@ case class RVC()(implicit val p: Parameters) extends CPUParams {
     C_OR       -> List(cni    , rd1p, rs2p, non , non , or  , 1.B, norm  ),
     C_AND      -> List(cni    , rd1p, rs2p, non , non , and , 1.B, norm  ),
     C_J        -> List(cj     , pc  , non , imm , non , add , 0.B, norm  ),
-    C_BEQZ     -> List(cb     , rs1p, non , imm , non , equ , 0.B, norm  ),
-    C_BNEZ     -> List(cb     , rs1p, non , imm , non , neq , 0.B, norm  )) ++ (if (xlen == 32) List(
+    C_BEQZ     -> List(cb     , rs1p, non , imm , non , nop , 0.B, norm  ),
+    C_BNEZ     -> List(cb     , rs1p, non , imm , non , nop , 0.B, norm  )) ++ (if (xlen == 32) List(
     C_JAL      -> List(cj     , pc  , two , imm , non , add , 1.B, norm  )) else List(
     C_ADDIW    -> List(c540   , rd1c, imm , non , non , add , 1.B, word  ),
     C_SUBW     -> List(cni    , rd1p, rs2p, non , non , sub , 1.B, word  ),
