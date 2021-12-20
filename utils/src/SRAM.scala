@@ -28,7 +28,7 @@ class S011HD1P_SRAM(bits: Int = 128, wordDepth: Int = 64) extends BlackBox with 
       |    if (!CEN && !WEN) begin
       |      ram[A] <= D;
       |    end
-      |    Q <= !CEN && WEN ? ram[A] : {${bits / 32}{32'hdead_feed}};
+      |    Q <= !CEN ? (WEN ? ram[A] : D) : {${bits / 32}{32'hdead_feed}};
       |  end
       |endmodule
       |""".stripMargin)
@@ -60,18 +60,18 @@ class S011HD1P_BW_SRAM(bits: Int = 128, wordDepth: Int = 64) extends BlackBox wi
       |    if (!CEN && !WEN) begin
       |      ram[A] <= (D & ~BWEN) | (ram[A] & BWEN);
       |    end
-      |    Q <= !CEN && WEN ? ram[A] : {${bits / 32}{32'hdead_feed}};
+      |    Q <= !CEN ? (WEN ? ram[A] : (D & ~BWEN) | (ram[A] & BWEN)) : {${bits / 32}{32'hdead_feed}};
       |  end
       |endmodule
       |""".stripMargin)
 }
 
-class bytewrite_ram_1b(bits: Int = 128, wordDepth: Int = 64) extends BlackBox(Map(
+class bytewrite_ram_1b(bits: Int = 128, wordDepth: Int = 64)(implicit val p: Parameters) extends BlackBox(Map(
   "SIZE" -> wordDepth,
   "ADDR_WIDTH" -> log2Ceil(wordDepth),
   "COL_WIDTH" -> 8,
   "NB_COL" -> bits / 8
-)) with HasBlackBoxInline {
+)) with HasBlackBoxInline with UtilsParams {
   val io = IO(new Bundle {
     val clk  = Input (Clock())
     val we   = Input (UInt((bits / 8).W))
@@ -81,7 +81,7 @@ class bytewrite_ram_1b(bits: Int = 128, wordDepth: Int = 64) extends BlackBox(Ma
   })
   this.setInline("bytewrite_ram_1b.v",
   s"""|// Single-Port BRAM with Byte-wide Write Enable
-      |// Read-First mode
+      |// Write-First mode
       |// Single-process description
       |// Compact description of the write with a generate-for 
       |//   statement
@@ -105,19 +105,16 @@ class bytewrite_ram_1b(bits: Int = 128, wordDepth: Int = 64) extends BlackBox(Ma
       |
       |reg [NB_COL*COL_WIDTH-1:0] RAM [SIZE-1:0];
       |
-      |always @(posedge clk)
-      |begin
-      |    dout <= RAM[addr];
-      |end
-      |
       |generate genvar i;
-      |for (i = 0; i < NB_COL; i = i+1)
-      |begin
-      |always @(posedge clk)
-      |begin
-      |    if (we[i])
+      |for (i = 0; i < NB_COL; i = i+1) begin
+      |always @(posedge clk) begin
+      |    if (we[i]) begin
       |        RAM[addr][(i+1)*COL_WIDTH-1:i*COL_WIDTH] <= din[(i+1)*COL_WIDTH-1:i*COL_WIDTH];
+      |        dout[(i+1)*COL_WIDTH-1:i*COL_WIDTH] <= din[(i+1)*COL_WIDTH-1:i*COL_WIDTH];
+      |    end else begin
+      |        dout[(i+1)*COL_WIDTH-1:i*COL_WIDTH] <= RAM[addr][(i+1)*COL_WIDTH-1:i*COL_WIDTH];
       |    end
+      |end
       |end
       |endgenerate
       |
@@ -180,7 +177,7 @@ private[utils] class S011HD1P_BW_SramWrapper(clock: Clock, bits: Int = 128, word
   }
 }
 
-private[utils] class bytewrite_ram_1b_SramWrapper(clock: Clock, bits: Int = 128, wordDepth: Int = 64) extends SramWrapperInterface {
+private[utils] class bytewrite_ram_1b_SramWrapper(clock: Clock, bits: Int = 128, wordDepth: Int = 64)(implicit val p: Parameters) extends SramWrapperInterface {
   private val sram = Module(new bytewrite_ram_1b(bits, wordDepth))
   private val rAddr = WireDefault(0.U(log2Ceil(wordDepth).W))
   private val wAddr = WireDefault(0.U(log2Ceil(wordDepth).W))
