@@ -43,7 +43,7 @@ object IsPeripheral {
 
 class WbBuffer(memIO: AXI_BUNDLE, sendData: UInt, sendAddr: UInt)(implicit val p: Parameters) extends CPUParams with CacheParams {
   val used   = RegInit(0.B)
-  val buffer = RegInit(0.U((BlockSize * 8).W))
+  val buffer = Reg(UInt((BlockSize * 8).W))
   val ready  = RegInit(1.B)
   val valid  = WireDefault(0.B)
   val wbAddr = RegInit(0.U(alen.W))
@@ -118,7 +118,7 @@ class PassThrough(readonly: Boolean)(var memIO: AXI_BUNDLE, wbFree: Bool, addr: 
   private val ARVALID = RegInit(1.B)
   private val RREADY  = RegInit(0.B)
 
-  val rdata = RegInit(0.U(xlen.W))
+  val rdata = Reg(UInt(xlen.W))
 
   if (readonly) rw = 0.B
 

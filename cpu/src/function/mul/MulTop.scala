@@ -11,8 +11,8 @@ class MulTop(implicit p: Parameters) extends YQModule {
   private val isFree = RegInit(1.B)
   private val stage  = RegInit(0.U(2.W))
 
-  private val data_in = RegInit(VecInit(Seq.fill(2)(0.U(64.W))))
-  private val sign_in = RegInit(VecInit(Seq.fill(2)(0.B)))
+  private val data_in = Reg(Vec(2, UInt(64.W)))
+  private val sign_in = Reg(Vec(2, Bool()))
 
   private val data = WireDefault(Vec(2, UInt(64.W)), io.input.bits.data)
   private val sign = WireDefault(Vec(2, Bool()), io.input.bits.sign)
@@ -20,9 +20,9 @@ class MulTop(implicit p: Parameters) extends YQModule {
   private val op_0 = data(0)
   private val op_1 = Fill(2, (sign(1) & data(1)(63))) ## data(1)
 
-  private val lo_34    = RegInit(0.U(34.W))
-  private val lo_34_in = RegInit(0.B)
-  private val hi_94    = RegInit(0.U(94.W))
+  private val lo_34    = Reg(UInt(34.W))
+  private val lo_34_in = Reg(Bool())
+  private val hi_94    = Reg(UInt(94.W))
 
   private val boothSext = Module(new BoothSext(17, 64))
   private val walTree = Module(new WalImproved(128))
@@ -36,7 +36,7 @@ class MulTop(implicit p: Parameters) extends YQModule {
   }
   walTree.io.input(17) := 1.B ## op_1(65) ## 0.U(31.W) ## op_1(33) ## 0.U(32.W)
 
-  private val part_sum = RegInit(VecInit(Seq.fill(2)(0.U(128.W))))
+  private val part_sum = Reg(Vec(2, UInt(128.W)))
 
   private val out_valid = RegInit(0.B)
 

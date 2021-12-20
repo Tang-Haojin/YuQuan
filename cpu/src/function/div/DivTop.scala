@@ -21,13 +21,13 @@ class DivTop(implicit p: Parameters) extends YQModule {
   private val idle::preskip::skipping::busy::ending::Nil = Enum(5)
   private val state = RegInit(UInt(3.W), idle)
 
-  private val  A = RegInit(0.U((2 * xlen + 1).W))
+  private val  A = Reg(UInt((2 * xlen + 1).W))
   private val hi = A(2 * xlen, xlen)
   private val lo = A(xlen - 1, 0)
-  private val  d = RegInit(0.U(xlen.W))
-  private val  n = RegInit(0.U(log2Ceil(xlen).W))
-  private val dividendSign = RegInit(0.B)
-  private val divisorSign  = RegInit(0.B)
+  private val  d = Reg(UInt(xlen.W))
+  private val  n = Reg(UInt(log2Ceil(xlen).W))
+  private val dividendSign = Reg(Bool())
+  private val divisorSign  = Reg(Bool())
 
   io.input.ready  := state === idle
   io.output.valid := state === ending
