@@ -38,8 +38,8 @@ class ID(implicit p: Parameters) extends YQModule {
   private val pc      = RegInit(0.U(valen.W))
   private val wcsr    = RegInit(VecInit(Seq.fill(RegConf.writeCsrsPort)(0xFFF.U(12.W))))
   private val isWcsr  = RegInit(0.B)
-  private val op1_2   = RegInit(0.U(AluTypeWidth.W))
-  private val op1_3   = RegInit(0.U(AluTypeWidth.W))
+  private val op1_2   = RegInit(0.U(Operators.quantity.W))
+  private val op1_3   = RegInit(0.U(Operators.quantity.W))
   private val special = RegInit(0.U(5.W))
   private val instr   = RegInit(0.U(32.W))
   private val newPriv = RegInit(3.U(2.W))
@@ -59,7 +59,7 @@ class ID(implicit p: Parameters) extends YQModule {
 
   private val num = RegInit(VecInit(Seq.fill(4)(0.U(xlen.W))))
 
-  private val decoded = if (p(GEN_NAME) == "zmb") ListLookup(io.input.instr, List(7.U, 0.U, 0.U, 0.U, 0.U, 0.U, 0.U, inv), RVInstr().table) else RVInstrDecoder(io.input.instr)
+  private val decoded = RVInstrDecoder(io.input.instr)
 
   private val wireInstr   = io.input.instr
   private val wireFunct3c = io.input.instr(15, 13)
@@ -68,7 +68,7 @@ class ID(implicit p: Parameters) extends YQModule {
   private val wireRd      = Wire(UInt(5.W))
   private val wireIsWcsr  = WireDefault(0.B)
   private val wireCsr     = WireDefault(VecInit(Seq.fill(RegConf.writeCsrsPort)(0xFFF.U(12.W))))
-  private val wireOp1_2   = WireDefault(UInt(AluTypeWidth.W), decoded(5))
+  private val wireOp1_2   = WireDefault(UInt(Operators.quantity.W), decoded(5))
   private val wireNum     = WireDefault(VecInit(Seq.fill(4)(0.U(xlen.W))))
   private val wireImm     = WireDefault(0.U(xlen.W))
   private val wireRs1     = WireDefault(UInt(5.W), io.input.rs(0))

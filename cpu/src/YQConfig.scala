@@ -27,7 +27,6 @@ object YQConfig {
     case CLINT_MMAP       => new CLINT
     case SIMPLE_PLIC_MMAP => new SIMPLEPLIC
     case DRAM_MMAP        => new DRAM
-    case ALUTYPEWIDTH     => 6
     case USEFLASH         => site(GEN_NAME) match { case "ysyx" => true; case "zmb" => false }
     case SPIFLASH_MMAP    => new PeripheralConfig.SPIFLASH
     case ENABLE_DEBUG     => false
@@ -80,7 +79,6 @@ case object EXTENSIONS       extends Field[List[Char]]
 case object CLINT_MMAP       extends Field[YQConfig.CLINT]
 case object SIMPLE_PLIC_MMAP extends Field[YQConfig.SIMPLEPLIC]
 case object DRAM_MMAP        extends Field[YQConfig.DRAM]
-case object ALUTYPEWIDTH     extends Field[Int]
 case object USEFLASH         extends Field[Boolean]
 case object ENABLE_DEBUG     extends Field[Boolean]
 case object IALIGN           extends Field[Int]

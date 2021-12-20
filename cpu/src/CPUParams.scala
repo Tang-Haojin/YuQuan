@@ -12,7 +12,6 @@ abstract trait CPUParams extends UtilsParams {
   val CLINT        = p(CLINT_MMAP)
   val SIMPLEPLIC   = p(SIMPLE_PLIC_MMAP)
   val DRAM         = p(DRAM_MMAP)
-  val AluTypeWidth = p(ALUTYPEWIDTH)
   val UseFlash     = p(USEFLASH)
   val SPIFLASH     = p(SPIFLASH_MMAP)
   val RegConf      = p(REG_CONF)

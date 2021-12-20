@@ -2,9 +2,8 @@ package cpu.component
 
 import chisel3._
 import chisel3.util._
-
-import Operators._
 import chipsalliance.rocketchip.config._
+
 import cpu.tools._
 import cpu.function.mul._
 import cpu.function.div._
@@ -12,7 +11,7 @@ import cpu.function.div._
 class ALU(implicit p: Parameters) extends YQModule {
   val io = IO(new YQBundle {
     val input = Flipped(Decoupled(new YQBundle {
-      val op   = UInt(AluTypeWidth.W)
+      val op   = UInt(Operators.quantity.W)
       val a    = SInt(xlen.W)
       val b    = SInt(xlen.W)
       val word = Bool()
@@ -20,6 +19,7 @@ class ALU(implicit p: Parameters) extends YQModule {
     }))
     val output = Decoupled(SInt(xlen.W))
   })
+  import Operators._
   private val a = io.input.bits.a
   private val b = io.input.bits.b
 
@@ -107,5 +107,6 @@ object Operators {
   val ges::geu::mul::divw::remw::rem::div::remu::Nil = operators.take(8)
   operators = operators.drop(8)
   val divu::mulh::duw::ruw::max::min::maxu::minu::Nil = operators
+  val quantity = 5
   val (lr, sc) = (sll, sra)
 }

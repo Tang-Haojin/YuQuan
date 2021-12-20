@@ -32,7 +32,6 @@ object SimConfig {
     case DRAM_MMAP        => new YQConfig.DRAM
     case SPI_MMAP         => new PeripheralConfig.SPI
     case SPIFLASH_MMAP    => new PeripheralConfig.SPIFLASH
-    case ALUTYPEWIDTH     => 5
     case MODULE_PREFIX    => s""
     case REG_CONF         => new YQConfig.RegConf
     case ENABLE_DEBUG     => true

@@ -19,8 +19,8 @@ class EX(implicit p: Parameters) extends YQModule {
 
   private val idle::storing::Nil = Enum(2)
   private val alu        = Module(new ALU)
-  private val op         = RegInit(0.U(AluTypeWidth.W))
-  private val wireOp     = WireDefault(UInt(AluTypeWidth.W), op)
+  private val op         = RegInit(0.U(Operators.quantity.W))
+  private val wireOp     = WireDefault(UInt(Operators.quantity.W), op)
   private val isWord     = RegInit(0.B)
   private val wireIsWord = WireDefault(Bool(), isWord)
   alu.io.input.bits.a    := io.input.num(0).asSInt
