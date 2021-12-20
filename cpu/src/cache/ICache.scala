@@ -28,7 +28,8 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   private val addrTag    = addr(alen - 1, Index + Offset)
   private val memAddr    = addr(alen - 1, Offset) ## 0.U(Offset.W)
 
-  private val ARVALID = RegInit(0.B); private val RREADY  = RegInit(0.B)
+  private val ARVALID = RegInit(0.B)
+  private val RREADY  = RegInit(0.B)
   ICacheMemIODefault(io.memIO, ARVALID, memAddr, RREADY)
 
   private val ramValid = SyncReadRegs(1, IndexSize, Associativity)
@@ -36,16 +37,15 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   private val ramData  = SinglePortRam(clock, BlockSize * 8, IndexSize, Associativity)
 
   private val hit = WireDefault(0.B)
-  private val grp = RegInit(0.U(log2Ceil(Associativity).W))
+  private val grp = Reg(UInt(log2Ceil(Associativity).W))
   private val wen = WireDefault(VecInit(Seq.fill(Associativity)(0.B)))
-  private val ren = { var x = 1.B; for (i <- wen.indices) { x = x | ~wen(i) }; x }
 
-  private val preValid = ramValid.preRead(addrIndex, ren)
-  private val preTag   = ramTag  .preRead(addrIndex, ren)
-  private val data     = ramData .read   (addrIndex, ren)
+  private val preValid = ramValid.preRead(addrIndex, 1.B)
+  private val preTag   = ramTag  .preRead(addrIndex, 1.B)
+  private val data     = ramData .read   (addrIndex, 1.B)
 
-  private val way = RegInit(0.U(log2Ceil(Associativity).W))
-  private val writeBuffer = RegInit(VecInit(Seq.fill(BurstLen)(0.U(Buslen.W))))
+  private val way = Reg(UInt(log2Ceil(Associativity).W))
+  private val writeBuffer = Reg(Vec(BurstLen, UInt(Buslen.W)))
   private val wordData = if (ext('C')) VecInit((0 until BlockSize / 2 - 1).map { i =>
     data(grp)(i * 16 + 31, i * 16)
   } :+ 0.U(16.W) ## data(grp)((BlockSize / 2 - 1) * 16 + 15, (BlockSize / 2 - 1) * 16))
@@ -67,6 +67,8 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
 
   private val compareHit = RegInit(0.B)
   private val fakeAnswer = RegInit(0.B)
+  private val answerData = Reg(UInt(32.W))
+  private val crossBurst = RegInit(0.B)
   when(fakeAnswer) { wen(way) := 1.B; fakeAnswer := 0.B }
 
   when(io.cpuIO.cpuReq.valid && state =/= allocate) { addr := Mux(state === passing && !isPeripheral, addr, io.cpuIO.cpuReq.addr) }
@@ -99,11 +101,17 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   when(state === allocate) {
     when(io.memIO.r.fire()) {
       writeBuffer(received) := io.memIO.r.bits.data
+      when(received === addr(Offset - 1, 3)) {
+        answerData := (if (ext('C')) Mux1H(Seq.tabulate(4)(i => (addr(2, 1) === i.U) -> (io.memIO.r.bits.data >> (16 * i))))
+                       else Mux(addr(2), io.memIO.r.bits.data(63, 32), io.memIO.r.bits.data(31, 0)))
+        if (ext('C')) when(addr(2, 1) === 3.U) { crossBurst := 1.B }
+      }.elsewhen(crossBurst) { crossBurst := 0.B; answerData := io.memIO.r.bits.data(15, 0) ## answerData(15, 0) }
       when(received === (BurstLen - 1).U) {
         received   := 0.U
         state      := Mux(willDrop, idle, answering)
         fakeAnswer := willDrop
         willDrop   := 0.B
+        crossBurst := 0.B
         RREADY     := 0.B
       }.otherwise { received := received + 1.U }
     }.elsewhen(io.memIO.ar.fire()) {
@@ -115,10 +123,7 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
     wen(way) := 1.B
     hit := ~willDrop
     willDrop := 0.B
-    io.cpuIO.cpuResult.data := (if (ext('C')) VecInit((0 until BlockSize / 2 - 1).map { i =>
-      writeBuffer.asUInt()(i * 16 + 31, i * 16)
-    } :+ 0.U(16.W) ## writeBuffer.asUInt()((BlockSize / 2 - 1) * 16 + 15, (BlockSize / 2 - 1) * 16))
-    else VecInit((0 until BlockSize / 4).map { i => writeBuffer.asUInt()(i * 32 + 31, i * 32) }))(addrOffset)
+    io.cpuIO.cpuResult.data := answerData
     state := Mux(willDrop, idle, Mux(io.cpuIO.cpuReq.valid, Mux(isPeripheral, passing, starting), idle))
   }
   if (FetchFromPeri) when(state === passing) {
