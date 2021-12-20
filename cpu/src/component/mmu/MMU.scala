@@ -242,7 +242,8 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
   when(io.jmpBch) { crossCache := 0.B }
 
   if (Debug) {
-    val memAddr = Mux(isSv39_d, tlb.translate(memVaddr), memVaddr.asUInt())(alen - 1, 0)
+    val memAddr = if (ext('S')) Mux(isSv39_d, tlb.translate(memVaddr), memVaddr.asUInt())(alen - 1, 0)
+                  else io.memIO.pipelineReq.cpuReq.addr(alen - 1, 0)
     io.ifIO.pipelineResult.isMMIO := DontCare
     io.memIO.pipelineResult.isMMIO := memAddr < DRAM.BASE.U && memAddr >= CLINT.BASE.U
   }

@@ -287,9 +287,9 @@ class CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
     io.debug.mtval    := mtval
     io.debug.mie      := mie.asUInt
     io.debug.mscratch := mscratch
-    if (ext('S')) io.debug.sepc   := sepc
-    if (ext('S')) io.debug.stvec  := stvec
-    if (ext('S')) io.debug.scause := scause(4) ## 0.U((xlen - 5).W) ## scause(3, 0)
-    if (ext('S')) io.debug.stval  := stval
+    io.debug.sepc     := (if (ext('S')) sepc else 0.U)
+    io.debug.stvec    := (if (ext('S')) stvec else 0.U)
+    io.debug.scause   := (if (ext('S')) scause(4) ## 0.U((xlen - 5).W) ## scause(3, 0) else 0.U)
+    io.debug.stval    := (if (ext('S')) stval else 0.U)
   }
 }
