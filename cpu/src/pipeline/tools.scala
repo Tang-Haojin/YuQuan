@@ -55,7 +55,7 @@ object ExecSpecials {
 
 object InstrTypes {
   val instrTypes: List[UInt] = Enum(18) /*(0 until 18).map(x => (1 << x).U(18.W)).toList*/
-  val i::u::s::r::j::b::c::err::clsp::cssp::cldst::cj::cni::cb::c540::clui::caddi4::cinv::Nil = instrTypes 
+  val i::u::s::r::j::b::c::err::clsp::cssp::cldst::cj::cni::cb::c540::clui::caddi4::cinv::Nil = instrTypes
 }
 
 object NumTypes {
@@ -65,7 +65,7 @@ object NumTypes {
 
 case class RVInstr()(implicit val p: Parameters) extends CPUParams {
   val table: Array[(BitPat, List[UInt])] = (
-    RVI().table ++ Zicsr().table ++ Privileged().table ++ (if (!isZmb) Zifencei().table else Nil) ++
+    RVI().table ++ (if (!isZmb) Zicsr().table ++ Privileged().table ++ Zifencei().table else Nil) ++
     (if (ext('M')) RVM().table else Nil) ++ (if (ext('A')) RVA().table else Nil) ++
     (if (ext('C')) RVC().table else Nil)
   ).toArray

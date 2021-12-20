@@ -51,7 +51,7 @@ class IF(implicit p: Parameters) extends YQModule {
   private val wireInstr = io.immu.pipelineResult.cpuResult.data
   private val wirePause = wireInstr(6, 0) === "b1110011".U && (
                           (ext('S').B && wireInstr(31, 20) === csrsAddr.Satp)    ||
-                                         wireInstr(31, 20) === csrsAddr.Mstatus  ||
+                          (!isZmb.B   && wireInstr(31, 20) === csrsAddr.Mstatus) ||
                           (ext('S').B && wireInstr(31, 20) === csrsAddr.Sstatus) ||
                           (ext('S').B && wireInstr(31, 25) === "b0001001".U && wireInstr(14, 7) === 0.U)
                         )

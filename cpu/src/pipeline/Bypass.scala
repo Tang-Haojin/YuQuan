@@ -34,7 +34,7 @@ class Bypass(implicit p: Parameters) extends YQModule {
       when(i.U === io.exOut.index && io.exOut.valid) { rregs(i) := io.exOut.value }
       .elsewhen(i.U === io.memOut.index && io.memOut.valid) { rregs(i) := io.memOut.value }
     }
-  for (i <- io.receive.raddr.indices) io.receive.rdata(i) := rregs(io.receive.raddr(i))
+  (io.receive.rdata zip io.receive.raddr).foreach(x => x._1 := rregs(x._2))
 
   private def willWait(rs: Vec[UInt]): Unit =
     rs.foreach(x => when((x =/= 0.U || io.isAmo) && (
@@ -43,7 +43,7 @@ class Bypass(implicit p: Parameters) extends YQModule {
 
   private def willWait(rs: UInt): Unit = willWait(VecInit(rs))
 
-  when(insCmp === "b11".U) { willWait(insRs) }
+  when(!ext('C').B || insCmp === "b11".U) { willWait(insRs) }
   if (ext('C')) when(insCmp === "b00".U) {
     when(insCF3 === "b000".U) { willWait(2.U) }
     .elsewhen(!insCF3(2)) { willWait(insRsp(0)) }
