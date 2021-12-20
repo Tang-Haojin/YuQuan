@@ -183,15 +183,14 @@ class EX(implicit p: Parameters) extends YQModule {
 
   io.lastVR.READY := io.nextVR.READY && alu.io.input.ready && !invalidateICache && !writebackDCache && scState === idle
 
-  import Operators.{mul, ruw}
-  when(alu.io.output.fire() && ((op >= mul) && (op <= ruw))) {
-    data            := alu.io.output.bits.asUInt
-    NVALID          := 1.B
-    op              := 0.U
+  when(alu.io.output.fire() && ((op & Operators.muldivMask) =/= 0.U)) {
+    data   := alu.io.output.bits.asUInt()
+    NVALID := 1.B
+    op     := 0.U
   }
 
   when(io.lastVR.VALID && io.lastVR.READY) { // let's start working
-    NVALID  := (io.input.op1_2 < mul) || (io.input.op1_2 > ruw)
+    NVALID  := ((io.input.op1_2 & Operators.muldivMask) === 0.U)
     pc      := io.input.pc
     rd      := wireRd
     data    := wireData

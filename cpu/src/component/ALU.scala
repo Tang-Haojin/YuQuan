@@ -101,4 +101,7 @@ object Operators {
   val remw::rem::div::remu::divu::mulh::duw::ruw::Nil = Seq.tabulate(8)(x => (1 << (x + 16)).U(quantity.W))
   val max::min::maxu::minu::Nil = Seq.tabulate(4)(x => (1 << (x + 24)).U(quantity.W))
   val (lr, sc) = (sll, sra)
+  val muldivMask = (for { i <- 0 until quantity
+    if (1 << i >= mul.litValue() && 1 << i <= ruw.litValue())
+  } yield 1 << i).fold(0)(_ | _).U(quantity.W)
 }
