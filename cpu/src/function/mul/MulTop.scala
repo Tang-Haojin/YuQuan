@@ -44,16 +44,18 @@ class MulTop(implicit p: Parameters) extends YQModule {
   io.output.valid := out_valid
   io.input.ready  := isFree
 
-  when(io.input.fire()) {
-    val res = walTree.io.output(0)(33, 0) +& walTree.io.output(1)(33, 0)
-    isFree   := 0.B
-    stage    := 1.U
+  val res_0 = walTree.io.output(0)(33, 0) +& walTree.io.output(1)(33, 0)
+  when(stage === 0.U) {
     data_in  := io.input.bits.data
     sign_in  := io.input.bits.sign
-    lo_34    := res(33, 0)
-    lo_34_in := res(34)
+    lo_34    := res_0(33, 0)
+    lo_34_in := res_0(34)
     part_sum(0) := walTree.io.output(0)(108, 34) ## 0.U(34.W)
     part_sum(1) := walTree.io.output(1)(108, 34) ## 0.U(34.W)
+    when(io.input.fire()) {
+      isFree := 0.B
+      stage  := 1.U
+    }
   }
 
   when(stage === 1.U) {
@@ -61,8 +63,8 @@ class MulTop(implicit p: Parameters) extends YQModule {
     sign  := sign_in
     stage := 2.U
     for (i <- 0 until 16) {
-      walTree.io.input(i) := boothSext.io.output(i)((boothSext.io.output(i).getWidth - 1) min (128 - (32 + i * 2) - 1), 0) << 32 + i * 2
-      boothSext.io.input(i)   := op_1(2 * (i + 17) + 1, 2 * (i + 17) - 1)
+      walTree.io.input(i)   := boothSext.io.output(i)((boothSext.io.output(i).getWidth - 1) min (128 - (32 + i * 2) - 1), 0) << 32 + i * 2
+      boothSext.io.input(i) := op_1(2 * (i + 17) + 1, 2 * (i + 17) - 1)
     }
     walTree.io.input( 2) := boothSext.io.output(2) ## 0.B ## lo_34_in ## 0.U(34.W)
     walTree.io.input(16) := part_sum(0)
