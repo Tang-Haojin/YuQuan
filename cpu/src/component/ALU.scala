@@ -95,14 +95,10 @@ class ALU(implicit p: Parameters) extends YQModule {
 }
 
 object Operators {
-  var operators = Enum(32)
-  val nop::add::sub::and::or::xor::sll::sra::Nil = operators.take(8)
-  operators = operators.drop(8)
-  val srl::lts::ltu::equ::neq::sllw::srlw::sraw::Nil = operators.take(8)
-  operators = operators.drop(8)
-  val ges::geu::mul::divw::remw::rem::div::remu::Nil = operators.take(8)
-  operators = operators.drop(8)
-  val divu::mulh::duw::ruw::max::min::maxu::minu::Nil = operators
-  val quantity = 5
+  val quantity = 28
+  val nop::add::sub::and::or::xor::sll::sra::Nil = Seq.tabulate(8)(x => (1 << x).U(quantity.W))
+  val srl::lts::ltu::sllw::srlw::sraw::mul::divw::Nil = Seq.tabulate(8)(x => (1 << (x + 8)).U(quantity.W))
+  val remw::rem::div::remu::divu::mulh::duw::ruw::Nil = Seq.tabulate(8)(x => (1 << (x + 16)).U(quantity.W))
+  val max::min::maxu::minu::Nil = Seq.tabulate(4)(x => (1 << (x + 24)).U(quantity.W))
   val (lr, sc) = (sll, sra)
 }
