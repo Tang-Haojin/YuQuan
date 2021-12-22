@@ -97,8 +97,8 @@ class EX(implicit p: Parameters) extends YQModule {
 
   io.invIch.valid   := invalidateICache
   io.wbDch.valid    := writebackDCache
-  when(io.invIch.fire()) { invalidateICache := 0.B }
-  when(io.wbDch.fire())  { writebackDCache  := 0.B }
+  when(io.invIch.fire) { invalidateICache := 0.B }
+  when(io.wbDch.fire)  { writebackDCache  := 0.B }
 
   when(io.input.special === zicsr) {
     case class csrsAddr()(implicit val p: Parameters) extends cpu.CPUParams with cpu.privileged.CSRsAddr
@@ -183,7 +183,7 @@ class EX(implicit p: Parameters) extends YQModule {
 
   io.lastVR.READY := io.nextVR.READY && alu.io.input.ready && !invalidateICache && !writebackDCache && scState === idle
 
-  when(alu.io.output.fire() && ((op & Operators.muldivMask) =/= 0.U)) {
+  when(alu.io.output.fire && ((op & Operators.muldivMask) =/= 0.U)) {
     data   := alu.io.output.bits.asUInt()
     NVALID := 1.B
     op     := 0.U

@@ -128,10 +128,10 @@ class UartSim(implicit val p: Parameters) extends UartWrapper {
     uart_int.io.clock := io.basic.ACLK
     io.interrupt      := uart_int.io.inter
 
-    when(io.channel.r.fire()) {
+    when(io.channel.r.fire) {
       RVALID  := 0.B
       ARREADY := 1.B
-    }.elsewhen(io.channel.ar.fire()) {
+    }.elsewhen(io.channel.ar.fire) {
       uart_read.io.getc := 1.B
       wireARADDR := io.channel.ar.bits.addr
       ARADDR  := wireARADDR
@@ -140,20 +140,20 @@ class UartSim(implicit val p: Parameters) extends UartWrapper {
       RVALID  := 1.B
     }
 
-    when(io.channel.aw.fire()) {
+    when(io.channel.aw.fire) {
       AWADDR  := io.channel.aw.bits.addr
       BID     := io.channel.aw.bits.id
       AWREADY := 0.B
       WREADY  := 1.B
     }
 
-    when(io.channel.w.fire()) {
+    when(io.channel.w.fire) {
       uart_write.io.wen := 1.B
       WREADY := 0.B
       BVALID := 1.B
     }
 
-    when(io.channel.b.fire()) {
+    when(io.channel.b.fire) {
       AWREADY := 1.B
       BVALID  := 0.B
     }

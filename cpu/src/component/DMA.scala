@@ -67,7 +67,7 @@ class DMA(implicit p: Parameters) extends YQModule {
     .otherwise { BVALID := 1.B }
   }
 
-  when(io.memIO.r.fire()) {
+  when(io.memIO.r.fire) {
     RVALID := 0.B
     when(ARLEN === 0.U) {
       ARREADY := 1.B
@@ -81,7 +81,7 @@ class DMA(implicit p: Parameters) extends YQModule {
     }
   }.elsewhen(io.memIO.r.valid && !io.memIO.r.ready && io.memIO.w.valid && current === read) { current := write }
   
-  when(io.memIO.ar.fire()) {
+  when(io.memIO.ar.fire) {
     current := read
     state   := busy
     reading := 1.B
@@ -92,7 +92,7 @@ class DMA(implicit p: Parameters) extends YQModule {
     ARLEN   := io.memIO.ar.bits.len
   }
 
-  when(io.memIO.aw.fire()) {
+  when(io.memIO.aw.fire) {
     current := write
     state   := busy
     writing := 1.B
@@ -104,16 +104,16 @@ class DMA(implicit p: Parameters) extends YQModule {
     AWLEN   := io.memIO.aw.bits.len
   }
 
-  when(io.memIO.w.fire()) {
+  when(io.memIO.w.fire) {
     WREADY := 0.B
     WDATA  := io.memIO.w.bits.data
     WSTRB  := io.memIO.w.bits.strb
   }.elsewhen(io.memIO.w.ready && !io.memIO.w.valid && io.memIO.r.ready && current === write) { current := read }
 
-  when(io.memIO.b.fire()) {
+  when(io.memIO.b.fire) {
     AWREADY := 1.B
     BVALID := 0.B
-    state := Mux(reading && !(io.memIO.r.fire() && io.memIO.r.bits.last), busy, idle)
+    state := Mux(reading && !(io.memIO.r.fire && io.memIO.r.bits.last), busy, idle)
     writing := 0.B
     current := read
   }

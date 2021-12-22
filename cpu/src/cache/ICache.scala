@@ -99,7 +99,7 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
     }
   }
   when(state === allocate) {
-    when(io.memIO.r.fire()) {
+    when(io.memIO.r.fire) {
       crossBurst := 0.B
       when(received === (BurstLen - 1).U) {
         received   := 0.U
@@ -108,7 +108,7 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
         willDrop   := 0.B
         RREADY     := 0.B
       }.otherwise { received := received + 1.U }
-    }.elsewhen(io.memIO.ar.fire()) { ARVALID := 0.B; RREADY := 1.B }
+    }.elsewhen(io.memIO.ar.fire) { ARVALID := 0.B; RREADY := 1.B }
     writeBuffer(received) := io.memIO.r.bits.data
     when(received === addr(Offset - 1, 3)) {
       answerData := (if (ext('C')) Mux1H(Seq.tabulate(4)(i => (addr(2, 1) === i.U) -> (io.memIO.r.bits.data >> (16 * i))))

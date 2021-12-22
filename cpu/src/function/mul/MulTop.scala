@@ -52,7 +52,7 @@ class MulTop(implicit p: Parameters) extends YQModule {
     lo_34_in := res_0(34)
     part_sum(0) := walTree.io.output(0)(108, 34) ## 0.U(34.W)
     part_sum(1) := walTree.io.output(1)(108, 34) ## 0.U(34.W)
-    when(io.input.fire()) {
+    when(io.input.fire) {
       isFree := 0.B
       stage  := 1.U
     }
@@ -82,7 +82,7 @@ class MulTop(implicit p: Parameters) extends YQModule {
     out_valid := 1.B
   }
 
-  when(io.output.fire()) {
+  when(io.output.fire) {
     out_valid := 0.B
     isFree    := 1.B
   }

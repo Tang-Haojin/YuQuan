@@ -181,13 +181,13 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
     }
   }
   when(state === allocate) {
-    when(io.memIO.r.fire()) {
+    when(io.memIO.r.fire) {
       when(received === (BurstLen - 1).U) {
         received := 0.U
         state    := answering
         RREADY   := 0.B
       }.otherwise { received := received + 1.U }
-    }.elsewhen(io.memIO.ar.fire()) { ARVALID := 0.B; RREADY := 1.B }
+    }.elsewhen(io.memIO.ar.fire) { ARVALID := 0.B; RREADY := 1.B }
     inBuffer(received) := rbytes.asUInt()
     when(received === addrOffset) {
       when(reqRw) { (0 until Buslen / 8).foreach(i => when(reqWMask(i)) { rbytes(i.U(axSize.W)) := reqData(i * 8 + 7, i * 8) }) }

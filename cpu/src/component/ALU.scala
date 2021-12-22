@@ -52,7 +52,7 @@ class ALU(implicit p: Parameters) extends YQModule {
   io.input.ready  := mulTop.io.input.ready && divTop.io.input.ready
   io.output.valid := 1.B
 
-  when(mulTop.io.input.fire() || divTop.io.input.fire()) { io.output.valid := 0.B }
+  when(mulTop.io.input.fire || divTop.io.input.fire) { io.output.valid := 0.B }
   when(!mulTop.io.input.ready) { io.output.valid := mulTop.io.output.valid }
   when(!divTop.io.input.ready) { io.output.valid := divTop.io.output.valid }
 
@@ -102,6 +102,6 @@ object Operators {
   val max::min::maxu::minu::Nil = Seq.tabulate(4)(x => (1 << (x + 24)).U(quantity.W))
   val (lr, sc) = (sll, sra)
   val muldivMask = (for { i <- 0 until quantity
-    if (1 << i >= mul.litValue() && 1 << i <= ruw.litValue())
+    if (1 << i >= mul.litValue && 1 << i <= ruw.litValue)
   } yield 1 << i).fold(0)(_ | _).U(quantity.W)
 }

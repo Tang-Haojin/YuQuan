@@ -24,9 +24,9 @@ class DMAC(implicit val p: Parameters) extends RawModule with SimParams {
     val regFree     = RegInit(1.B)
 
     val fifo = Module(new YQueue(UInt(xlen.W), 8))
-    fifo.io.enq.valid := io.toCPU.r.fire()
+    fifo.io.enq.valid := io.toCPU.r.fire
     fifo.io.enq.bits  := io.toCPU.r.bits.data
-    fifo.io.deq.ready := io.toCPU.w.fire()
+    fifo.io.deq.ready := io.toCPU.w.fire
 
     val toCPU    = new ToCPU(io.toCPU, fifo.io, regFree, regWAddr, regRAddr)
     val fromCPU  = new FromCPU(io.fromCPU.channel, toCPU, regRAddr, regWAddr, regTransLen, regFree)
@@ -54,24 +54,24 @@ private class FromCPU(fromCPU: AXI_BUNDLE, toCPU: ToCPU, rAddr: UInt, wAddr: UIn
     is(DMAC.DMAC_STATUS_REG.U) { wireRawRData := 0.U((xlen - 1).W) ## free }
   }
 
-  when(fromCPU.r.fire()) {
+  when(fromCPU.r.fire) {
     RVALID  := 0.B
     ARREADY := 1.B
-  }.elsewhen(fromCPU.ar.fire()) {
+  }.elsewhen(fromCPU.ar.fire) {
     RDATA   := wireRawRData
     RID     := fromCPU.ar.bits.id
     ARREADY := 0.B
     RVALID  := 1.B
   }
 
-  when(fromCPU.aw.fire()) {
+  when(fromCPU.aw.fire) {
     AWADDR  := fromCPU.aw.bits.addr
     BID     := fromCPU.aw.bits.id
     AWREADY := 0.B
     WREADY  := 1.B
   }
 
-  when(fromCPU.w.fire()) {
+  when(fromCPU.w.fire) {
     switch(AWADDR) {
       is(DMAC.READ_ADDR_REG.U)   { rAddr  := wireWData }
       is(DMAC.WRITE_ADDR_REG.U)  { wAddr  := wireWData }
@@ -89,7 +89,7 @@ private class FromCPU(fromCPU: AXI_BUNDLE, toCPU: ToCPU, rAddr: UInt, wAddr: UIn
     BVALID := 1.B
   }
 
-  when(fromCPU.b.fire()) {
+  when(fromCPU.b.fire) {
     AWREADY := 1.B
     BVALID  := 0.B
   }
@@ -112,12 +112,12 @@ private class ToCPU(toCPU: AXI_BUNDLE, fifo: QueueIO[UInt], free: Bool, wAddr: U
   val len = RegInit(0.U(32.W))
   val wireWLAST = WireDefault(0.B)
 
-  when(toCPU.aw.fire()) {
+  when(toCPU.aw.fire) {
     AWVALID := 0.B
     BREADY  := 1.B
   }
 
-  when(toCPU.w.fire()) {
+  when(toCPU.w.fire) {
     when(len === 0.U) {
       WVALID    := 0.B
       BREADY    := 1.B
@@ -125,14 +125,14 @@ private class ToCPU(toCPU: AXI_BUNDLE, fifo: QueueIO[UInt], free: Bool, wAddr: U
     }.otherwise { len := len - 1.U }
   }
 
-  when(toCPU.b.fire()) {
+  when(toCPU.b.fire) {
     BREADY := 0.B
     free   := 1.B
   }
 
-  when(toCPU.r.fire()) {
+  when(toCPU.r.fire) {
     when(toCPU.r.bits.last) { RREADY := 0.B }
-  }.elsewhen(toCPU.ar.fire()) {
+  }.elsewhen(toCPU.ar.fire) {
     ARVALID := 0.B
     RREADY  := 1.B
   }

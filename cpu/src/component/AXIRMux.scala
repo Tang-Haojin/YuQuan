@@ -55,7 +55,7 @@ class AXIRMux(implicit p: Parameters) extends YQModule {
       io.axiRaIn1 <> io.axiRaOut
       io.axiRdIn1 <> io.axiRdOut
     }
-    when(io.axiRdOut.fire() && io.axiRdOut.bits.last) {
+    when(io.axiRdOut.fire && io.axiRdOut.bits.last) {
       regState := idle
     }
   }

@@ -81,11 +81,11 @@ class WbBuffer(memIO: AXI_BUNDLE, sendData: UInt, sendAddr: UInt)(implicit val p
       wbAddr  := sendAddr
     }
   }.otherwise {
-    when(memIO.aw.fire()) {
+    when(memIO.aw.fire) {
       AWVALID := 0.B
       when(!WVALID) { BREADY := 1.B }
     }
-    when(memIO.w.fire()) {
+    when(memIO.w.fire) {
       wireWdata := wdata(sent)
       when(sent === (BurstLen - 1).U) {
         sent   := 0.U
@@ -94,7 +94,7 @@ class WbBuffer(memIO: AXI_BUNDLE, sendData: UInt, sendAddr: UInt)(implicit val p
         memIO.w.bits.last := 1.B
       }.otherwise { sent := sent + 1.U }
     }
-    when(memIO.b.fire()) {
+    when(memIO.b.fire) {
       ready  := 1.B
       BREADY := 0.B
     }
@@ -142,15 +142,15 @@ class PassThrough(readonly: Boolean)(var memIO: AXI_BUNDLE, wbFree: Bool, addr: 
 
           memIO.b.ready := BREADY
 
-          when(memIO.aw.fire()) {
+          when(memIO.aw.fire) {
             AWVALID := 0.B
             when(!WVALID) { BREADY := 1.B }
           }
-          when(memIO.w.fire()) {
+          when(memIO.w.fire) {
             WVALID := 0.B
-            when(!AWVALID || (memIO.aw.fire())) { BREADY := 1.B }
+            when(!AWVALID || (memIO.aw.fire)) { BREADY := 1.B }
           }
-          when(memIO.b.fire()) {
+          when(memIO.b.fire) {
             ready   := 1.B
             finish  := 1.B
             AWVALID := 1.B
@@ -168,11 +168,11 @@ class PassThrough(readonly: Boolean)(var memIO: AXI_BUNDLE, wbFree: Bool, addr: 
 
       memIO.r.ready := RREADY
 
-      when(memIO.ar.fire()) {
+      when(memIO.ar.fire) {
         ARVALID := 0.B
         RREADY  := 1.B
       }
-      when(memIO.r.fire()) {
+      when(memIO.r.fire) {
         ready    := 1.B
         finish   := 1.B
         ARVALID  := 1.B

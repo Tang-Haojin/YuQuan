@@ -157,11 +157,11 @@ class Axi2Apb(implicit val p: Parameters) extends RawModule with UtilsParams {
     val writeAddrReq = regAWREADY && io.axi_s.channel.aw.valid
     val writeDataReq = regWREADY  && io.axi_s.channel.w .valid
 
-    val readAddrAcpt  = io.axi_s.channel.ar.fire()
-    val readDataAcpt  = io.axi_s.channel.r .fire()
-    val writeAddrAcpt = io.axi_s.channel.aw.fire()
-    val writeDataAcpt = io.axi_s.channel.w .fire()
-    val writeRespAcpt = io.axi_s.channel.b .fire()
+    val readAddrAcpt  = io.axi_s.channel.ar.fire
+    val readDataAcpt  = io.axi_s.channel.r .fire
+    val writeAddrAcpt = io.axi_s.channel.aw.fire
+    val writeDataAcpt = io.axi_s.channel.w .fire
+    val writeRespAcpt = io.axi_s.channel.b .fire
 
     val inner_readAddrAcpt  = inner_Axi2Apb.io.ARREADY && inner_Axi2Apb.io.ARVALID
     val inner_readDataAcpt  = inner_Axi2Apb.io.RREADY  && inner_Axi2Apb.io.RVALID
