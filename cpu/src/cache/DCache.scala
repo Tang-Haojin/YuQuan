@@ -67,8 +67,8 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
   private val wen = WireDefault(VecInit(Seq.fill(Associativity)(0.B)))
   private val bwe = WireDefault(VecInit(Seq.fill(BlockSize)(0.B)))
 
-  private val tag   = ramTag  .read(realIndex, 1.B)
-  private val data  = ramData .read(realIndex, 1.B)
+  private val tag   = ramTag .read(realIndex, 1.B)
+  private val data  = ramData.read(realIndex, 1.B)
 
   private val preValid = ramValid.preRead(realIndex, 1.B)
   private val preDirty = ramDirty.preRead(realIndex, 1.B)
@@ -95,9 +95,9 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
 
   private val inBuffer = Reg(Vec(BurstLen, UInt(Buslen.W)))
 
-  private val dwordData = WireDefault(VecInit((0 until BlockSize / 8).map { i =>
+  private val dwordData = VecInit((0 until BlockSize / 8).map { i =>
     data(grp)(i * 64 + 63, i * 64)
-  }))
+  })
 
   private val wdata  = WireDefault(UInt((8 * BlockSize).W), inBuffer.asUInt())
   private val wvalid = 1.B
@@ -125,19 +125,19 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
   private val plicRdata   = RegNext(io.plicIO.rdata)
 
   when(io.cpuIO.cpuReq.valid && state =/= writeback && state =/= allocate && state =/= backall) {
-    addr      := io.cpuIO.cpuReq.addr
-    reqData   := io.cpuIO.cpuReq.data
-    reqRw     := io.cpuIO.cpuReq.rw
-    reqSize   := io.cpuIO.cpuReq.size
-    reqWMask  := io.cpuIO.cpuReq.wmask
+    addr     := io.cpuIO.cpuReq.addr
+    reqData  := io.cpuIO.cpuReq.data
+    reqRw    := io.cpuIO.cpuReq.rw
+    reqSize  := io.cpuIO.cpuReq.size
+    reqWMask := io.cpuIO.cpuReq.wmask
   }
 
   io.wb.ready := 0.B
   when(state === idle) {
     willDrop := 0.B
+    if (isZmb) grp := Mux1H(Seq.tabulate(Associativity)(i => (preValid(i) && preTag(i) === io.cpuIO.cpuReq.addr(alen - 1, Index + Offset)) -> i.U))
     when(io.cpuIO.cpuReq.valid) {
       state := starting
-      if (isZmb) grp := Mux1H(Seq.tabulate(Associativity)(i => (preValid(i) && preTag(i) === io.cpuIO.cpuReq.addr(alen - 1, Index + Offset)) -> i.U))
       when(isPeripheral) { state := passing }
       if (useClint) when(isClint) { state := clint }
       if (usePlic)  when(isPlic)  { state := plic  }
@@ -182,19 +182,16 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
   }
   when(state === allocate) {
     when(io.memIO.r.fire()) {
-      inBuffer(received) := rbytes.asUInt()
-      when(received === addrOffset) {
-        when(reqRw) { (0 until Buslen / 8).foreach(i => when(reqWMask(i)) { rbytes(i.U(axSize.W)) := reqData(i * 8 + 7, i * 8) }) }
-        .otherwise { answerData := io.memIO.r.bits.data }
-      }
       when(received === (BurstLen - 1).U) {
         received := 0.U
         state    := answering
         RREADY   := 0.B
       }.otherwise { received := received + 1.U }
-    }.elsewhen(io.memIO.ar.fire()) {
-      ARVALID := 0.B
-      RREADY  := 1.B
+    }.elsewhen(io.memIO.ar.fire()) { ARVALID := 0.B; RREADY := 1.B }
+    inBuffer(received) := rbytes.asUInt()
+    when(received === addrOffset) {
+      when(reqRw) { (0 until Buslen / 8).foreach(i => when(reqWMask(i)) { rbytes(i.U(axSize.W)) := reqData(i * 8 + 7, i * 8) }) }
+      .otherwise { answerData := io.memIO.r.bits.data }
     }
   }
   when(state === answering) {
@@ -239,7 +236,7 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
     when(hit) { state := idle }
     hit := reqRw || plicReadHit
     plicReadHit := ~hit
-    io.cpuIO.cpuResult.data := plicRdata ## plicRdata
+    io.cpuIO.cpuResult.data := Fill(Buslen / 32, plicRdata)
   }
 
   when(readBack) {

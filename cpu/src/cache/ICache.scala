@@ -100,24 +100,21 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   }
   when(state === allocate) {
     when(io.memIO.r.fire()) {
-      writeBuffer(received) := io.memIO.r.bits.data
-      when(received === addr(Offset - 1, 3)) {
-        answerData := (if (ext('C')) Mux1H(Seq.tabulate(4)(i => (addr(2, 1) === i.U) -> (io.memIO.r.bits.data >> (16 * i))))
-                       else Mux(addr(2), io.memIO.r.bits.data(63, 32), io.memIO.r.bits.data(31, 0)))
-        if (ext('C')) when(addr(2, 1) === 3.U) { crossBurst := 1.B }
-      }.elsewhen(crossBurst) { crossBurst := 0.B; answerData := io.memIO.r.bits.data(15, 0) ## answerData(15, 0) }
+      crossBurst := 0.B
       when(received === (BurstLen - 1).U) {
         received   := 0.U
         state      := Mux(willDrop, idle, answering)
         fakeAnswer := willDrop
         willDrop   := 0.B
-        crossBurst := 0.B
         RREADY     := 0.B
       }.otherwise { received := received + 1.U }
-    }.elsewhen(io.memIO.ar.fire()) {
-      ARVALID := 0.B
-      RREADY  := 1.B
-    }
+    }.elsewhen(io.memIO.ar.fire()) { ARVALID := 0.B; RREADY := 1.B }
+    writeBuffer(received) := io.memIO.r.bits.data
+    when(received === addr(Offset - 1, 3)) {
+      answerData := (if (ext('C')) Mux1H(Seq.tabulate(4)(i => (addr(2, 1) === i.U) -> (io.memIO.r.bits.data >> (16 * i))))
+                     else Mux(addr(2), io.memIO.r.bits.data(63, 32), io.memIO.r.bits.data(31, 0)))
+      if (ext('C')) when(addr(2, 1) === 3.U) { crossBurst := 1.B }
+    }.elsewhen(crossBurst) { answerData := io.memIO.r.bits.data(15, 0) ## answerData(15, 0) }
   }
   when(state === answering) {
     wen(way) := 1.B

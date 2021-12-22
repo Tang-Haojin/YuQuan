@@ -82,11 +82,7 @@ class IF(implicit p: Parameters) extends YQModule {
     pause      := wirePause
   }.elsewhen(io.nextVR.READY && io.nextVR.VALID) {
     pause     := 0.B
-    except    := 0.B
     instr     := 0x00000013.U
-    instrCode := 0.U
-    rs        := VecInit(0.U, 0.U)
-    rd        := 0.U
     NVALID    := 0.B
   }
 

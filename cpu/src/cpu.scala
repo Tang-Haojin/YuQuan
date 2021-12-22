@@ -63,7 +63,7 @@ class CPU(implicit p: Parameters) extends YQModule {
     moduleDCacheMux.io.dcacheIO <> moduleDCache.io.cpuIO
   } else {
     moduleMMU.io.dcacheIO <> moduleDCache.io.cpuIO
-    io.slave  <> DontCare
+    io.slave <> DontCare
   }
 
   moduleID.io.gprsR <> moduleBypass.io.receive
