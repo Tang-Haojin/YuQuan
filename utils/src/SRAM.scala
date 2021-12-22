@@ -66,12 +66,12 @@ class S011HD1P_BW_SRAM(bits: Int = 128, wordDepth: Int = 64) extends BlackBox wi
       |""".stripMargin)
 }
 
-class bytewrite_ram_1b(bits: Int = 128, wordDepth: Int = 64)(implicit val p: Parameters) extends BlackBox(Map(
+class bytewrite_ram_1b(bits: Int = 128, wordDepth: Int = 64) extends BlackBox(Map(
   "SIZE" -> wordDepth,
   "ADDR_WIDTH" -> log2Ceil(wordDepth),
   "COL_WIDTH" -> 8,
   "NB_COL" -> bits / 8
-)) with HasBlackBoxInline with UtilsParams {
+)) with HasBlackBoxInline {
   val io = IO(new Bundle {
     val clk  = Input (Clock())
     val we   = Input (UInt((bits / 8).W))
@@ -204,6 +204,59 @@ private[utils] class bytewrite_ram_1b_SramWrapper(clock: Clock, bits: Int = 128,
   }
 }
 
+private[utils] class PublicSramWrapper(bits: Int = 128, wordDepth: Int = 64) extends SramWrapperInterface {
+  private val sram  = WireDefault(0.U.asTypeOf(new PublicSramWrapper.PublicSramIO(bits, wordDepth)))
+  private val rAddr = WireDefault(0.U(log2Ceil(wordDepth).W))
+  private val wAddr = WireDefault(0.U(log2Ceil(wordDepth).W))
+
+  sram.cen   := 0.B
+  sram.wen   := 1.B
+  sram.wmask := Fill(bits, 1.B)
+  sram.addr  := rAddr
+  sram.wdata := 0.U
+  
+
+  def read(x: UInt, en: Bool = 1.B): UInt = { rAddr := x; sram.rdata }
+
+  def write(idx: UInt, data: UInt, wen: Bool): Unit = {
+    wAddr      := idx
+    sram.wen   := !wen
+    sram.wmask := 0.U
+    sram.wdata := data
+    when(wen) { sram.addr := wAddr }
+  }
+
+  def write(idx: UInt, data: UInt, wen: Bool, bytewrite: UInt): Unit = {
+    wAddr      := idx
+    sram.wen   := !wen
+    sram.wmask := Cat((~bytewrite).asBools().map(Fill(8, _)).reverse)
+    sram.wdata := data
+    when(wen) { sram.addr := wAddr }
+  }
+
+  import chisel3.util.experimental.BoringUtils._
+  private val id = PublicSramWrapper.getID
+  addSource(sram.cen,   s"sram_cen_${id}")
+  addSource(sram.wen,   s"sram_wen_${id}")
+  addSource(sram.wmask, s"sram_wmask_${id}")
+  addSource(sram.addr,  s"sram_addr_${id}")
+  addSource(sram.wdata, s"sram_wdata_${id}")
+  addSink  (sram.rdata, s"sram_rdata_${id}")
+}
+
+object PublicSramWrapper {
+  private var id = 0
+  private def getID: Int = { val tmp = id; id += 1; tmp }
+  class PublicSramIO(bits: Int = 128, wordDepth: Int = 64) extends Bundle {
+    val rdata = Output(UInt(bits.W))
+    val cen   = Input (Bool())
+    val wen   = Input (Bool())
+    val wmask = Input (UInt(bits.W))
+    val addr  = Input (UInt(log2Ceil(wordDepth).W))
+    val wdata = Input (UInt(bits.W))
+  }
+}
+
 abstract private[utils] class SramWrapperInterface {
   def read(x: UInt, en: Bool = 1.B): UInt
   def write(idx: UInt, data: UInt, wen: Bool): Unit
@@ -211,7 +264,11 @@ abstract private[utils] class SramWrapperInterface {
 }
 
 class SinglePortRam(clock: Clock, bits: Int = 128, wordDepth: Int = 64, associativity: Int = 4)(implicit val p: Parameters) extends ReadWriteInterface with UtilsParams {
-  private val SRAMs = Seq.fill(associativity)(if (useXilinx) new bytewrite_ram_1b_SramWrapper(clock, bits, wordDepth) else new S011HD1P_BW_SramWrapper(clock, bits, wordDepth))
+  private val SRAMs = Seq.fill(associativity)(
+    if (usePubRam) new PublicSramWrapper(bits, wordDepth)
+    else if (useXilinx) new bytewrite_ram_1b_SramWrapper(clock, bits, wordDepth)
+    else new S011HD1P_BW_SramWrapper(clock, bits, wordDepth)
+  )
 
   def read(x: UInt, en: Bool = 1.B): Vec[UInt] =
     VecInit(Seq.tabulate(associativity)(SRAMs(_).read(x, en)))
