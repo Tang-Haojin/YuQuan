@@ -27,6 +27,7 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   private val addrIndex  = addr(Index + Offset - 1, Offset)
   private val addrTag    = addr(alen - 1, Index + Offset)
   private val memAddr    = addr(alen - 1, Offset) ## 0.U(Offset.W)
+  private val realIndex  = if (isZmb) io.cpuIO.cpuReq.addr(Index + Offset - 1, Offset) else addrIndex
 
   private val ARVALID = RegInit(0.B)
   ICacheMemIODefault(io.memIO, ARVALID, memAddr)
@@ -41,16 +42,22 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
 
   private val preValid = ramValid.preRead(addrIndex, 1.B)
   private val preTag   = ramTag  .preRead(addrIndex, 1.B)
-  private val data     = ramData .read   (addrIndex, 1.B)
+  private val data     = ramData .read   (realIndex, 1.B)
 
   private val way = Reg(UInt(log2Ceil(Associativity).W))
   private val writeBuffer = Reg(Vec(BurstLen, UInt(Buslen.W)))
   private val wordData = if (ext('C')) VecInit((0 until BlockSize / 2 - 1).map { i =>
     data(grp)(i * 16 + 31, i * 16)
-  } :+ 0.U(16.W) ## data(grp)((BlockSize / 2 - 1) * 16 + 15, (BlockSize / 2 - 1) * 16))
-  else VecInit((0 until BlockSize / 4).map { i => data(grp)(i * 32 + 31, i * 32) })
+  } :+ 0.U(16.W) ## data(grp)((BlockSize / 2 - 1) * 16 + 15, (BlockSize / 2 - 1) * 16))(addrOffset)
+  else VecInit((0 until BlockSize / 4).map { i => data(grp)(i * 32 + 31, i * 32) })(addrOffset)
 
-  private val wdata  = writeBuffer.asUInt()
+  private val dwordData = Mux1H(Seq.tabulate(Associativity)(x =>
+    (grp === x.U) -> RegNext(VecInit((0 until BlockSize / 8).map { i =>
+      data(x)(i * 64 + 63, i * 64)
+    })(addr(Offset - 1, 3))))
+  ).asTypeOf(Vec(2, UInt(32.W)))(addr(2))
+
+  private val wdata  = writeBuffer.asUInt
   private val wvalid = 1.B
   private val wtag   = addrTag
 
@@ -59,7 +66,7 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   ramData .write(addrIndex, wdata , wen)
 
   io.cpuIO.cpuResult.ready := hit
-  io.cpuIO.cpuResult.data  := wordData(addrOffset)
+  io.cpuIO.cpuResult.data  := (if (isZmb) dwordData else wordData)
 
   private val isPeripheral = if (FetchFromPeri) IsPeripheral(io.cpuIO.cpuReq.addr) else 0.B
   private val passThrough  = if (FetchFromPeri) PassThrough(true)(io.memIO, 0.B, addr, 0.U, 0.U, 0.B) else null
@@ -81,7 +88,7 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   when(state === starting) {
     state := Mux(willDrop, idle, compare)
     willDrop := 0.B
-    compareHit := VecInit(Seq.tabulate(Associativity)(i => preValid(i) && preTag(i) === addrTag)).asUInt.orR
+    compareHit := VecInit(Seq.tabulate(Associativity)(i => preValid(i) && preTag(i) === addrTag)).reduceTree(_ | _)
     grp := Mux1H(Seq.tabulate(Associativity)(i => (preValid(i) && preTag(i) === addrTag) -> i.U))
     way := MuxLookup(0.B, rand, preValid zip Seq.tabulate(Associativity)(_.U))
   }
@@ -89,22 +96,16 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
     ARVALID := ~compareHit
     state   := allocate
     hit     := compareHit
-    when(compareHit) {
-      state := idle
-      when(io.cpuIO.cpuReq.valid) {
-        state := starting
-        when(isPeripheral) { state := passing }
-      }
-    }
+    state   := Mux(compareHit, Mux(io.cpuIO.cpuReq.valid, Mux(isPeripheral, passing, starting), idle), allocate)
   }
   when(state === allocate) {
     when(io.memIO.r.fire) {
       crossBurst := 0.B
       when(received === (BurstLen - 1).U) {
-        received   := 0.U
-        state      := Mux(willDrop, idle, answering)
-        fakeAnswer := willDrop
-        willDrop   := 0.B
+        received := 0.U
+        state    := Mux(willDrop && !isZmb.B, idle, answering)
+        if (!isZmb) fakeAnswer := willDrop
+        if (!isZmb) willDrop   := 0.B
       }.otherwise { received := received + 1.U }
     }.elsewhen(io.memIO.ar.fire) { ARVALID := 0.B }
     writeBuffer(received) := io.memIO.r.bits.data
@@ -120,6 +121,7 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
     willDrop := 0.B
     io.cpuIO.cpuResult.data := answerData
     state := Mux(willDrop, idle, Mux(io.cpuIO.cpuReq.valid, Mux(isPeripheral, passing, starting), idle))
+    if (isZmb) when(io.cpuIO.cpuReq.addr(alen - 1, Offset) =/= addr(alen - 1, Offset)) { state := idle }
   }
   if (FetchFromPeri) when(state === passing) {
     hit := Mux(willDrop || revoke, 0.B, passThrough.finish)
