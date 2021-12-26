@@ -21,9 +21,9 @@ class Bypass(implicit p: Parameters) extends YQModule {
   private val insCmp = io.instr(1, 0)
   private val insCF3 = io.instr(15, 13)
   private val insCF2 = io.instr(11, 10)
-  private val insRs  = VecInit(io.instr(19, 15), io.instr(24, 20))
-  private val insRsc = VecInit(io.instr(11, 7), io.instr(6, 2))
-  private val insRsp = VecInit(1.U(2.W) ## io.instr(9, 7), 1.U(2.W) ## io.instr(4, 2))
+  private val insRs  = Seq(io.instr(19, 15), io.instr(24, 20))
+  private val insRsc = Seq(io.instr(11, 7), io.instr(6, 2))
+  private val insRsp = Seq(1.U(2.W) ## io.instr(9, 7), 1.U(2.W) ## io.instr(4, 2))
 
   io.isWait := 0.B
 
@@ -36,12 +36,12 @@ class Bypass(implicit p: Parameters) extends YQModule {
     }
   (io.receive.rdata zip io.receive.raddr).foreach(x => x._1 := rregs(x._2))
 
-  private def willWait(rs: Vec[UInt]): Unit =
+  private def willWait(rs: Seq[UInt]): Unit =
     rs.foreach(x => when((x =/= 0.U || io.isAmo) && (
                           x === io.idOut.index && io.idOut.valid ||
                           x === io.exOut.index && io.exOut.valid && io.isLd)) { io.isWait := 1.B })
 
-  private def willWait(rs: UInt): Unit = willWait(VecInit(rs))
+  private def willWait(rs: UInt): Unit = willWait(Seq(rs))
 
   when(!ext('C').B || insCmp === "b11".U) { willWait(insRs) }
   if (ext('C')) when(insCmp === "b00".U) {
@@ -52,9 +52,9 @@ class Bypass(implicit p: Parameters) extends YQModule {
   if (ext('C')) when(insCmp === "b01".U) {
     when(!insCF3(2)) { willWait(insRsc(0)) }
     .elsewhen(insCF3 === "b100".U) {
-      when(insCF2.andR()) { willWait(insRsp) }
+      when(insCF2.andR) { willWait(insRsp) }
       .otherwise { willWait(insRsp(0)) }
-    }.elsewhen(insCF3(2, 1).andR()) { willWait(insRsp(0)) }
+    }.elsewhen(insCF3(2, 1).andR) { willWait(insRsp(0)) }
   }
   if (ext('C')) when(insCmp === "b10".U) {
     when(insCF3(1)) { willWait(2.U); when(insCF3(2)) { willWait(insRsc(1)) } }
