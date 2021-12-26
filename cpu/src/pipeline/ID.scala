@@ -150,32 +150,30 @@ class ID(implicit p: Parameters) extends YQModule {
   private val useRaddr2 = (io.input.instrCode === "b1100111".U) || (ext('C').B && io.input.instrCode === "b10".U && wireFunct3c === "b100".U && wireInstr(11, 7) =/= 0.U)
   private val isCJR = io.input.instrCode === "b0000010".U && wireFunct3c === "b100".U
 
-  for (i <- wireNum.indices) wireNum(i) := Mux1H((Seq(
-    NumTypes.rs1  -> io.gprsR.rdata(0),
-    NumTypes.rs2  -> io.gprsR.rdata(1),
-    NumTypes.imm  -> wireImm,
-    NumTypes.four -> 4.U,
-    NumTypes.non  -> 0.U,
-    NumTypes.pc   -> io.input.pc,
-    NumTypes.csr  -> io.csrsR.rdata(0)) ++ (if (ext('C')) Seq(
-    NumTypes.rs1c -> io.gprsR.rdata(0),
-    NumTypes.rs1p -> io.gprsR.rdata(0),
-    NumTypes.rd1c -> Mux(isCJR, io.input.pc, io.gprsR.rdata(0)),
-    NumTypes.rd1p -> io.gprsR.rdata(0),
-    NumTypes.x2   -> io.gprsR.rdata(0),
-    NumTypes.rs2c -> Mux(isCJR, 2.U, io.gprsR.rdata(1)),
-    NumTypes.rs2p -> io.gprsR.rdata(1)) ++ (if (xlen == 32) Seq(
-    NumTypes.two  -> 2.U) else Nil) else Nil)).map(x => (decoded(i + 1) === x._1, x._2)))
+  for (i <- wireNum.indices) wireNum(i) := Mux1H(decoded(i + 1), (Seq(
+    /* non  */ 0.U,
+    /* rs1  */ io.gprsR.rdata(0),
+    /* rs2  */ io.gprsR.rdata(1),
+    /* imm  */ wireImm,
+    /* four */ 4.U,
+    /* pc   */ io.input.pc) ++ (if (!isZmb) Seq(
+    /* csr  */ io.csrsR.rdata(0)) else Nil) ++ (if (ext('C')) Seq(
+    /* rs1c */ io.gprsR.rdata(0),
+    /* rs2c */ Mux(isCJR, 2.U, io.gprsR.rdata(1)),
+    /* rs1p */ io.gprsR.rdata(0),
+    /* rs2p */ io.gprsR.rdata(1),
+    /* rd1c */ Mux(isCJR, io.input.pc, io.gprsR.rdata(0)),
+    /* rd1p */ io.gprsR.rdata(0),
+    /* x2   */ io.gprsR.rdata(0)) ++ (if (xlen == 32) Seq(
+    /* two  */ 2.U) else Nil) else Nil)))
 
   private val immMap = Map(
-    r       -> 0.U(xlen.W),
-    err     -> 0.U(xlen.W),
     i       -> Fill(xlen - 12, wireInstr(31)) ## wireInstr(31, 20),
     u       -> Fill(xlen - 32, wireInstr(31)) ## wireInstr(31, 12) ## 0.U(12.W),
     j       -> Cat(Fill(xlen - 20, wireInstr(31)), wireInstr(19, 12), wireInstr(20), wireInstr(30, 21), 0.B),
     s       -> Fill(xlen - 12, wireInstr(31)) ## wireInstr(31, 25) ## wireInstr(11, 7),
-    b       -> Cat(Fill(xlen - 12, wireInstr(31)), wireInstr(7), wireInstr(30, 25), wireInstr(11, 8), 0.B),
-    c       -> 0.U((xlen - 5).W) ## wireInstr(19, 15)) ++ (if (ext('C')) Map(
+    b       -> Cat(Fill(xlen - 12, wireInstr(31)), wireInstr(7), wireInstr(30, 25), wireInstr(11, 8), 0.B)) ++ (if (!isZmb) Map(
+    c       -> 0.U((xlen - 5).W) ## wireInstr(19, 15)) else Nil) ++ (if (ext('C')) Map(
     cinv    -> 0.U(xlen.W),
     cni     -> 0.U(xlen.W),
     caddi4  -> 0.U((xlen - 10).W) ## wireInstr(10, 7) ## wireInstr(12, 11) ## wireInstr(5) ## wireInstr(6) ## 0.U(2.W),
@@ -194,7 +192,7 @@ class ID(implicit p: Parameters) extends YQModule {
     isCJR                                               -> wireInstr(12)) ++ (if (xlen == 32) Seq(
     (decoded.head === cj)                               -> 1.U
   ) else Nil)) else 0.U)
-  wireImm := Mux1H(immMap.map(x => (decoded.head === x._1, x._2)))
+  wireImm := Mux1H(immMap.map(x => (decoded.head === x._1(RVInstr().instrTypeNum - 1, 0), x._2)))
   wireRd := Fill(5, decoded(6)(0)) & Mux(wireInstr(1, 0).andR() || !ext('C').B, io.input.rd, wireCRd)
 
   io.jmpBch := jmpBch; io.jbAddr := jbAddr

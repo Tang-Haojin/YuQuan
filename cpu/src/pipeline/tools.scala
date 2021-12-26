@@ -54,28 +54,39 @@ object ExecSpecials {
 }
 
 object InstrTypes {
-  val instrTypes: List[UInt] = Enum(18) /*(0 until 18).map(x => (1 << x).U(18.W)).toList*/
-  val i::u::s::r::j::b::c::err::clsp::cssp::cldst::cj::cni::cb::c540::clui::caddi4::cinv::Nil = instrTypes
+  val instrTypes: List[UInt] = (0 until 17).map(x => (1 << x).U(17.W)).toList
+  val i::u::s::j::b::c::err::clsp::cssp::cldst::cj::cni::cb::c540::clui::caddi4::cinv::Nil = instrTypes
+  val r = i
 }
 
 object NumTypes {
-  val numtypes: List[UInt] = Enum(15)
+  val numtypes: List[UInt] = (0 until 15).map(x => (1 << x).U(15.W)).toList
   val non::rs1::rs2::imm::four::pc::csr::rs1c::rs2c::rs1p::rs2p::rd1c::rd1p::x2::two::Nil = numtypes
 }
 
 case class RVInstr()(implicit val p: Parameters) extends CPUParams {
+  val instrTypeNum = if (isZmb) 5 else if (ext('C')) InstrTypes.instrTypes.length else 7
+  val numTypeNum = if (isZmb) 6 else if (ext('C')) NumTypes.numtypes.length else 7
   val table: Array[(BitPat, List[UInt])] = (
     RVI().table ++ (if (!isZmb) Zicsr().table ++ Privileged().table ++ Zifencei().table else Nil) ++
     (if (ext('M')) RVM().table else Nil) ++ (if (ext('A')) RVA().table else Nil) ++
     (if (ext('C')) RVC().table else Nil)
-  ).toArray
+  ).map(x => (x._1,
+    x._2.updated(0, x._2(0)(instrTypeNum - 1, 0))
+    .patch(1, x._2.slice(1, 5).map(_(numTypeNum - 1, 0)), 4)
+  )).toArray
 }
 
 object RVInstrDecoder {
   def apply(instr: UInt)(implicit p: Parameters): Seq[UInt] = {
+    val isZmb = p(GEN_NAME) == "zmb"
     val table = RVInstr().table
     val splitTable = Seq.tabulate(table.head._2.length)(x => table.map(y => (y._1, BitPat(y._2(x)))))
-    val decodeSeq = splitTable zip (Seq(InstrTypes.err) ++ Seq.fill(4)(NumTypes.non) ++ Seq(cpu.component.Operators.nop, 0.B, ExecSpecials.inv)).map(BitPat(_))
+    val decodeSeq = splitTable zip (
+      Seq(if (isZmb) InstrTypes.i(RVInstr().instrTypeNum - 1, 0) else InstrTypes.err) ++
+      Seq.fill(4)(NumTypes.non(RVInstr().numTypeNum - 1, 0)) ++
+      Seq(cpu.component.Operators.nop, 0.B, ExecSpecials.inv)
+    ).map(BitPat(_))
     decodeSeq.map(x => decoder.qmc(instr, TruthTable(x._1, x._2)))
   }
 }

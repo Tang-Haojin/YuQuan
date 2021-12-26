@@ -79,7 +79,7 @@ case class RVI()(implicit val p: Parameters) extends CPUParams {
     LUI   -> List(u   , non , imm , non , non , add , 1.B, norm  ),
     AUIPC -> List(u   , pc  , imm , non , non , add , 1.B, norm  ),
     JAL   -> List(j   , pc  , four, imm , non , add , 1.B, norm  ),
-    JALR  -> List(i   , pc  , four, imm , rs1 , add , 1.B, norm  ),
+    JALR  -> List(i   , pc  , four, imm , non , add , 1.B, norm  ),
     BEQ   -> List(b   , rs1 , rs2 , imm , non , nop , 0.B, norm  ),
     BNE   -> List(b   , rs1 , rs2 , imm , non , nop , 0.B, norm  ),
     BLT   -> List(b   , rs1 , rs2 , imm , non , nop , 0.B, norm  ),
