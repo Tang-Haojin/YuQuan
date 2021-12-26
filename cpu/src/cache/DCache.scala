@@ -26,8 +26,6 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
   private val writingBackAll = RegInit(0.B)
 
   private val ARVALID = RegInit(0.B)
-  private val AWVALID = RegInit(0.B)
-  private val RREADY  = RegInit(0.B)
 
   private val addr       = RegInit(0.U(alen.W))
   private val reqData    = Reg(UInt(xlen.W))
@@ -53,7 +51,7 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
   io.memIO.ar.bits.addr   := memAddr
   io.memIO.ar.valid       := ARVALID
 
-  io.memIO.r.ready := RREADY
+  io.memIO.r.ready := 1.B
 
   private val rbytes = WireDefault(VecInit((0 until Buslen / 8).map { i => io.memIO.r.bits.data(i * 8 + 7, i * 8) }))
 
@@ -185,9 +183,8 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
       when(received === (BurstLen - 1).U) {
         received := 0.U
         state    := answering
-        RREADY   := 0.B
       }.otherwise { received := received + 1.U }
-    }.elsewhen(io.memIO.ar.fire) { ARVALID := 0.B; RREADY := 1.B }
+    }.elsewhen(io.memIO.ar.fire) { ARVALID := 0.B }
     inBuffer(received) := rbytes.asUInt()
     when(received === addrOffset) {
       when(reqRw) { (0 until Buslen / 8).foreach(i => when(reqWMask(i)) { rbytes(i.U(axSize.W)) := reqData(i * 8 + 7, i * 8) }) }

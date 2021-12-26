@@ -160,6 +160,9 @@ class CPU(implicit p: Parameters) extends YQModule with CacheParams with HasGetN
     })
   })
 
+  io.master.r.ready := 1.B
+  io.master.b.ready := 1.B
+
   if (Debug) {
     io.debug.exit     := moduleWB.io.debug.exit
     io.debug.wbPC     := moduleWB.io.debug.pc

@@ -29,8 +29,7 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   private val memAddr    = addr(alen - 1, Offset) ## 0.U(Offset.W)
 
   private val ARVALID = RegInit(0.B)
-  private val RREADY  = RegInit(0.B)
-  ICacheMemIODefault(io.memIO, ARVALID, memAddr, RREADY)
+  ICacheMemIODefault(io.memIO, ARVALID, memAddr)
 
   private val ramValid = SyncReadRegs(1, IndexSize, Associativity)
   private val ramTag   = SyncReadRegs(Tag, IndexSize, Associativity)
@@ -106,9 +105,8 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
         state      := Mux(willDrop, idle, answering)
         fakeAnswer := willDrop
         willDrop   := 0.B
-        RREADY     := 0.B
       }.otherwise { received := received + 1.U }
-    }.elsewhen(io.memIO.ar.fire) { ARVALID := 0.B; RREADY := 1.B }
+    }.elsewhen(io.memIO.ar.fire) { ARVALID := 0.B }
     writeBuffer(received) := io.memIO.r.bits.data
     when(received === addr(Offset - 1, 3)) {
       answerData := (if (ext('C')) Mux1H(Seq.tabulate(4)(i => (addr(2, 1) === i.U) -> (io.memIO.r.bits.data >> (16 * i))))

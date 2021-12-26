@@ -73,7 +73,7 @@ class AXIWMux(implicit p: Parameters) extends YQModule {
   private class InitLinkIn(aw: AXI_BUNDLE_AW, w: AXI_BUNDLE_W, b: AXI_BUNDLE_B) {
     aw.ready    := 0.B
     w.ready     := 0.B
-    b.bits.id   := 0xf.U
+    b.bits.id   := 0.U
     b.valid     := 0.B
     b.bits.resp := 0.U
     b.bits.user := 0.U
@@ -87,7 +87,7 @@ class AXIWMux(implicit p: Parameters) extends YQModule {
     aw.bits.addr   := 0.U
     aw.bits.burst  := 1.U
     aw.bits.cache  := 0.U
-    aw.bits.id     := 0xf.U
+    aw.bits.id     := 0.U
     aw.bits.len    := 0.U
     aw.bits.lock   := 0.U
     aw.bits.prot   := 0.U
@@ -96,12 +96,12 @@ class AXIWMux(implicit p: Parameters) extends YQModule {
     aw.bits.size   := 0.U
     aw.bits.user   := 0.U
     aw.valid       := 0.U
-    w.bits.data    := 0xfade.U
+    w.bits.data    := 0.U
     w.bits.last    := 0.B
     w.bits.strb    := 0.U
     w.bits.user    := 0.U
     w.valid        := 0.B
-    b.ready        := 0.B
+    b.ready        := 1.B
   }
 
   private object InitLinkOut {

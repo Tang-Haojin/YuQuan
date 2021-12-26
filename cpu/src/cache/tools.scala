@@ -47,15 +47,15 @@ class WbBuffer(memIO: AXI_BUNDLE, sendData: UInt, sendAddr: UInt)(implicit val p
   val ready  = RegInit(1.B)
   val valid  = WireDefault(0.B)
   val wbAddr = RegInit(0.U(alen.W))
+  memIO.b.ready := 1.B
   private val AWVALID = RegInit(0.B); memIO.aw.valid := AWVALID
   private val WVALID  = RegInit(0.B); memIO.w .valid := WVALID
-  private val BREADY  = RegInit(0.B); memIO.b .ready := BREADY
   private val sent    = RegInit(0.U(LogBurstLen.W))
 
   private val wireWdata = WireDefault(0.U(xlen.W))
-  private val wdata = WireDefault(VecInit((0 until BlockSize / 8).map { i =>
+  private val wdata = VecInit((0 until BlockSize / 8).map { i =>
     buffer(i * 64 + 63, i * 64)
-  }))
+  })
   memIO.aw.bits.id     := 1.U // 1 for MEM
   memIO.aw.bits.len    := (BurstLen - 1).U // (AWLEN + 1) AXI Burst per AXI Transfer (a.k.a. AXI Beat)
   memIO.aw.bits.size   := axSize.U // 2^(AWSIZE) bytes per AXI Transfer
@@ -81,23 +81,16 @@ class WbBuffer(memIO: AXI_BUNDLE, sendData: UInt, sendAddr: UInt)(implicit val p
       wbAddr  := sendAddr
     }
   }.otherwise {
-    when(memIO.aw.fire) {
-      AWVALID := 0.B
-      when(!WVALID) { BREADY := 1.B }
-    }
+    when(memIO.aw.fire) { AWVALID := 0.B }
     when(memIO.w.fire) {
       wireWdata := wdata(sent)
       when(sent === (BurstLen - 1).U) {
         sent   := 0.U
         WVALID := 0.B
-        BREADY := 1.B
         memIO.w.bits.last := 1.B
       }.otherwise { sent := sent + 1.U }
     }
-    when(memIO.b.fire) {
-      ready  := 1.B
-      BREADY := 0.B
-    }
+    when(memIO.b.fire) { ready := 1.B }
   }
 }
 
@@ -110,13 +103,12 @@ object WbBuffer {
   def apply(memIO: AXI_BUNDLE, sendData: UInt, sendAddr: UInt)(implicit p: Parameters): WbBuffer = new WbBuffer(memIO, sendData, sendAddr)
 }
 
-class PassThrough(readonly: Boolean)(var memIO: AXI_BUNDLE, wbFree: Bool, addr: UInt, wdata: UInt, wstrb: UInt, var rw: Bool, axsize: UInt = log2Ceil(32 / 8).U)(implicit val p: Parameters) extends CPUParams {
+class PassThrough(readonly: Boolean)(memIO: AXI_BUNDLE, wbFree: Bool, addr: UInt, wdata: UInt, wstrb: UInt, var rw: Bool, axsize: UInt = log2Ceil(32 / 8).U)(implicit val p: Parameters) extends CPUParams {
   val ready  = RegInit(1.B)
   val valid  = WireDefault(0.B)
   val finish = RegInit(0.B); finish := 0.B
 
   private val ARVALID = RegInit(1.B)
-  private val RREADY  = RegInit(0.B)
 
   val rdata = Reg(UInt(xlen.W))
 
@@ -127,7 +119,6 @@ class PassThrough(readonly: Boolean)(var memIO: AXI_BUNDLE, wbFree: Bool, addr: 
     if (!readonly) {
       val AWVALID = RegInit(1.B)
       val WVALID  = RegInit(1.B)
-      val BREADY  = RegInit(0.B)
       when(rw) {
         when(wbFree) {
           memIO.aw.valid     := AWVALID
@@ -140,22 +131,13 @@ class PassThrough(readonly: Boolean)(var memIO: AXI_BUNDLE, wbFree: Bool, addr: 
           memIO.w.bits.data := wdata
           memIO.w.bits.strb := wstrb
 
-          memIO.b.ready := BREADY
-
-          when(memIO.aw.fire) {
-            AWVALID := 0.B
-            when(!WVALID) { BREADY := 1.B }
-          }
-          when(memIO.w.fire) {
-            WVALID := 0.B
-            when(!AWVALID || (memIO.aw.fire)) { BREADY := 1.B }
-          }
+          when(memIO.aw.fire) { AWVALID := 0.B }
+          when(memIO.w.fire)  { WVALID  := 0.B }
           when(memIO.b.fire) {
             ready   := 1.B
             finish  := 1.B
             AWVALID := 1.B
             WVALID  := 1.B
-            BREADY  := 0.B
           }
         }
       }
@@ -166,18 +148,12 @@ class PassThrough(readonly: Boolean)(var memIO: AXI_BUNDLE, wbFree: Bool, addr: 
       memIO.ar.bits.size := axsize
       memIO.ar.bits.addr := addr
 
-      memIO.r.ready := RREADY
-
-      when(memIO.ar.fire) {
-        ARVALID := 0.B
-        RREADY  := 1.B
-      }
+      when(memIO.ar.fire) { ARVALID := 0.B }
       when(memIO.r.fire) {
-        ready    := 1.B
-        finish   := 1.B
-        ARVALID  := 1.B
-        RREADY   := 0.B
-        rdata    := memIO.r.bits.data
+        ready   := 1.B
+        finish  := 1.B
+        ARVALID := 1.B
+        rdata   := memIO.r.bits.data
       }
     }
   }
@@ -196,7 +172,7 @@ object PassThrough {
   def apply(readonly: Boolean)(memIO: AXI_BUNDLE, wbFree: Bool, addr: UInt, wdata: UInt, wstrb: UInt, rw: Bool, axsize: UInt = log2Ceil(32 / 8).U)(implicit p: Parameters): PassThrough = new PassThrough(readonly)(memIO, wbFree, addr, wdata, wstrb, rw, axsize)
 }
 
-class ICacheMemIODefault(memIO: AXI_BUNDLE, arValid: Bool, arAddr: UInt, rReady: Bool)(implicit val p: Parameters) extends CPUParams with CacheParams {
+class ICacheMemIODefault(memIO: AXI_BUNDLE, arValid: Bool, arAddr: UInt)(implicit val p: Parameters) extends CPUParams with CacheParams {
   memIO.ar.bits.id     := 0.U // 0 for IF
   memIO.ar.bits.len    := (BurstLen - 1).U // (ARLEN + 1) AXI Burst per AXI Transfer (a.k.a. AXI Beat)
   memIO.ar.bits.size   := axSize.U // 2^(ARSIZE) bytes per AXI Transfer
@@ -210,7 +186,7 @@ class ICacheMemIODefault(memIO: AXI_BUNDLE, arValid: Bool, arAddr: UInt, rReady:
   memIO.ar.valid       := arValid
   memIO.ar.bits.addr   := arAddr
 
-  memIO.r.ready := rReady
+  memIO.r.ready := 1.B
 
   memIO.aw := DontCare
   memIO.w  := DontCare
@@ -222,9 +198,8 @@ object ICacheMemIODefault {
    * @param memIO An [[AXI_BUNDLE]] IO interface
    * @param arValid Default `ARVALID` for AXI
    * @param arAddr Default `ARADDR` for AXI
-   * @param rReady Default `RREADY` for AXI
    */
-  def apply(memIO: AXI_BUNDLE, arValid: Bool, arAddr: UInt, rReady: Bool)(implicit p: Parameters): ICacheMemIODefault = new ICacheMemIODefault(memIO, arValid, arAddr, rReady)
+  def apply(memIO: AXI_BUNDLE, arValid: Bool, arAddr: UInt)(implicit p: Parameters): ICacheMemIODefault = new ICacheMemIODefault(memIO, arValid, arAddr)
 }
 
 class IsClint(addr: UInt)(implicit p: Parameters) {

@@ -24,7 +24,7 @@ class AXIRMux(implicit p: Parameters) extends YQModule {
   private val rrID = RegInit(0.U(1.W)); rrID := ~rrID // Round-Robin policy
   private val regCurrentID = RegInit(0.U(1.W))
   private val currentID = WireDefault(UInt(1.W), rrID)
-  
+
   InitLinkIn (io.axiRaIn0, io.axiRdIn0)
   InitLinkIn (io.axiRaIn1, io.axiRdIn1)
   InitLinkOut(io.axiRaOut, io.axiRdOut)
@@ -62,11 +62,11 @@ class AXIRMux(implicit p: Parameters) extends YQModule {
 
   private class InitLinkIn(ar: AXI_BUNDLE_AR, r: AXI_BUNDLE_R) {
     ar.ready    := 0.B
-    r.bits.id   := 0xf.U
+    r.bits.id   := 0.U
     r.valid     := 0.B
     r.bits.resp := 0.U
     r.bits.user := 0.U
-    r.bits.data := 0xfade.U
+    r.bits.data := 0.U
     r.bits.last := 0.B
   }
 
@@ -78,7 +78,7 @@ class AXIRMux(implicit p: Parameters) extends YQModule {
     ar.bits.addr   := 0.U
     ar.bits.burst  := 1.U
     ar.bits.cache  := 0.U
-    ar.bits.id     := 0xf.U
+    ar.bits.id     := 0.U
     ar.bits.len    := 0.U
     ar.bits.lock   := 0.U
     ar.bits.prot   := 0.U
@@ -87,7 +87,7 @@ class AXIRMux(implicit p: Parameters) extends YQModule {
     ar.bits.size   := 0.U
     ar.bits.user   := 0.U
     ar.valid       := 0.U
-    r.ready        := 0.B
+    r.ready        := 1.B
   }
 
   private object InitLinkOut {
