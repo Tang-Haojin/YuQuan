@@ -89,7 +89,7 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
   private val wbBuffer    = WbBuffer(io.memIO, data(way), preTag(way) ## addrIndex ## 0.U(Offset.W))
   private val passThrough = PassThrough(false)(io.memIO, wbBuffer.ready, addr, reqData, reqWMask, reqRw, reqSize)
 
-  private val inBuffer = Reg(Vec(BurstLen, UInt(Buslen.W)))
+  private val inBuffer = Reg(UInt((BlockSize * 8).W))
 
   private val dwordData = Mux1H(if (isZmb) Seq.tabulate(Associativity)(x =>
     (grp === x.U) -> RegNext(VecInit((0 until BlockSize / 8).map { i =>
@@ -180,12 +180,13 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
   }
   when(state === allocate) {
     when(io.memIO.r.fire) {
+      inBuffer := rbytes.asUInt ## inBuffer(inBuffer.getWidth - 1, rbytes.asUInt.getWidth)
       when(received === (BurstLen - 1).U) {
         received := 0.U
         state    := answering
       }.otherwise { received := received + 1.U }
-    }.elsewhen(io.memIO.ar.fire) { ARVALID := 0.B }
-    inBuffer(received) := rbytes.asUInt()
+    }
+    when(io.memIO.ar.fire) { ARVALID := 0.B }
     when(received === addrOffset) {
       when(reqRw) { (0 until Buslen / 8).foreach(i => when(reqWMask(i)) { rbytes(i.U(axSize.W)) := reqData(i * 8 + 7, i * 8) }) }
       .otherwise { answerData := io.memIO.r.bits.data }

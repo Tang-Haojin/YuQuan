@@ -45,7 +45,7 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   private val data     = ramData .read   (realIndex, 1.B)
 
   private val way = Reg(UInt(log2Ceil(Associativity).W))
-  private val writeBuffer = Reg(Vec(BurstLen, UInt(Buslen.W)))
+  private val writeBuffer = Reg(UInt((BlockSize * 8).W))
   private val wordData = if (ext('C')) VecInit((0 until BlockSize / 2 - 1).map { i =>
     data(grp)(i * 16 + 31, i * 16)
   } :+ 0.U(16.W) ## data(grp)((BlockSize / 2 - 1) * 16 + 15, (BlockSize / 2 - 1) * 16))(addrOffset)
@@ -101,14 +101,15 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   when(state === allocate) {
     when(io.memIO.r.fire) {
       crossBurst := 0.B
+      writeBuffer := io.memIO.r.bits.data ## writeBuffer(writeBuffer.getWidth - 1, io.memIO.r.bits.data.getWidth)
       when(received === (BurstLen - 1).U) {
         received := 0.U
         state    := Mux(willDrop && !isZmb.B, idle, answering)
         if (!isZmb) fakeAnswer := willDrop
         if (!isZmb) willDrop   := 0.B
       }.otherwise { received := received + 1.U }
-    }.elsewhen(io.memIO.ar.fire) { ARVALID := 0.B }
-    writeBuffer(received) := io.memIO.r.bits.data
+    }
+    when(io.memIO.ar.fire) { ARVALID := 0.B }
     when(received === addr(Offset - 1, 3)) {
       answerData := (if (ext('C')) Mux1H(Seq.tabulate(4)(i => (addr(2, 1) === i.U) -> (io.memIO.r.bits.data >> (16 * i))))
                      else Mux(addr(2), io.memIO.r.bits.data(63, 32), io.memIO.r.bits.data(31, 0)))
