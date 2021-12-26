@@ -50,7 +50,7 @@ class ALU(implicit p: Parameters) extends YQModule {
   divTop.io.output.ready := io.output.ready
 
   io.input.ready  := mulTop.io.input.ready && divTop.io.input.ready
-  io.output.valid := 1.B
+  io.output.valid := io.input.fire
 
   when(mulTop.io.input.fire || divTop.io.input.fire) { io.output.valid := 0.B }
   when(!mulTop.io.input.ready) { io.output.valid := mulTop.io.output.valid }
