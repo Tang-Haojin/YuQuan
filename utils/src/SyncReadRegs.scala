@@ -4,7 +4,7 @@ import chisel3._
 import chisel3.util._
 import chipsalliance.rocketchip.config._
 
-private class SyncReadReg(bits: Int = 128, wordDepth: Int = 64)(implicit val p: Parameters) extends Module with PrefixParams {
+private class SyncReadReg(bits: Int = 128, wordDepth: Int = 64, noInit: Boolean = false)(implicit val p: Parameters) extends Module with PrefixParams {
   val io = IO(new Bundle {
     val Q   = Output(UInt(bits.W))
     val WEN = Input (Bool())
@@ -15,19 +15,15 @@ private class SyncReadReg(bits: Int = 128, wordDepth: Int = 64)(implicit val p: 
   })
   override val desiredName = modulePrefix + this.getClass().getSimpleName()
 
-  private val sreg = RegInit(VecInit(Seq.fill(wordDepth)(0.U(bits.W))))
+  private val sreg = if (noInit) Reg(Vec(wordDepth, UInt(bits.W))) else RegInit(VecInit(Seq.fill(wordDepth)(0.U(bits.W))))
   when(io.WEN) { sreg(io.A) := io.D }
-  when(io.RST) { sreg := VecInit(Seq.fill(wordDepth)(0.U(bits.W))) }
+  when(io.RST) { sreg := 0.U.asTypeOf(sreg) }
   io.Q  := RegNext(sreg(io.A))
   io.PQ := sreg(io.A)
 }
 
-private object SyncReadReg {
-  def apply(bits: Int = 128, wordDepth: Int = 64)(implicit p: Parameters): SyncReadReg = Module(new SyncReadReg(bits, wordDepth))
-}
-
-private class SyncReadRegWrapper(bits: Int = 128, wordDepth: Int = 64)(implicit p: Parameters) {
-  private val sregs = SyncReadReg(bits, wordDepth)
+private class SyncReadRegWrapper(bits: Int = 128, wordDepth: Int = 64, noInit: Boolean = false)(implicit p: Parameters) {
+  private val sregs = Module(new SyncReadReg(bits, wordDepth, noInit))
   private val rAddr = WireDefault(0.U(log2Ceil(wordDepth).W))
   private val wAddr = WireDefault(0.U(log2Ceil(wordDepth).W))
 
@@ -52,12 +48,8 @@ private class SyncReadRegWrapper(bits: Int = 128, wordDepth: Int = 64)(implicit 
   def reset: Unit = sregs.io.RST := 1.B
 }
 
-private object SyncReadRegWrapper {
-  def apply(bits: Int = 128, wordDepth: Int = 64)(implicit p: Parameters): SyncReadRegWrapper = new SyncReadRegWrapper(bits, wordDepth)
-}
-
-class SyncReadRegs(bits: Int = 128, wordDepth: Int = 64, associativity: Int = 4)(implicit p: Parameters) {
-  private val Regs = Seq.fill(associativity)(SyncReadRegWrapper(bits, wordDepth))
+class SyncReadRegs(bits: Int = 128, wordDepth: Int = 64, associativity: Int = 4, noInit: Boolean = false)(implicit p: Parameters) {
+  private val Regs = Seq.fill(associativity)(new SyncReadRegWrapper(bits, wordDepth, noInit))
 
   def read(x: UInt, en: Bool = 1.B): Vec[UInt] = VecInit(Seq.tabulate(associativity)(y => Regs(y).read(x, en)))
   def write(idx: UInt, data: UInt, mask: Vec[Bool]): Unit = for (i <- Regs.indices) { Regs(i).write(idx, data, mask(i)) }
@@ -67,5 +59,5 @@ class SyncReadRegs(bits: Int = 128, wordDepth: Int = 64, associativity: Int = 4)
 }
 
 object SyncReadRegs {
-  def apply(bits: Int = 128, wordDepth: Int = 64, associativity: Int = 4)(implicit p: Parameters): SyncReadRegs = new SyncReadRegs(bits, wordDepth, associativity)
+  def apply(bits: Int = 128, wordDepth: Int = 64, associativity: Int = 4, noInit: Boolean = false)(implicit p: Parameters): SyncReadRegs = new SyncReadRegs(bits, wordDepth, associativity, noInit)
 }

@@ -32,7 +32,7 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   ICacheMemIODefault(io.memIO, ARVALID, memAddr)
 
   private val ramValid = SyncReadRegs(1, IndexSize, Associativity)
-  private val ramTag   = SyncReadRegs(Tag, IndexSize, Associativity)
+  private val ramTag   = SyncReadRegs(Tag, IndexSize, Associativity, true)
   private val ramData  = SinglePortRam(clock, BlockSize * 8, IndexSize, Associativity)
 
   private val hit = WireDefault(0.B)
