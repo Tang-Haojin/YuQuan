@@ -36,7 +36,15 @@ VFLAGS += --trace-fst --trace-threads 2
 CFLAGS += -DTRACE
 endif
 
+ZMB ?= 0
+ifeq ($(ZMB),0)
 DIFF ?= 1
+GENNAME = ysyx
+else
+DIFF ?= 0
+GENNAME = zmb
+endif
+
 ifneq ($(DIFF),1)
 else
 LIB_SPIKE = $(LIB_DIR)/librv64spike.so
@@ -94,7 +102,7 @@ clean-all: clean
 	-rm -rf ./out ./difftest/build ./difftest/difftest/build
 
 verilate:
-	mill -i __.sim.runMain Elaborate -td build/sim $(param)
+	mill -i __.sim.runMain Elaborate -td build/sim $(GENNAME) $(param)
 	@cd $(BUILD_DIR)/sim && \
 	verilator $(VFLAGS) --build $(CSRCS) -CFLAGS "$(CFLAGS)" -LDFLAGS "$(LDFLAGS)" >/dev/null
 

@@ -177,8 +177,8 @@ class EX(implicit p: Parameters) extends YQModule {
   }
 
   if (Debug) switch(io.input.special) {
-    is(trap) { wireExit := ExitReasons.trap }
-    is(inv)  { wireExit := ExitReasons.inv  }
+    is(trap) {             wireExit := ExitReasons.trap }
+    is(inv)  { if (!isZmb) wireExit := ExitReasons.inv  }
   }
 
   io.lastVR.READY := io.nextVR.READY && alu.io.input.ready && !invalidateICache && !writebackDCache && scState === idle

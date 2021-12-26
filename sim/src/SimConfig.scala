@@ -8,10 +8,10 @@ import utils._
 import _root_.cpu._
 import _root_.peripheral._
 
-class SimConfig extends Config(SimConfig.basicConfig)
+class SimConfig extends Config(SimConfig.f)
 
 object SimConfig {
-  private val basePartFunc: PartialFunction[Any, Any] = {
+  val f: (View, View, View) => PartialFunction[Any,Any] = (site, here, up) => {
     case XLEN             => 64
     case ALEN             => 32
     case IDLEN            => 4
@@ -22,7 +22,7 @@ object SimConfig {
     case USELOCK          => 0
     case USEREGION        => 0
     case AXIRENAME        => true
-    case EXTENSIONS       => List('I', 'M', 'S', 'A', 'U', 'C')
+    case EXTENSIONS       => site(GEN_NAME) match { case "ysyx" => List('I', 'M', 'S', 'A', 'U', 'C'); case "zmb" => List('I', 'M') }
     case DMAC_MMAP        => new DMAC
     case UART_MMAP        => new UART
     case SIMPLE_PLIC_MMAP => new YQConfig.SIMPLEPLIC
@@ -36,19 +36,16 @@ object SimConfig {
     case REG_CONF         => new YQConfig.RegConf
     case ENABLE_DEBUG     => true
     case TLB_ENTRIES      => 16
-    case VALEN            => 64
-    case USESLAVE         => false
-    case USEPLIC          => true
-    case USECLINT         => true
-    case HANDLEMISALIGN   => true
-    case USEXILINX        => false
+    case VALEN            => site(GEN_NAME) match { case "ysyx" => 64; case "zmb" => 32 }
+    case USESLAVE         => site(GEN_NAME) match { case "ysyx" => true; case "zmb" => false }
+    case USEPLIC          => site(GEN_NAME) match { case "ysyx" => true; case "zmb" => false }
+    case USECLINT         => site(GEN_NAME) match { case "ysyx" => true; case "zmb" => false }
+    case HANDLEMISALIGN   => site(GEN_NAME) match { case "ysyx" => true; case "zmb" => false }
+    case USEXILINX        => site(GEN_NAME) match { case "ysyx" => false; case "zmb" => true }
     case USEPUBRAM        => false
+    case AxSIZE           => log2Ceil(here(XLEN) / 8)
+    case USEFLASH         => false
   }
-
-  val basicConfig: (View, View, View) => PartialFunction[Any, Any] = (site, here, up) => basePartFunc.orElse({
-    case AxSIZE         => log2Ceil(here(XLEN) / 8)
-    case USEFLASH       => false
-  })
 
   class UART extends MMAP {
     override val BASE = 0x10000000L
