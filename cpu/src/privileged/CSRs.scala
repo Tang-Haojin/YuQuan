@@ -4,7 +4,6 @@ import chisel3._
 import chisel3.util._
 import chipsalliance.rocketchip.config._
 
-import utils.Convert._
 import cpu.CPUParams
 import cpu.tools._
 

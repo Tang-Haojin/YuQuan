@@ -5,7 +5,6 @@ import chisel3.util._
 import chipsalliance.rocketchip.config._
 
 import utils._
-import utils.Convert._
 
 import ExecSpecials._
 import cpu.component._
