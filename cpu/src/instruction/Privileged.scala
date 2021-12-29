@@ -8,15 +8,14 @@ import cpu.pipeline.ExecSpecials._
 import cpu.pipeline.InstrTypes._
 import cpu.pipeline.NumTypes._
 import cpu.component.Operators._
-import cpu.tools._
 import cpu._
 
 case class Privileged()(implicit val p: Parameters) extends CPUParams {
-  def MRET       = BitPat("b0011000_00010_00000_000_00000_1110011")
-  def WFI        = BitPat("b0001000_00101_00000_000_00000_1110011")
+  private def MRET       = BitPat("b0011000_00010_00000_000_00000_1110011")
+  private def WFI        = BitPat("b0001000_00101_00000_000_00000_1110011")
 
-  def SRET       = BitPat("b0001000_00010_00000_000_00000_1110011")
-  def SFENCE_VMA = BitPat("b0001001_?????_?????_000_00000_1110011")
+  private def SRET       = BitPat("b0001000_00010_00000_000_00000_1110011")
+  private def SFENCE_VMA = BitPat("b0001001_?????_?????_000_00000_1110011")
 
   val table = List(
     //                |Type|num1 |num2 |num3 |num4 |op1_2| WB |Special|

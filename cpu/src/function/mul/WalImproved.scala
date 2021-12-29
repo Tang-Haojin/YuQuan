@@ -1,6 +1,5 @@
 package cpu.function.mul
 
-import chisel3._
 import chipsalliance.rocketchip.config.Parameters
 import cpu.tools._
 

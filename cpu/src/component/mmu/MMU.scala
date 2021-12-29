@@ -4,7 +4,6 @@ import chisel3._
 import chisel3.util._
 import chipsalliance.rocketchip.config._
 
-import utils._
 import cpu.tools._
 import cpu.cache._
 import cpu.privileged._
@@ -93,8 +92,8 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
     io.memIO.pipelineResult.cause := memCause
   }
 
-  if (ext('S') || ext('C')) io.icacheIO.cpuReq.addr := Mux(isSv39_i, tlb.translate(ifVaddr), ifVaddr.asUInt())
-  if (ext('S') || ext('C')) io.dcacheIO.cpuReq.addr := Mux(isSv39_d, tlb.translate(memVaddr), memVaddr.asUInt())
+  if (ext('S') || ext('C')) io.icacheIO.cpuReq.addr := Mux(isSv39_i, tlb.translate(ifVaddr), ifVaddr.asUInt)
+  if (ext('S') || ext('C')) io.dcacheIO.cpuReq.addr := Mux(isSv39_d, tlb.translate(memVaddr), memVaddr.asUInt)
   if (ext('S')) when(isSv39_i && !tlb.isHit(ifVaddr)) {
     ifDel := 1.B
     ifReady := 0.B
@@ -147,7 +146,7 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
       dcacheValid := 1.B
       io.dcacheIO.cpuReq.addr  := MuxLookup(level, ptePpn ## vaddr.vpn(0), Seq(
         1.U -> ptePpn(43, 9 ) ## vaddr.vpn(1) ## vaddr.vpn(0),
-        2.U -> ptePpn(43, 18) ## vaddr.vpn.asUInt()
+        2.U -> ptePpn(43, 18) ## vaddr.vpn.asUInt
       )) ## 0.U(3.W)
       io.dcacheIO.cpuReq.rw    := 1.B
       io.dcacheIO.cpuReq.wmask := "b11111111".U
@@ -212,7 +211,7 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
       crossCache := 1.B
       io.ifIO.pipelineResult.cpuResult.ready := 0.B
       icacheValid := 0.B
-      crossAddrP := ifVaddr.asUInt()(39 - 1, Offset) + 1.U
+      crossAddrP := ifVaddr.asUInt(39 - 1, Offset) + 1.U
       partialInst := io.icacheIO.cpuResult.data(15, 0)
     }
   }
@@ -242,7 +241,7 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
   when(io.jmpBch) { crossCache := 0.B }
 
   if (Debug) {
-    val memAddr = if (ext('S')) Mux(isSv39_d, tlb.translate(memVaddr), memVaddr.asUInt())(alen - 1, 0)
+    val memAddr = if (ext('S')) Mux(isSv39_d, tlb.translate(memVaddr), memVaddr.asUInt)(alen - 1, 0)
                   else io.memIO.pipelineReq.cpuReq.addr(alen - 1, 0)
     io.ifIO.pipelineResult.isMMIO := DontCare
     io.memIO.pipelineResult.isMMIO := memAddr < DRAM.BASE.U && memAddr >= CLINT.BASE.U

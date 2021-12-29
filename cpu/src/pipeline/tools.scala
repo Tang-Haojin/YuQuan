@@ -11,7 +11,6 @@ import cpu.instruction._
 import cpu.component._
 import cpu.component.mmu._
 import cpu.tools._
-import cpu.cache._
 import cpu._
 
 // EX
@@ -194,7 +193,6 @@ class RdVal(implicit p: Parameters) extends YQBundle {
 }
 
 object ExceptionCode extends Enumeration {
-  import chisel3.internal.firrtl.Width
   val usi,ssi,hsi,msi,uti,sti,hti,mti,uei,sei,hei,mei = Value
   implicit class ExceptionCodeImplicit(x: Value) {
     def U(width: chisel3.internal.firrtl.Width): UInt = x.id.U(width)

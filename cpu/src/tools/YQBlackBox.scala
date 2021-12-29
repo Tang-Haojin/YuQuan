@@ -1,7 +1,6 @@
 package cpu.tools
 
 import chisel3._
-import chisel3.util._
 import chisel3.experimental.Param
 
 import chipsalliance.rocketchip.config._

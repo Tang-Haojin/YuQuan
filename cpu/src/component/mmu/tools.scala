@@ -1,7 +1,6 @@
 package cpu.component.mmu
 
 import chisel3._
-import chisel3.util._
 import chipsalliance.rocketchip.config._
 
 import cpu.tools._

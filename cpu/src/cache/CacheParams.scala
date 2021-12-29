@@ -1,14 +1,11 @@
 package cpu.cache
 
-import chisel3._
 import chisel3.util._
 import chipsalliance.rocketchip.config._
 
-import utils._
-import peripheral._
 import cpu._
 
-abstract trait CacheParams {
+trait CacheParams {
   implicit val p: Parameters
   
   val Buslen        = p(BUSLEN)

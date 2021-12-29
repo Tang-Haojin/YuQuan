@@ -57,8 +57,8 @@ class ALU(implicit p: Parameters) extends YQModule {
   when(!divTop.io.input.ready) { io.output.valid := divTop.io.output.valid }
 
   private val shiftness = if (xlen != 32) Mux(io.input.bits.word, b(4, 0), b(5, 0)) else b(4, 0)
-  private val sl = a.asUInt() << shiftness
-  private val (lessthan, ulessthan) = (a < b, a.asUInt() < b.asUInt())
+  private val sl = a.asUInt << shiftness
+  private val (lessthan, ulessthan) = (a < b, a.asUInt < b.asUInt)
   private val operates = Seq(
     nop  -> a,
     add  -> (a + b),

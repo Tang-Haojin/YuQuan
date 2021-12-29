@@ -1,11 +1,9 @@
 package cpu.cache
 
-import chisel3._
 import chisel3.util._
 import chipsalliance.rocketchip.config._
 
 import utils._
-import peripheral._
 import cpu.GEN_NAME
 
 class CacheConfig extends Config(CacheConfig.f)

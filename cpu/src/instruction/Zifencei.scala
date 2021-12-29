@@ -8,11 +8,10 @@ import cpu.pipeline.NumTypes._
 import cpu.component.Operators._
 import cpu.pipeline.ExecSpecials._
 import cpu.pipeline.InstrTypes._
-import cpu.tools._
 import cpu._
 
 case class Zifencei()(implicit val p: Parameters) extends CPUParams {
-  def FENCE_I = BitPat("b???????_?????_?????_001_?????_0001111")
+  private def FENCE_I = BitPat("b???????_?????_?????_001_?????_0001111")
 
   val table = Array(
     //             |Type|num1 |num2 |num3 |num4 |op1_2| WB |Special|

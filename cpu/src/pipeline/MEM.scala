@@ -5,9 +5,6 @@ import chisel3._
 import chisel3.util._
 import chipsalliance.rocketchip.config._
 
-import utils._
-
-import cpu.cache._
 import cpu.tools._
 
 class MEM(implicit p: Parameters) extends YQModule {

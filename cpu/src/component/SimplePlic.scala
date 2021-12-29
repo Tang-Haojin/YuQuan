@@ -9,7 +9,7 @@ import utils._
 
 class SimplePlicIO extends SimpleRWIO(26, 32)
 
-// only one interrupt on ontext 0 is supported
+// only one interrupt on hart 0 is supported
 class SimplePlic(implicit p: Parameters) extends YQModule {
   val io = IO(new Bundle {
     val plicIO = new SimplePlicIO
@@ -40,11 +40,11 @@ class SimplePlic(implicit p: Parameters) extends YQModule {
     io.plicIO.rdata := UIntToOH(source(4, 0)) & Fill(32, interrupt)
   }
   when(io.plicIO.addr >= SIMPLEPLIC.Enable(0, 0).U(25, 0) && io.plicIO.addr < SIMPLEPLIC.Enable(0, 1).U(25, 0)) {
-    when(io.plicIO.wen) { m_enable := io.plicIO.wdata.orR(); source := io.plicIO.addr(6, 2) ## OHToUInt(io.plicIO.wdata) }
+    when(io.plicIO.wen) { m_enable := io.plicIO.wdata.orR; source := io.plicIO.addr(6, 2) ## OHToUInt(io.plicIO.wdata) }
     io.plicIO.rdata := UIntToOH(source(4, 0)) & Fill(32, m_enable)
   }
   when(io.plicIO.addr >= SIMPLEPLIC.Enable(0, 1).U(25, 0) && io.plicIO.addr < SIMPLEPLIC.Enable(0, 2).U(25, 0)) {
-    when(io.plicIO.wen) { s_enable := io.plicIO.wdata.orR(); source := io.plicIO.addr(6, 2) ## OHToUInt(io.plicIO.wdata) }
+    when(io.plicIO.wen) { s_enable := io.plicIO.wdata.orR; source := io.plicIO.addr(6, 2) ## OHToUInt(io.plicIO.wdata) }
     io.plicIO.rdata := UIntToOH(source(4, 0)) & Fill(32, s_enable)
   }
   when(io.plicIO.addr === SIMPLEPLIC.Threshold(0).U(25, 0)) {

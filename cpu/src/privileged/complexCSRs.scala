@@ -4,7 +4,6 @@ import chisel3._
 import chisel3.util._
 import chipsalliance.rocketchip.config._
 
-import cpu.tools._
 import cpu._
 
 class MstatusBundle(implicit val p: Parameters) extends Bundle with CPUParams {
@@ -64,13 +63,13 @@ class MipBundle(implicit val p: Parameters) extends Bundle with CPUParams {
     if (ext('U')) { UEIP := mip.UEIP; USIP := mip.USIP; UTIP := mip.UTIP }
   }
 
-  def apply(x: Int): Bool = asUInt()(x)
-  def apply(x: Int, y: Int): UInt = asUInt()(x, y)
+  def apply(x: Int): Bool = asUInt(x)
+  def apply(x: Int, y: Int): UInt = asUInt(x, y)
 }
 
 object MipBundle {
   import scala.language.implicitConversions
-  implicit def mip2UInt(x: MipBundle): UInt = x.asUInt()
+  implicit def mip2UInt(x: MipBundle): UInt = x.asUInt
 }
 
 class MieBundle(implicit val p: Parameters) extends Bundle with CPUParams {
@@ -95,9 +94,9 @@ class MieBundle(implicit val p: Parameters) extends Bundle with CPUParams {
     if (ext('U')) { UEIE := mie.UEIE; USIE := mie.USIE; UTIE := mie.UTIE }
   }
 
-  def apply(x: Int): Bool = asUInt()(x)
-  def apply(x: Int, y: Int): UInt = asUInt()(x, y)
-  def apply(x: UInt): Bool = VecInit(Seq.tabulate(12)(asUInt()(_)))(x)
+  def apply(x: Int): Bool = asUInt(x)
+  def apply(x: Int, y: Int): UInt = asUInt(x, y)
+  def apply(x: UInt): Bool = VecInit(Seq.tabulate(12)(asUInt(_)))(x)
 }
 
 class MidelegBundle(implicit val p: Parameters) extends Bundle with CPUParams {
@@ -117,16 +116,16 @@ class MidelegBundle(implicit val p: Parameters) extends Bundle with CPUParams {
     if (ext('U')) { UEI := mideleg.UEI; USI := mideleg.USI; UTI := mideleg.UTI }
   }
 
-  def apply(x: Int): Bool = asUInt()(x)
-  def apply(x: Int, y: Int): UInt = asUInt()(x, y)
-  def apply(x: UInt): Bool = VecInit(Seq.tabulate(12)(asUInt()(_)))(x)
+  def apply(x: Int): Bool = asUInt(x)
+  def apply(x: Int, y: Int): UInt = asUInt(x, y)
+  def apply(x: UInt): Bool = VecInit(Seq.tabulate(12)(asUInt(_)))(x)
 }
 
 class MedelegBundle(implicit val p: Parameters) extends Bundle with CPUParams {
   val medeleg = UInt(xlen.W)
-  def apply(x: Int): Bool = asUInt()(x)
-  def apply(x: Int, y: Int): UInt = asUInt()(x, y)
-  def apply(x: UInt): Bool = VecInit(Seq.tabulate(16)(asUInt()(_)))(x)
+  def apply(x: Int): Bool = asUInt(x)
+  def apply(x: Int, y: Int): UInt = asUInt(x, y)
+  def apply(x: UInt): Bool = VecInit(Seq.tabulate(16)(asUInt(_)))(x)
 }
 
 class Sstatus(val mstatus: MstatusBundle)(implicit val p: Parameters) extends CPUParams {
@@ -182,13 +181,13 @@ class SatpBundle extends Bundle {
 }
 
 class UseSatp(val satp: SatpBundle = null) {
-  def asUInt(): UInt = mode ## 0.U(16.W) ## satp.PPN
+  def asUInt: UInt = mode ## 0.U(16.W) ## satp.PPN
   def :=[T <: Data](that: T): Unit = {
-    satp.mode := MuxLookup(that.asUInt()(63, 60), 0.U, Seq(
+    satp.mode := MuxLookup(that.asUInt(63, 60), 0.U, Seq(
       8.U -> "b10".U,
       9.U -> "b11".U
     ))
-    satp.PPN := that.asUInt()(43, 0)
+    satp.PPN := that.asUInt(43, 0)
   }
   def asTypeOf[T <: Data](that: T) = satp.asTypeOf(that)
   def mode: UInt = satp.mode(1) ## 0.U(2.W) ## satp.mode(0)
@@ -204,5 +203,5 @@ object UseSatp {
     new UseSatp(wireSatp)
   }
   import scala.language.implicitConversions
-  implicit def Satp2UInt(x: UseSatp): UInt = x.asUInt()
+  implicit def Satp2UInt(x: UseSatp): UInt = x.asUInt
 }

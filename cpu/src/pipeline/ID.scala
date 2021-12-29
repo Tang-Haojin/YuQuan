@@ -88,12 +88,12 @@ class ID(implicit p: Parameters) extends YQModule {
   private val wireIsSatp  = WireDefault(0.B)
   private val wireIntr    = if (Debug) WireDefault(0.B) else null
 
-  private val isMemExcept = VecInit(memExcept.map(wireExcept(_))).asUInt().orR()
+  private val isMemExcept = VecInit(memExcept.map(wireExcept(_))).asUInt.orR
 
-  private val lessthan  = io.gprsR.rdata(0).asSInt() <   io.gprsR.rdata(1).asSInt()
-  private val ulessthan = io.gprsR.rdata(0)          <   io.gprsR.rdata(1)
-  private val equal     = io.gprsR.rdata(0)          === io.gprsR.rdata(1)
-  private val willBranch = Mux(!ext('C').B || wireInstr(1, 0).andR(), MuxLookup(wireInstr(14, 12), equal, Seq(
+  private val lessthan  = io.gprsR.rdata(0).asSInt <   io.gprsR.rdata(1).asSInt
+  private val ulessthan = io.gprsR.rdata(0)        <   io.gprsR.rdata(1)
+  private val equal     = io.gprsR.rdata(0)        === io.gprsR.rdata(1)
+  private val willBranch = Mux(!ext('C').B || wireInstr(1, 0).andR, MuxLookup(wireInstr(14, 12), equal, Seq(
     "b001".U -> !equal,
     "b100".U -> lessthan,
     "b101".U -> !lessthan,
@@ -131,7 +131,7 @@ class ID(implicit p: Parameters) extends YQModule {
   io.csrsR.rcsr(8) := csrsAddr.Mepc
   if (ext('S')) io.csrsR.rcsr(9) := csrsAddr.Sepc
 
-  private def hasNumType(numType: UInt): Bool = VecInit(decoded.slice(1, 5).map(_ === numType)).asUInt().orR()
+  private def hasNumType(numType: UInt): Bool = VecInit(decoded.slice(1, 5).map(_ === numType)).asUInt.orR
   private val hasRsType = Seq(NumTypes.rs1, NumTypes.rs2, NumTypes.rs1c, NumTypes.rs2c, NumTypes.rs1p, NumTypes.rs2p, NumTypes.rd1c, NumTypes.rd1p, NumTypes.x2).map(x => x -> hasNumType(x)).toMap
   io.gprsR.raddr(0) := (if (ext('C')) MuxCase(0.U, Seq(
     hasRsType(NumTypes.rs1)  -> wireRs1,
@@ -193,11 +193,11 @@ class ID(implicit p: Parameters) extends YQModule {
     (decoded.head === cj)                               -> 1.U
   ) else Nil)) else 0.U)
   wireImm := Mux1H(immMap.map(x => (decoded.head === x._1(RVInstr().instrTypeNum - 1, 0), x._2)))
-  wireRd := Fill(5, decoded(6)(0)) & Mux(wireInstr(1, 0).andR() || !ext('C').B, io.input.rd, wireCRd)
+  wireRd := Fill(5, decoded(6)(0)) & Mux(wireInstr(1, 0).andR || !ext('C').B, io.input.rd, wireCRd)
 
   io.jmpBch := jmpBch; io.jbAddr := jbAddr
   private val jbCOffset = if (ext('C')) MuxLookup(wireFunct3c(1, 0), immMap(cb), Seq("b01".U -> immMap(cj), "b00".U -> 0.U)) else 0.U
-  private val jbOffset  = Mux(wireInstr(1, 0).andR() || !ext('C').B, MuxLookup(io.input.instrCode(3, 2), immMap(j), Seq("b01".U -> immMap(i), "b00".U -> immMap(b))), jbCOffset)
+  private val jbOffset  = Mux(wireInstr(1, 0).andR || !ext('C').B, MuxLookup(io.input.instrCode(3, 2), immMap(j), Seq("b01".U -> immMap(i), "b00".U -> immMap(b))), jbCOffset)
   private val tmpJbaddr = Mux(useRaddr2, io.gprsR.rdata(2)(valen - 1, 1), io.input.pc(valen - 1, 1)) + jbOffset(valen - 1, 1)
   private val wireJbAddr = WireDefault(UInt(valen.W), tmpJbaddr ## 0.B)
 
@@ -280,7 +280,7 @@ class ID(implicit p: Parameters) extends YQModule {
       wcsr       := wireCsr
       num        := wireNum
       op1_2      := wireOp1_2
-      op1_3      := Mux(wireInstr(1, 0).andR() || !ext('C').B, wireInstr(14, 12), 0.B ## wireInstr(14, 13))
+      op1_3      := Mux(wireInstr(1, 0).andR || !ext('C').B, wireInstr(14, 12), 0.B ## wireInstr(14, 13))
       special    := wireSpecial
       instr      := wireInstr
       wireIsPriv := wirePriv =/= io.currentPriv
@@ -295,11 +295,11 @@ class ID(implicit p: Parameters) extends YQModule {
       pc         := io.input.pc
       jbPend     := 0.B
       jbAddr     := wireJbAddr
-      when(wireJmpBch && wireJbAddr =/= io.input.pc + Mux(wireInstr(1, 0).andR() || !ext('C').B, 4.U, 2.U)) { jmpBch := 1.B; jbPend := 1.B }
+      when(wireJmpBch && wireJbAddr =/= io.input.pc + Mux(wireInstr(1, 0).andR || !ext('C').B, 4.U, 2.U)) { jmpBch := 1.B; jbPend := 1.B }
       if (Debug) {
         rcsr := Mux(wireSpecial === zicsr, wireInstr(31, 20), 0xfff.U)
         intr := wireIntr
-        rvc  := !wireInstr(1, 0).andR()
+        rvc  := !wireInstr(1, 0).andR
       }
     }.otherwise { NVALID := 0.B }
   }.otherwise {
@@ -368,7 +368,7 @@ class ID(implicit p: Parameters) extends YQModule {
       when(io.lastVR.VALID && fire) {
         val mstat   = io.csrsR.rdata(1)(xlen - 1) ## io.currentPriv ## wirePriv ## io.csrsR.rdata(1)(xlen - 6, 0)
         val bad     = (if (ext('C')) 0.B else code === 0.U) | code === 1.U | code === 2.U | code === 3.U | code === 12.U
-        val badAddr = Mux(code === 2.U, Mux(wireInstr(1, 0).andR(), wireInstr, wireInstr(15, 0)), Mux(io.input.crossCache && ext('C').B, io.input.pc + 2.U, io.input.pc))
+        val badAddr = Mux(code === 2.U, Mux(wireInstr(1, 0).andR, wireInstr, wireInstr(15, 0)), Mux(io.input.crossCache && ext('C').B, io.input.pc + 2.U, io.input.pc))
         val Xepc    = Mux1H((Seq("b11".U -> csrsAddr.Mepc) ++ (if (ext('S')) Seq("b01".U -> csrsAddr.Sepc) else Nil) ++ (if (ext('U')) Seq("b00".U -> csrsAddr.Uepc) else Nil)).map(x => (wirePriv === x._1, x._2)))
         val Xcause  = Mux1H((Seq("b11".U -> csrsAddr.Mcause) ++ (if (ext('S')) Seq("b01".U -> csrsAddr.Scause) else Nil) ++ (if (ext('U')) Seq("b00".U -> csrsAddr.Ucause) else Nil)).map(x => (wirePriv === x._1, x._2)))
         val Xtval   = Mux1H((Seq("b11".U -> csrsAddr.Mtval) ++ (if (ext('S')) Seq("b01".U -> csrsAddr.Stval) else Nil) ++ (if (ext('U')) Seq("b00".U -> csrsAddr.Utval) else Nil)).map(x => (wirePriv === x._1, x._2)))

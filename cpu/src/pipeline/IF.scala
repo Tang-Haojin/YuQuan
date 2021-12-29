@@ -5,7 +5,6 @@ import chipsalliance.rocketchip.config._
 
 import utils._
 import cpu._
-import cpu.cache._
 import cpu.tools._
 import cpu.component.mmu._
 
@@ -74,8 +73,8 @@ class IF(implicit p: Parameters) extends YQModule {
     rs(1)      := wireInstr(24, 20)
     rd         := wireInstr(11, 7)
     pc         := regPC
-    wirePC     := regPC + Mux(wireInstr(1, 0).andR() || !ext('C').B, 4.U, 2.U)
-    regPC      := regPC + Mux(wireInstr(1, 0).andR() || !ext('C').B, 4.U, 2.U)
+    wirePC     := regPC + Mux(wireInstr(1, 0).andR || !ext('C').B, 4.U, 2.U)
+    regPC      := regPC + Mux(wireInstr(1, 0).andR || !ext('C').B, 4.U, 2.U)
     except     := io.immu.pipelineResult.exception
     cause      := io.immu.pipelineResult.cause
     crossCache := io.immu.pipelineResult.crossCache

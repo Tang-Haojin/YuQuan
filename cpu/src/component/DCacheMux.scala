@@ -25,6 +25,6 @@ class DCacheMux(implicit p: Parameters) extends YQModule {
   when(state === idle || io.dcacheIO.cpuResult.ready) {
     io.dcacheIO.cpuReq := Mux(io.dmaIO.cpuReq.valid, io.dmaIO.cpuReq, io.cpuIO.cpuReq)
     current := Mux(io.dmaIO.cpuReq.valid, dma, cpu)
-    state := io.dcacheIO.cpuReq.valid.asUInt()
+    state := io.dcacheIO.cpuReq.valid.asUInt
   }
 }
