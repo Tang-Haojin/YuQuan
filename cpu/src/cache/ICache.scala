@@ -45,7 +45,9 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
 
   private val way = Reg(UInt(log2Ceil(Associativity).W))
   private val writeBuffer = Reg(UInt((BlockSize * 8).W))
-  private val wordData = if (ext('C')) VecInit((0 until BlockSize / 2 - 1).map { i =>
+  private val wordData =
+  if (isZmb) VecInit((0 until BlockSize / 4).map { i => writeBuffer(i * 32 + 31, i * 32) })(addrOffset)  
+  else if (ext('C')) VecInit((0 until BlockSize / 2 - 1).map { i =>
     data(grp)(i * 16 + 31, i * 16)
   } :+ 0.U(16.W) ## data(grp)((BlockSize / 2 - 1) * 16 + 15, (BlockSize / 2 - 1) * 16))(addrOffset)
   else VecInit((0 until BlockSize / 4).map { i => data(grp)(i * 32 + 31, i * 32) })(addrOffset)
@@ -79,6 +81,9 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   when(io.cpuIO.cpuReq.valid && state =/= allocate) { addr := Mux(state === passing && !isPeripheral, addr, io.cpuIO.cpuReq.addr) }
   private val revoke = io.jmpBch || io.cpuIO.cpuReq.revoke
 
+  private val needRead = RegInit(0.B)
+  private val lastValid  = RegInit(0.B)
+
   io.inv.ready := 0.B
   when(state === idle) {
     when(io.cpuIO.cpuReq.valid) { state := Mux(isPeripheral, passing, starting) }
@@ -90,12 +95,21 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
     compareHit := VecInit(Seq.tabulate(Associativity)(i => preValid(i) && preTag(i) === addrTag)).reduceTree(_ | _)
     grp := Mux1H(Seq.tabulate(Associativity)(i => (preValid(i) && preTag(i) === addrTag) -> i.U))
     way := MuxLookup(0.B, rand, preValid zip Seq.tabulate(Associativity)(_.U))
+    if (isZmb) needRead := 1.B
   }
   when(state === compare) {
     ARVALID := ~compareHit
     state   := allocate
     hit     := compareHit
     state   := Mux(compareHit, Mux(io.cpuIO.cpuReq.valid, Mux(isPeripheral, passing, starting), idle), allocate)
+    needRead := 0.B
+    // if (isZmb) when(willDrop) { willDrop := 0.B; hit := 0.B }
+    if (isZmb) lastValid := io.cpuIO.cpuReq.valid
+    if (isZmb) when(needRead) { writeBuffer := data(grp) }
+               .otherwise { io.cpuIO.cpuResult.data := wordData; hit := lastValid }
+    if (isZmb) when(compareHit && addr(alen - 1, Offset) === io.cpuIO.cpuReq.addr(alen - 1, Offset)) {
+      state := compare
+    }
   }
   when(state === allocate) {
     when(io.memIO.r.fire) {
@@ -140,6 +154,7 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   when(revoke) {
      when(state <= compare) { ARVALID := 0.B; state := idle }
      .elsewhen(state === allocate || state === answering) { willDrop := 1.B }
+     // if (isZmb) when(state === compare && needRead === 0.B && compareHit) { state := compare; willDrop := 1.B }
   }
 }
 
