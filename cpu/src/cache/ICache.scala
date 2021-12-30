@@ -148,6 +148,7 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
       }
     }.elsewhen(revoke && (!passThrough.ready || !io.cpuIO.cpuReq.valid)) { willDrop := 1.B }
   }
+  io.cpuIO.cpuResult.fastReady := DontCare
 }
 
 object ICache {

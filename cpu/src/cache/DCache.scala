@@ -104,12 +104,13 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
   private val wtag   = addrTag
 
   ramValid.write(addrIndex, wvalid, wen)
-  ramDirty.write(addrIndex, wdirty, wen)
+  ramDirty.write(realIndex, wdirty, wen)
   ramTag  .write(addrIndex, wtag  , wen)
-  ramData .write(addrIndex, wdata , wen, bwe.asUInt)
+  ramData .write(realIndex, wdata , wen, bwe.asUInt)
 
   io.cpuIO.cpuResult.ready := hit
   io.cpuIO.cpuResult.data  := dwordData
+  io.cpuIO.cpuResult.fastReady := (if (isZmb) 0.B else DontCare)
 
   private val useEmpty = RegInit(0.B)
   private val readBack = WireDefault(0.B)
@@ -122,6 +123,8 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
 
   private val plicReadHit = RegInit(0.B)
   private val plicRdata   = RegNext(io.plicIO.rdata)
+
+  private val fastAddr = RegInit(0.U((alen - Offset).W))
 
   when(io.cpuIO.cpuReq.valid && state =/= writeback && state =/= allocate && state =/= backall) {
     addr     := io.cpuIO.cpuReq.addr
@@ -139,6 +142,15 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
       when(isPeripheral) { state := passing }
       if (useClint) when(isClint) { state := clint }
       if (usePlic)  when(isPlic)  { state := plic  }
+      if (isZmb) when(io.cpuIO.cpuReq.rw && io.cpuIO.cpuReq.addr(alen - 1, Offset) === fastAddr) {
+        state := idle
+        io.cpuIO.cpuResult.fastReady := 1.B
+        wen(grp) := 1.B
+        wdirty := 1.B
+        wdata := Fill(BlockSize / 8, io.cpuIO.cpuReq.data)
+        for (i <- 0 until xlen / 8)
+          bwe(io.cpuIO.cpuReq.addr(Offset - 1, log2Ceil(xlen / 8)) ## i.U(log2Ceil(xlen / 8).W)) := io.cpuIO.cpuReq.wmask(i)
+      }
     }.elsewhen(io.wb.valid) { state := backall; addr := 0.U; way := 0.U; writingBackAll := 1.B }
   }
   when(state === starting) {
@@ -154,12 +166,14 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
     hit := compareHit
     when(compareHit) {
       state := idle
-      when(reqRw === 1.U) {
+      if (isZmb) fastAddr := addr(alen - 1, Offset)
+      when(reqRw) {
         wen(grp) := 1.B
         wdirty := 1.B
         wdata := Fill(BlockSize / 8, reqData)
         for (i <- 0 until xlen / 8)
-          bwe(addrOffset ## i.U(log2Ceil(xlen / 8).W)) := reqWMask(i)
+          if (isZmb) bwe(io.cpuIO.cpuReq.addr(Offset - 1, log2Ceil(xlen / 8)) ## i.U(log2Ceil(xlen / 8).W)) := io.cpuIO.cpuReq.wmask(i)
+          else bwe(addrOffset ## i.U(log2Ceil(xlen / 8).W)) := reqWMask(i)
       }
     }.elsewhen(useEmpty || !compDirty(way)) { // have empty cache line or the selected cacheline is clean
       when(wbBufferGo) { readBack := 1.B; grp := way; if (isZmb) state := starting else compareHit := 1.B }
@@ -198,6 +212,10 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
     hit := ~willDrop
     io.cpuIO.cpuResult.data := answerData
     state := idle
+    if (isZmb) {
+      fastAddr := addr(alen - 1, Offset)
+      grp := way
+    }
   }
   when(state === passing) {
     hit := passThrough.finish

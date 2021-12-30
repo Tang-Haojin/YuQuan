@@ -21,8 +21,9 @@ class CpuReq(implicit p: Parameters) extends YQBundle {
 
 // Cache Controller -> CPU
 class CpuResult(datalen: Int = 64)(implicit p: Parameters) extends YQBundle {
-  val data  = UInt(datalen.W)
-  val ready = Bool()
+  val data      = UInt(datalen.W)
+  val ready     = Bool()
+  val fastReady = Bool()
 }
 
 // CPU <-> Cache Controller

@@ -137,7 +137,12 @@ class MEM(implicit p: Parameters) extends YQModule {
       isMem     := 1.B
       rw        := wireRw
       wireData  := VecInit((0 until xlen / 8).map(i => if (i == 0) io.input.data else io.input.data(xlen - 1 - (8 * i), 0) ## 0.U((8 * i).W)))(wireOff)
-      wireRw    := Mux(io.input.isLd, 0.B, 1.B)
+      wireRw    := !io.input.isLd
+      if (isZmb) when(io.dmmu.pipelineResult.cpuResult.fastReady) {
+        NVALID := 1.B
+        LREADY := 1.B
+        isMem  := 0.B
+      }
     }.otherwise {
       NVALID := 1.B
       LREADY := 1.B
