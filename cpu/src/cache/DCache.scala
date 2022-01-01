@@ -29,8 +29,8 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
   private val addr       = RegInit(0.U(alen.W))
   private val reqData    = Reg(UInt(xlen.W))
   private val reqRw      = RegInit(0.B)
-  private val reqSize    = RegInit(0.U(3.W))
-  private val reqWMask   = RegInit(0.U((xlen / 8).W))
+  private val reqSize    = Reg(UInt(3.W))
+  private val reqWMask   = Reg(UInt((xlen / 8).W))
   private val addrOffset = addr(Offset - 1, log2Ceil(xlen / 8))
   private val addrIndex  = addr(Index + Offset - 1, Offset)
   private val addrTag    = addr(alen - 1, Index + Offset)
@@ -52,7 +52,7 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
 
   io.memIO.r.ready := 1.B
 
-  private val rbytes = WireDefault(VecInit((0 until Buslen / 8).map { i => io.memIO.r.bits.data(i * 8 + 7, i * 8) }))
+  private val rbytes = VecInit((0 until Buslen / 8).map { i => io.memIO.r.bits.data(i * 8 + 7, i * 8) })
 
   private val ramValid = SyncReadRegs(0.B        , IndexSize, Associativity)
   private val ramDirty = SyncReadRegs(0.B        , IndexSize, Associativity)

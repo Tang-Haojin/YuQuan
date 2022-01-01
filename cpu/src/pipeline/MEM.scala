@@ -10,22 +10,22 @@ import cpu.tools._
 class MEM(implicit p: Parameters) extends YQModule {
   val io = IO(new MEMIO)
 
-  private val mask    = RegInit(0.U(8.W))
-  private val addr    = RegInit(0.U(valen.W))
-  private val extType = RegInit(0.U(3.W))
+  private val mask    = Reg(UInt(8.W))
+  private val addr    = Reg(UInt(valen.W))
+  private val extType = Reg(UInt(3.W))
 
-  private val rd      = RegInit(0.U(5.W));    io.output.rd     := rd
-  private val data    = RegInit(0.U(xlen.W)); io.output.data   := data
-  private val isWcsr  = RegInit(0.B);         io.output.isWcsr := isWcsr
-  private val wcsr    = RegInit(VecInit(Seq.fill(RegConf.writeCsrsPort)(0xFFF.U(12.W)))); io.output.wcsr    := wcsr
-  private val csrData = RegInit(VecInit(Seq.fill(RegConf.writeCsrsPort)(0.U(xlen.W))));   io.output.csrData := csrData
-  private val retire  = RegInit(0.B)
+  private val rd      = RegInit(0.U(5.W)); io.output.rd     := rd
+  private val data    = Reg(UInt(xlen.W)); io.output.data   := data
+  private val isWcsr  = RegInit(0.B);      io.output.isWcsr := isWcsr
+  private val wcsr    = Reg(Vec(RegConf.writeCsrsPort, UInt(12.W)));   io.output.wcsr    := wcsr
+  private val csrData = Reg(Vec(RegConf.writeCsrsPort, UInt(xlen.W))); io.output.csrData := csrData
+  private val retire  = Reg(Bool())
   private val priv    = RegInit("b11".U(2.W))
   private val isPriv  = RegInit(0.B)
   private val isSatp  = RegInit(0.B)
   private val isWfe   = RegInit(0.B)
-  private val cause   = RegInit(0.U(4.W))
-  private val pc      = RegInit(0.U(valen.W))
+  private val cause   = Reg(UInt(4.W))
+  private val pc      = Reg(UInt(valen.W))
   private val except  = RegInit(0.B)
   private val flush   = if (ext('S')) RegInit(0.B) else null
   private val exit    = if (Debug) RegInit(0.U(3.W)) else null
@@ -52,16 +52,11 @@ class MEM(implicit p: Parameters) extends YQModule {
   private val wireFsh  = if (ext('S')) WireDefault(Bool(), flush) else null
 
   private val shiftRdata = VecInit((0 until 8).map(i => io.dmmu.pipelineResult.cpuResult.data >> (8 * i)))(offset)
-  private val extRdata   = VecInit((0 until 7).map {
-    case 0 => Fill(xlen - 8 , shiftRdata(7 )) ## shiftRdata(7 , 0)
-    case 1 => Fill(xlen - 16, shiftRdata(15)) ## shiftRdata(15, 0)
-    case 2 => Fill(xlen - 32, shiftRdata(31)) ## shiftRdata(31, 0)
-    case 4 => shiftRdata(7 , 0)
-    case 5 => shiftRdata(15, 0)
-    case 6 => shiftRdata(31, 0)
-    case 3 if xlen >= 64 => shiftRdata(63, 0)
-    case _ => 0.U(xlen.W)
-  })(extType)
+  private val extRdata   = MuxLookup(extType(1, 0), shiftRdata(xlen - 1, 0), Seq(
+    0.U -> Fill(xlen - 8 , ~extType(2) & shiftRdata(7 )) ## shiftRdata(7 , 0),
+    1.U -> Fill(xlen - 16, ~extType(2) & shiftRdata(15)) ## shiftRdata(15, 0),
+    2.U -> Fill(xlen - 32, ~extType(2) & shiftRdata(31)) ## shiftRdata(31, 0)
+  ))
 
   private val rawStrb = VecInit((0 until 4).map { i => Fill(pow(2, i).round.toInt, 1.B) })(io.input.mask)
 
@@ -85,7 +80,6 @@ class MEM(implicit p: Parameters) extends YQModule {
     LREADY    := 1.B
     isMem     := 0.B
     wireIsMem := 0.B
-    rw        := 0.B
     if (ext('S')) flush := 0.B
     when(!rw) { data := extRdata }
     when(io.dmmu.pipelineResult.exception) {
@@ -97,7 +91,6 @@ class MEM(implicit p: Parameters) extends YQModule {
     NVALID    := 0.B // flush invalid instructions
     isMem     := 0.B
     wireIsMem := 0.B
-    rw        := 0.B
   }.elsewhen(io.lastVR.VALID && io.lastVR.READY) {
     rd       := io.input.rd
     wireAddr := io.input.addr
