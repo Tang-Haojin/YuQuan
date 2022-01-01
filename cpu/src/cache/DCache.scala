@@ -63,6 +63,9 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
   private val grp = Reg(UInt(log2Ceil(Associativity).W))
   private val wen = WireDefault(VecInit(Seq.fill(Associativity)(0.B)))
   private val bwe = WireDefault(VecInit(Seq.fill(BlockSize)(0.B)))
+  for (i <- 0 until xlen / 8)
+    if (isZmb) bwe(io.cpuIO.cpuReq.addr(Offset - 1, log2Ceil(xlen / 8)) ## i.U(log2Ceil(xlen / 8).W)) := io.cpuIO.cpuReq.wmask(i)
+    else bwe(addrOffset ## i.U(log2Ceil(xlen / 8).W)) := reqWMask(i)
 
   private val preValid = ramValid.preRead(addrIndex, 1.B)
   private val preDirty = ramDirty.preRead(addrIndex, 1.B)
@@ -98,9 +101,9 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
       data(x)(i * 64 + 63, i * 64)
   })(addrOffset)))
 
-  private val wdata  = WireDefault(UInt((8 * BlockSize).W), inBuffer.asUInt)
+  private val wdata  = WireDefault(UInt((8 * BlockSize).W), inBuffer)
   private val wvalid = 1.B
-  private val wdirty = WireDefault(0.B)
+  private val wdirty = WireDefault(Bool(), reqRw)
   private val wtag   = addrTag
 
   ramValid.write(addrIndex, wvalid, wen)
@@ -141,24 +144,23 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
   io.wb.ready := 0.B
   when(state === idle) {
     willDrop := 0.B
+    if (isZmb) {
+      answerData := inBuffer.asTypeOf(Vec(BlockSize / 8, UInt(xlen.W)))(io.cpuIO.cpuReq.addr(Offset - 1, log2Ceil(xlen / 8)))
+      wdirty := 1.B
+      wdata := Fill(BlockSize / 8, io.cpuIO.cpuReq.data)
+    }
     when(io.cpuIO.cpuReq.valid) {
       state := starting
       when(isPeripheral) { state := passing }
       if (useClint) when(isClint) { state := clint }
       if (usePlic)  when(isPlic)  { state := plic  }
       if (isZmb) when(io.cpuIO.cpuReq.addr(alen - 1, Offset) === fastAddr) {
+        when(fastReadOK) { fastReadHit := 1.B }
         when(io.cpuIO.cpuReq.rw) {
           state := idle
           io.cpuIO.cpuResult.fastReady := 1.B
-          wdirty := 1.B
-          wdata := Fill(BlockSize / 8, io.cpuIO.cpuReq.data)
           wen(grp) := 1.B
-          for (i <- 0 until xlen / 8)
-            bwe(io.cpuIO.cpuReq.addr(Offset - 1, log2Ceil(xlen / 8)) ## i.U(log2Ceil(xlen / 8).W)) := io.cpuIO.cpuReq.wmask(i)
           fastReadOK := 0.B
-        }.elsewhen(fastReadOK) {
-          answerData := inBuffer.asTypeOf(Vec(BlockSize / 8, UInt(xlen.W)))(io.cpuIO.cpuReq.addr(Offset - 1, log2Ceil(xlen / 8)))
-          fastReadHit := 1.B
         }
       }
     }.elsewhen(io.wb.valid) { state := backall; addr := 0.U; way := 0.U; writingBackAll := 1.B }
@@ -184,14 +186,9 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
       state := idle
       if (isZmb) fastAddr := addr(alen - 1, Offset)
       if (isZmb) fastReadOK := 0.B
-      when(reqRw) {
-        wen(grp) := 1.B
-        wdirty := 1.B
-        wdata := Fill(BlockSize / 8, reqData)
-        for (i <- 0 until xlen / 8)
-          if (isZmb) bwe(io.cpuIO.cpuReq.addr(Offset - 1, log2Ceil(xlen / 8)) ## i.U(log2Ceil(xlen / 8).W)) := io.cpuIO.cpuReq.wmask(i)
-          else bwe(addrOffset ## i.U(log2Ceil(xlen / 8).W)) := reqWMask(i)
-      }
+      wdirty := 1.B
+      wdata := Fill(BlockSize / 8, reqData)
+      when(reqRw) { wen(grp) := 1.B }
     }.elsewhen(useEmpty || !compDirty(way)) { // have empty cache line or the selected cacheline is clean
       when(wbBufferGo) { readBack := 1.B; grp := way; if (isZmb) state := starting else compareHit := 1.B }
       .otherwise { ARVALID := 1.B; state := allocate }
@@ -218,14 +215,13 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
     }
     when(io.memIO.ar.fire) { ARVALID := 0.B }
     when(received === addrOffset) {
+      answerData := io.memIO.r.bits.data
       when(reqRw) { (0 until Buslen / 8).foreach(i => when(reqWMask(i)) { rbytes(i.U(axSize.W)) := reqData(i * 8 + 7, i * 8) }) }
-      .otherwise { answerData := io.memIO.r.bits.data }
     }
   }
   when(state === answering) {
     wen(way) := 1.B
     bwe.foreach(_ := 1.B)
-    wdirty := reqRw
     hit := ~willDrop
     io.cpuIO.cpuResult.data := answerData
     state := idle
