@@ -37,7 +37,7 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
   private val memAddr    = addr(alen - 1, Offset) ## 0.U(Offset.W)
   private val realIndex  = Mux(state === idle && isZmb.B, io.cpuIO.cpuReq.addr(Index + Offset - 1, Offset), addrIndex)
 
-  io.memIO.ar.bits.id     := 1.U // 1 for MEM
+  io.memIO.ar.bits.id     := 0.U
   io.memIO.ar.bits.len    := (BurstLen - 1).U // (ARLEN + 1) AXI Burst per AXI Transfer (a.k.a. AXI Beat)
   io.memIO.ar.bits.size   := axSize.U // 2^(ARSIZE) bytes per AXI Transfer
   io.memIO.ar.bits.burst  := 1.U // 1 for INCR type

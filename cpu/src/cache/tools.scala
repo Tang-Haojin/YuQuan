@@ -57,7 +57,7 @@ class WbBuffer(memIO: AXI_BUNDLE, sendData: UInt, sendAddr: UInt)(implicit val p
   private val wdata = VecInit((0 until BlockSize / 8).map { i =>
     buffer(i * 64 + 63, i * 64)
   })
-  memIO.aw.bits.id     := 1.U // 1 for MEM
+  memIO.aw.bits.id     := 0.U
   memIO.aw.bits.len    := (BurstLen - 1).U // (AWLEN + 1) AXI Burst per AXI Transfer (a.k.a. AXI Beat)
   memIO.aw.bits.size   := axSize.U // 2^(AWSIZE) bytes per AXI Transfer
   memIO.aw.bits.burst  := 1.U // 1 for INCR type
@@ -174,7 +174,7 @@ object PassThrough {
 }
 
 class ICacheMemIODefault(memIO: AXI_BUNDLE, arValid: Bool, arAddr: UInt)(implicit val p: Parameters) extends CPUParams with CacheParams {
-  memIO.ar.bits.id     := 0.U // 0 for IF
+  memIO.ar.bits.id     := 0.U
   memIO.ar.bits.len    := (BurstLen - 1).U // (ARLEN + 1) AXI Burst per AXI Transfer (a.k.a. AXI Beat)
   memIO.ar.bits.size   := axSize.U // 2^(ARSIZE) bytes per AXI Transfer
   memIO.ar.bits.burst  := 1.U // 1 for INCR type
