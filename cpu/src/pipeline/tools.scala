@@ -84,7 +84,7 @@ object RVInstrDecoder {
     val decodeSeq = splitTable zip (
       Seq(if (isZmb) InstrTypes.i(RVInstr().instrTypeNum - 1, 0) else InstrTypes.err) ++
       Seq.fill(4)(NumTypes.non(RVInstr().numTypeNum - 1, 0)) ++
-      Seq(cpu.component.Operators.nop, 0.B, ExecSpecials.inv)
+      Seq(cpu.component.Operators.nop, 0.B, if (isZmb) ExecSpecials.norm else ExecSpecials.inv)
     ).map(BitPat(_))
     decodeSeq.map(x => decoder.qmc(instr, TruthTable(x._1, x._2)))
   }
