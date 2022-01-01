@@ -45,14 +45,15 @@ class DivTop(implicit p: Parameters) extends YQModule {
       when(io.input.bits.dividend(xlen - 1)) { A := -io.input.bits.dividend ## 0.B }
       when(io.input.bits.divisor (xlen - 1)) { d := -io.input.bits.divisor }
     }
-	  when(io.input.fire) { state := Mux(io.input.bits.divisor === 0.U, ending, preskip) }
+	  when(io.input.fire) { state := Mux(io.input.bits.divisor === 0.U, ending, skipping) }
   }
-  when(state === preskip) {
+  when(state === skipping) {
     val skip = (xlen.U | Log2(d)) - Log2(A(xlen, 0))
-    n := Mux(skip > (xlen - 1).U, (xlen - 1).U, skip)
-    state := Mux(skip === 0.U, busy, skipping)
+    val realSkip = Mux(skip > (xlen - 1).U, (xlen - 1).U, skip)
+    A := A << realSkip
+    n := realSkip
+    state := busy
   }
-  when(state === skipping) { A := A << n; state := busy }
   when(state === busy) {
     A := Mux(hi >= d, hi(xlen - 1, 0) - d(xlen - 1, 0), hi(xlen - 1, 0)) ## lo ## (hi >= d)
     n := n + 1.U
