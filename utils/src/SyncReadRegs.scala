@@ -38,7 +38,7 @@ private class SyncReadRegWrapper[T <: Data](bits: T = UInt(128.W), wordDepth: In
     wAddr        := idx
     sregs.io.WEN := wen
     sregs.io.D   := data
-    when(!sregs.io.WEN) { sregs.io.A := wAddr }
+    when(sregs.io.WEN) { sregs.io.A := wAddr }
   }
 
   def preRead: T = sregs.io.PQ

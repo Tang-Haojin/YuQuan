@@ -26,6 +26,10 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
 
   private val ARVALID = RegInit(0.B)
 
+  private val fastAddr = RegInit(0.U((alen - Offset).W))
+  private val fastReadOK = RegInit(0.B); if (isZmb) fastReadOK := 1.B
+  private val fastReadHit = RegInit(0.B); if (isZmb) fastReadHit := 0.B
+
   private val addr       = RegInit(0.U(alen.W))
   private val reqData    = Reg(UInt(xlen.W))
   private val reqRw      = RegInit(0.B)
@@ -33,7 +37,7 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
   private val reqWMask   = Reg(UInt((xlen / 8).W))
   private val addrOffset = addr(Offset - 1, log2Ceil(xlen / 8))
   private val addrIndex  = addr(Index + Offset - 1, Offset)
-  private val addrTag    = addr(alen - 1, Index + Offset)
+  private val addrTag    = Mux(state === idle && isZmb.B, fastAddr(alen - Offset - 1, Index), addr(alen - 1, Index + Offset))
   private val memAddr    = addr(alen - 1, Offset) ## 0.U(Offset.W)
   private val realIndex  = Mux(state === idle && isZmb.B, io.cpuIO.cpuReq.addr(Index + Offset - 1, Offset), addrIndex)
 
@@ -108,7 +112,7 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
 
   ramValid.write(addrIndex, wvalid, wen)
   ramDirty.write(realIndex, wdirty, wen)
-  ramTag  .write(addrIndex, wtag  , wen)
+  ramTag  .write(realIndex, wtag  , wen)
   ramData .write(realIndex, wdata , wen, bwe.asUInt)
 
   io.cpuIO.cpuResult.ready := hit
@@ -126,10 +130,6 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
 
   private val plicReadHit = RegInit(0.B)
   private val plicRdata   = RegNext(io.plicIO.rdata)
-
-  private val fastAddr = RegInit(0.U((alen - Offset).W))
-  private val fastReadOK = RegInit(0.B); if (isZmb) fastReadOK := 1.B
-  private val fastReadHit = RegInit(0.B); if (isZmb) fastReadHit := 0.B
 
   if (isZmb) when(!fastReadOK) { inBuffer := data(grp) }
 
