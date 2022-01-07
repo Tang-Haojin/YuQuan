@@ -266,6 +266,14 @@ class ID(implicit p: Parameters) extends YQModule {
     }
     when(io.revAmo) { amoStat := idle }
   }
+  if (isZmb) when(decoded(7) === trap) {
+    wireSpecial := norm
+    when(io.nextVR.READY && io.nextVR.VALID) {
+      when(io.gprsR.rdata(0) === 0.U) { printf("HIT GOOD TRAP\n") }
+      .otherwise { printf("HIT BAD TRAP\n") }
+      assert(0.B)
+    }
+  }
 
   when(io.input.except) { wireExcept(io.input.cause) := 1.B }
   if (!isZmb) HandleException()

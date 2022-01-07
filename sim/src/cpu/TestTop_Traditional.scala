@@ -22,6 +22,7 @@ class TestTop_Traditional(io: DEBUG, clock: Clock, reset: Reset)(implicit val p:
   val spi       = Module(new AxiFlash)
   val sd        = Module(new SDCard)
   val nemu_uart = Module(new Nemu_Uart)
+  val zmb_uart  = Module(new Zmb_Uart)
   val dmac      = Module(new DMAC)
   val router    = Module(new ROUTER)
 
@@ -34,6 +35,7 @@ class TestTop_Traditional(io: DEBUG, clock: Clock, reset: Reset)(implicit val p:
   router.io.UartIO      <> uart.io.channel
   router.io.SpiIO       <> spi.io.channel
   router.io.Nemu_UartIO <> nemu_uart.io.channel
+  router.io.Zmb_UartIO  <> zmb_uart.io.channel
   router.io.Dmac        <> dmac.io.fromCPU.channel
   router.io.SdIO        <> sd.io.channel
 
@@ -47,6 +49,8 @@ class TestTop_Traditional(io: DEBUG, clock: Clock, reset: Reset)(implicit val p:
   spi.io.basic.ARESETn          := !reset.asBool
   nemu_uart.io.basic.ACLK       := clock
   nemu_uart.io.basic.ARESETn    := !reset.asBool
+  zmb_uart.io.basic.ACLK        := clock
+  zmb_uart.io.basic.ARESETn     := !reset.asBool
   dmac.io.fromCPU.basic.ACLK    := clock
   dmac.io.fromCPU.basic.ARESETn := !reset.asBool
   sd.io.basic.ACLK              := clock

@@ -27,6 +27,7 @@ object SimConfig {
     case UART_MMAP        => new UART
     case SIMPLE_PLIC_MMAP => new YQConfig.SIMPLEPLIC
     case NEMU_UART_MMAP   => new NEMU_UART
+    case ZMB_UART_MMAP    => new ZMB_UART
     case SD_CARD_MMAP     => new SD_CARD
     case CLINT_MMAP       => new YQConfig.CLINT
     case DRAM_MMAP        => new YQConfig.DRAM
@@ -71,6 +72,11 @@ object SimConfig {
     override val SIZE = 0x1000L
   }
 
+  class ZMB_UART extends MMAP {
+    override val BASE = 0x40600000L
+    override val SIZE = 0x1000L
+  }
+
   def apply(): SimConfig = new SimConfig
 }
 
@@ -78,3 +84,4 @@ case object DMAC_MMAP      extends Field[SimConfig.DMAC]
 case object NEMU_UART_MMAP extends Field[SimConfig.NEMU_UART]
 case object SD_CARD_MMAP   extends Field[SimConfig.SD_CARD]
 case object UART_MMAP      extends Field[SimConfig.UART]
+case object ZMB_UART_MMAP  extends Field[SimConfig.ZMB_UART]

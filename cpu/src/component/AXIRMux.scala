@@ -60,37 +60,16 @@ class AXIRMux(implicit p: Parameters) extends YQModule {
     }
   }
 
-  private class InitLinkIn(ar: AXI_BUNDLE_AR, r: AXI_BUNDLE_R) {
-    ar.ready    := 0.B
-    r.bits.id   := 0.U
-    r.valid     := 0.B
-    r.bits.resp := 0.U
-    r.bits.user := 0.U
-    r.bits.data := 0.U
-    r.bits.last := 0.B
+  private case class InitLinkIn(ar: AXI_BUNDLE_AR, r: AXI_BUNDLE_R) {
+    r.bits   := 0.U.asTypeOf(r.bits)
+    r.valid  := 0.B
+    ar.ready := 0.B
   }
 
-  private object InitLinkIn {
-    def apply(ar: AXI_BUNDLE_AR, r: AXI_BUNDLE_R): InitLinkIn = new InitLinkIn(ar, r)
-  }
-
-  private class InitLinkOut(ar: AXI_BUNDLE_AR, r: AXI_BUNDLE_R) {
-    ar.bits.addr   := 0.U
-    ar.bits.burst  := 1.U
-    ar.bits.cache  := 0.U
-    ar.bits.id     := 0.U
-    ar.bits.len    := 0.U
-    ar.bits.lock   := 0.U
-    ar.bits.prot   := 0.U
-    ar.bits.qos    := 0.U
-    ar.bits.region := 0.U
-    ar.bits.size   := 0.U
-    ar.bits.user   := 0.U
-    ar.valid       := 0.U
-    r.ready        := 1.B
-  }
-
-  private object InitLinkOut {
-    def apply(ar: AXI_BUNDLE_AR, r: AXI_BUNDLE_R): InitLinkOut = new InitLinkOut(ar, r)
+  private case class InitLinkOut(ar: AXI_BUNDLE_AR, r: AXI_BUNDLE_R) {
+    ar.bits       := 0.U.asTypeOf(ar.bits)
+    ar.bits.burst := 1.U
+    ar.valid      := 0.U
+    r.ready       := 1.B
   }
 }

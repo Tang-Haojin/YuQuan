@@ -9,7 +9,7 @@ import peripheral._
 import cpu.tools._
 import sim._
 
-class Nemu_Uart(implicit val p: Parameters) extends RawModule with SimParams {
+class Zmb_Uart(implicit val p: Parameters) extends RawModule with SimParams {
   val io = IO(new AxiSlaveIO)
 
   io.channel.b.bits.resp := 0.U
@@ -28,8 +28,8 @@ class Nemu_Uart(implicit val p: Parameters) extends RawModule with SimParams {
 
     val RID    = RegInit(0.U(idlen.W)); io.channel.r.bits.id := RID
     val BID    = RegInit(0.U(idlen.W)); io.channel.b.bits.id := BID
-    val ARADDR = RegInit(0.U(3.W))
-    val AWADDR = RegInit(0.U(3.W))
+    val ARADDR = RegInit(0.U(4.W))
+    val AWADDR = RegInit(0.U(4.W))
 
     val wireARADDR = WireDefault(UInt(3.W), ARADDR)
 
@@ -54,7 +54,7 @@ class Nemu_Uart(implicit val p: Parameters) extends RawModule with SimParams {
     }
 
     when(io.channel.w.fire) {
-      printf("%c", io.channel.w.bits.data(7, 0))
+      when(AWADDR =/= 12.U) { printf("%c", io.channel.w.bits.data(39, 32)) }
       WREADY := 0.B
       BVALID := 1.B
     }
