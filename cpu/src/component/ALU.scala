@@ -56,9 +56,24 @@ class ALU(implicit p: Parameters) extends YQModule {
   when(!mulTop.io.input.ready) { io.output.valid := mulTop.io.output.valid }
   when(!divTop.io.input.ready) { io.output.valid := divTop.io.output.valid }
 
+  private val (cpop_hi, cpop_lo) = (a(xlen - 1, 32).countHigh, a(31, 0).countHigh)
+  private val cpop_hi_lo = cpop_hi +& cpop_lo
+  private val cpop_ans = Mux(io.input.bits.word || (xlen == 32).B, cpop_lo, cpop_hi_lo)
+
   private val shiftness = if (xlen != 32) Mux(io.input.bits.word, b(4, 0), b(5, 0)) else b(4, 0)
   private val sl = a.asUInt << shiftness
   private val (lessthan, ulessthan) = (a < b, a.asUInt < b.asUInt)
+
+  private def replicating(num: Int, str: String)(originalString: String = str): String = num match {
+    case 0 => ""
+    case 1 => str
+    case _ => replicating(num - 1, str + originalString)(originalString)
+  }
+  private val ctzMapping = (0 to xlen).map(i =>
+    BitPat("b" + replicating(xlen - i, "?")() + replicating(i, "0")()) -> i.U(log2Ceil(xlen + 1).W)
+  ).reverse
+  private val ctz_ans = Lookup(a.asUInt, 0.U(log2Ceil(xlen + 1).W), ctzMapping)
+
   private val operates = Seq(
     nop  -> a,
     add  -> (a + b),
@@ -87,7 +102,9 @@ class ALU(implicit p: Parameters) extends YQModule {
     divw -> (divTop.io.output.bits.quotient(31, 0).asSInt),
     remw -> (divTop.io.output.bits.remainder(31, 0).asSInt),
     duw  -> (divTop.io.output.bits.quotient(31, 0).asSInt),
-    ruw  -> (divTop.io.output.bits.remainder(31, 0).asSInt)) else Nil
+    ruw  -> (divTop.io.output.bits.remainder(31, 0).asSInt)) else Nil) ++ (if (ext('B')) Seq(
+    cpop -> (0.U((xlen - cpop_ans.getWidth).W) ## cpop_ans).asSInt,
+    ctz  -> (0.U((xlen - ctz_ans.getWidth).W) ## ctz_ans).asSInt) else Nil
   )
   result := Mux1H(operates.map(x => (io.input.bits.op === x._1, x._2)))
 
@@ -95,11 +112,11 @@ class ALU(implicit p: Parameters) extends YQModule {
 }
 
 object Operators {
-  val quantity = 28
+  val quantity = 30
   val nop::add::sub::and::or::xor::sll::sra::Nil = Seq.tabulate(8)(x => (1 << x).U(quantity.W))
   val srl::lts::ltu::sllw::srlw::sraw::mul::divw::Nil = Seq.tabulate(8)(x => (1 << (x + 8)).U(quantity.W))
   val remw::rem::div::remu::divu::mulh::duw::ruw::Nil = Seq.tabulate(8)(x => (1 << (x + 16)).U(quantity.W))
-  val max::min::maxu::minu::Nil = Seq.tabulate(4)(x => (1 << (x + 24)).U(quantity.W))
+  val max::min::maxu::minu::cpop::ctz::Nil = Seq.tabulate(6)(x => (1 << (x + 24)).U(quantity.W))
   val (lr, sc) = (sll, sra)
   val muldivMask = (for { i <- 0 until quantity
     if (1 << i >= mul.litValue && 1 << i <= ruw.litValue)

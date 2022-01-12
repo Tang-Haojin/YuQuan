@@ -69,7 +69,7 @@ case class RVInstr()(implicit val p: Parameters) extends CPUParams {
   val table: Array[(BitPat, List[UInt])] = (
     RVI().table ++ (if (!isZmb) Zicsr().table ++ Privileged().table ++ Zifencei().table else Nil) ++
     (if (ext('M')) RVM().table else Nil) ++ (if (ext('A')) RVA().table else Nil) ++
-    (if (ext('C')) RVC().table else Nil)
+    (if (ext('C')) RVC().table else Nil) ++ (if (ext('B')) Zbb().table else Nil)
   ).map(x => (x._1,
     x._2.updated(0, x._2(0)(instrTypeNum - 1, 0))
     .patch(1, x._2.slice(1, 5).map(_(numTypeNum - 1, 0)), 4)

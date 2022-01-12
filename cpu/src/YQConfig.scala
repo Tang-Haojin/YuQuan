@@ -23,15 +23,13 @@ object YQConfig {
     case USELOCK          => 0
     case USEREGION        => 0
     case AXIRENAME        => true
-    case MODULE_PREFIX    => "ysyx_210153_"
+    case MODULE_PREFIX    => site(GEN_NAME) match { case "ysyx" => "ysyx_210153_"; case "zmb" => "zmb_" }
     case CLINT_MMAP       => new CLINT
     case SIMPLE_PLIC_MMAP => new SIMPLEPLIC
     case DRAM_MMAP        => new DRAM
     case USEFLASH         => site(GEN_NAME) match { case "ysyx" => true; case "zmb" => false }
     case SPIFLASH_MMAP    => new PeripheralConfig.SPIFLASH
     case ENABLE_DEBUG     => false
-    case IALIGN           => 32 // compressed instructions are not implemented yet
-    case ILEN             => 32 // base instruction set supported only
     case REG_CONF         => new RegConf
     case TLB_ENTRIES      => 16
     case VALEN            => site(GEN_NAME) match { case "ysyx" => 64; case "zmb" => 32 }
@@ -44,7 +42,7 @@ object YQConfig {
   }
 
   class CLINT extends MMAP {
-    override val BASE = 0x2000000L
+    override val BASE = 0x02000000L
     override val SIZE = 0x10000L
     val MSIP = (hartid: Int) => BASE + 4 * hartid
     val MTIMECMP = (hartid: Int) => BASE + 0x4000 + 8 * hartid
@@ -82,8 +80,6 @@ case object SIMPLE_PLIC_MMAP extends Field[YQConfig.SIMPLEPLIC]
 case object DRAM_MMAP        extends Field[YQConfig.DRAM]
 case object USEFLASH         extends Field[Boolean]
 case object ENABLE_DEBUG     extends Field[Boolean]
-case object IALIGN           extends Field[Int]
-case object ILEN             extends Field[Int]
 case object REG_CONF         extends Field[YQConfig.RegConf]
 case object TLB_ENTRIES      extends Field[Int]
 case object VALEN            extends Field[Int]
