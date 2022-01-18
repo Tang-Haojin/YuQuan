@@ -51,7 +51,7 @@ extern "C" void *ram_init(char *img) {
   // ramdisk
   std::string ramdisk = img;
   ramdisk.replace(ramdisk.find(".bin"), 4, "-ramdisk.img");
-  if (fp = fopen(ramdisk.c_str(), "rb")) {
+  if ((fp = fopen(ramdisk.c_str(), "rb"))) {
     printf(DEBUG "found ramdisk %s\n", ramdisk.c_str());
 
     fseek(fp, 0, SEEK_END);

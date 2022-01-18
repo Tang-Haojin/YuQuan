@@ -125,6 +125,6 @@ extern "C" void sdcard_write(uint64_t addr, uint32_t wdata) {
 extern "C" void sdcard_init(char *img) {
   std::string sdcard = img;
   sdcard.replace(sdcard.find(".bin"), 4, "-sdcard.img");
-  if (fp = fopen(sdcard.c_str(), "rb"))
+  if ((fp = fopen(sdcard.c_str(), "rb")))
     printf(DEBUG "found sdcard %s\n", sdcard.c_str());
 }
