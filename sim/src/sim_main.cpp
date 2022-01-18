@@ -109,7 +109,7 @@ int main(int argc, char **argv, char **env) {
       real_int_handler();
     }
 #ifdef TRACE
-    if (cycles >= 246656526)
+    if (cycles >= 0)
       tfp->dump(contextp->time());
 #endif
 

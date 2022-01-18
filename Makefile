@@ -69,7 +69,7 @@ test:
 	mill -i __.test
 
 verilog:
-	mill -i __.cpu.runMain Elaborate -td $(BUILD_DIR)/cpu
+	mill -i __.cpu.runMain Elaborate -td $(BUILD_DIR)/cpu --emission-options=disableMemRandomization,disableRegisterRandomization
 
 help:
 	mill -i __.sim.runMain Elaborate --help
@@ -120,7 +120,7 @@ simall: $(LIB_SPIKE) verilate
 	done
 
 zmb:
-	mill -i __.cpu.runMain Elaborate -td $(BUILD_DIR)/zmb zmb
+	mill -i __.cpu.runMain Elaborate -td $(BUILD_DIR)/zmb zmb --emission-options=disableMemRandomization,disableRegisterRandomization
 	
 
 $(LIB_DIR)/librv64spike.so:
