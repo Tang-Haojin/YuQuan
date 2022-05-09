@@ -143,7 +143,7 @@ class CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
 
   private val mcycleh       = if (xlen == 32) WireDefault(0.U(32.W)) else null
   private val minstreth     = if (xlen == 32) WireDefault(0.U(32.W)) else null
-  private val mhpmcounterhs = if (xlen == 32) Vec(29, WireDefault(0.U(32.W))) else null
+  private val mhpmcounterhs = if (xlen == 32) VecInit(Seq.fill(29)(WireDefault(0.U(32.W)))) else null
   private val mcounteren    = 0.U(32.W) // a simple legal implementation
   private val mcountinhibit = 0.U(32.W) // a simple legal implementation
 
@@ -192,8 +192,8 @@ class CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
         if (!isZmb) when(io.csrsW.wcsr(i) === Mtvec) { mtvec := io.csrsW.wdata(i)(xlen - 1, 2) ## Mux(io.csrsW.wdata(i)(1), mtvec(1, 0), io.csrsW.wdata(i)(1, 0)) }
         if (!isZmb) when(io.csrsW.wcsr(i) === Mip) { mip := io.csrsW.wdata(i) }
         if (!isZmb) when(io.csrsW.wcsr(i) === Mie) { mie := io.csrsW.wdata(i) }
-        if (!isZmb) when(io.csrsW.wcsr(i) === Mcycle) { if (xlen != 32) mcycle := io.csrsW.wdata(i) else mcycle(31, 0) := io.csrsW.wdata(i) }
-        if (!isZmb) when(io.csrsW.wcsr(i) === Minstret) { if (xlen != 32) minstret := io.csrsW.wdata(i) else minstret(31, 0) := io.csrsW.wdata(i) }
+        if (!isZmb) when(io.csrsW.wcsr(i) === Mcycle) { if (xlen != 32) mcycle := io.csrsW.wdata(i) else mcycle := mcycle(63, 32) ## io.csrsW.wdata(i) }
+        if (!isZmb) when(io.csrsW.wcsr(i) === Minstret) { if (xlen != 32) minstret := io.csrsW.wdata(i) else minstret := minstret(63, 32) ## io.csrsW.wdata(i) }
         when(io.csrsW.wcsr(i) >= Mhpmcounter(3.U) && io.csrsW.wcsr(i) <= Mhpmcounter(31.U)) {} // Do nothing.
         when(io.csrsW.wcsr(i) >= Mhpmevent(3.U) && io.csrsW.wcsr(i) <= Mhpmevent(31.U)) {} // Do nothing.
         when(io.csrsW.wcsr(i) === Mcounteren) {} // do nothing
@@ -216,8 +216,8 @@ class CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
         if (!isZmb) when(io.csrsW.wcsr(i) === Medeleg) { if (ext('S')) medeleg := io.csrsW.wdata(i) }
 
         if (xlen == 32) {
-          if (!isZmb) when(io.csrsW.wcsr(i) === Mcycleh) { mcycle(63, 32) := io.csrsW.wdata(i) }
-          if (!isZmb) when(io.csrsW.wcsr(i) === Minstreth) { minstret(63, 32) := io.csrsW.wdata(i) }
+          if (!isZmb) when(io.csrsW.wcsr(i) === Mcycleh) { mcycle := io.csrsW.wdata(i) ## mcycle(31, 0) }
+          if (!isZmb) when(io.csrsW.wcsr(i) === Minstreth) { minstret := io.csrsW.wdata(i) ## minstret(31, 0) }
           when(io.csrsW.wcsr(i) >= Mhpmcounterh(3.U) && io.csrsW.wcsr(i) <= Mhpmcounterh(31.U)) {} // Do nothing.
         }
       }

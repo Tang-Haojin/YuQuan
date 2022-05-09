@@ -21,6 +21,7 @@ object SimConfig {
     case USECACHE         => 0
     case USELOCK          => 0
     case USEREGION        => 0
+    case ISAXI3           => false
     case AXIRENAME        => true
     case EXTENSIONS       => site(GEN_NAME) match { case "ysyx" => List('I', 'M', 'S', 'A', 'U', 'C'); case "zmb" => List('I', 'M') }
     case DMAC_MMAP        => new DMAC
@@ -44,7 +45,6 @@ object SimConfig {
     case HANDLEMISALIGN   => site(GEN_NAME) match { case "ysyx" => true; case "zmb" => false }
     case USEXILINX        => site(GEN_NAME) match { case "ysyx" => false; case "zmb" => true }
     case USEPUBRAM        => false
-    case AxSIZE           => log2Ceil(here(XLEN) / 8)
     case USEFLASH         => false
   }
 

@@ -11,9 +11,8 @@ class YQConfig extends Config(YQConfig.f)
 
 object YQConfig {
   val f: (View, View, View) => PartialFunction[Any,Any] = (site, here, up) => {
-    case XLEN             => 64
-    case AxSIZE           => log2Ceil(here(XLEN) / 8)
-    case EXTENSIONS       => site(GEN_NAME) match { case "ysyx" => List('I', 'M', 'S', 'A', 'U', 'C'); case "zmb" => List('I', 'M') }
+    case XLEN             => site(GEN_NAME) match { case "lxb" => 32; case _ => 64 }
+    case EXTENSIONS       => site(GEN_NAME) match { case "ysyx" => List('I', 'M', 'S', 'A', 'U', 'C'); case "zmb" => List('I', 'M'); case "lxb" => List('I', 'M', 'l') }
     case ALEN             => 32
     case IDLEN            => 4
     case USRLEN           => 0
@@ -22,23 +21,24 @@ object YQConfig {
     case USECACHE         => 0
     case USELOCK          => 0
     case USEREGION        => 0
+    case ISAXI3           => site(GEN_NAME) match { case "lxb" => true; case _ => false }
     case AXIRENAME        => true
-    case MODULE_PREFIX    => site(GEN_NAME) match { case "ysyx" => "ysyx_210153_"; case "zmb" => "zmb_" }
+    case MODULE_PREFIX    => site(GEN_NAME) match { case "ysyx" => "ysyx_210153_"; case "zmb" => "zmb_"; case "lxb" => "lxb_" }
     case CLINT_MMAP       => new CLINT
     case SIMPLE_PLIC_MMAP => new SIMPLEPLIC
-    case DRAM_MMAP        => new DRAM
-    case USEFLASH         => site(GEN_NAME) match { case "ysyx" => true; case "zmb" => false }
+    case DRAM_MMAP        => new DRAM()
+    case USEFLASH         => site(GEN_NAME) match { case "ysyx" => true; case _ => false }
     case SPIFLASH_MMAP    => new PeripheralConfig.SPIFLASH
     case ENABLE_DEBUG     => false
     case REG_CONF         => new RegConf
     case TLB_ENTRIES      => 16
-    case VALEN            => site(GEN_NAME) match { case "ysyx" => 64; case "zmb" => 32 }
-    case USESLAVE         => site(GEN_NAME) match { case "ysyx" => true; case "zmb" => false }
-    case USEPLIC          => site(GEN_NAME) match { case "ysyx" => true; case "zmb" => false }
-    case USECLINT         => site(GEN_NAME) match { case "ysyx" => true; case "zmb" => false }
-    case HANDLEMISALIGN   => site(GEN_NAME) match { case "ysyx" => true; case "zmb" => false }
-    case USEXILINX        => site(GEN_NAME) match { case "ysyx" => false; case "zmb" => true }
-    case USEPUBRAM        => site(GEN_NAME) match { case "ysyx" => false; case "zmb" => false }
+    case VALEN            => site(GEN_NAME) match { case "ysyx" => 64; case _ => 32 }
+    case USESLAVE         => site(GEN_NAME) match { case "ysyx" => true; case _ => false }
+    case USEPLIC          => site(GEN_NAME) match { case "ysyx" => true; case _ => false }
+    case USECLINT         => site(GEN_NAME) match { case "ysyx" => true; case _ => false }
+    case HANDLEMISALIGN   => site(GEN_NAME) match { case "ysyx" => true; case "zmb" => false; case "lxb" => true }
+    case USEXILINX        => site(GEN_NAME) match { case "ysyx" => false; case "zmb" => true; case "lxb" => true }
+    case USEPUBRAM        => site(GEN_NAME) match { case "ysyx" => false; case _ => false }
   }
 
   class CLINT extends MMAP {
@@ -59,10 +59,10 @@ object YQConfig {
     val CLAIM  = (context: Int) => Threshold(context) + 4 // claim & complete
   }
 
-  class DRAM extends MMAP {
-    override val BASE = 0x80000000L
-    override val SIZE = 0x80000000L
-  }
+  class DRAM(
+    override val BASE: Long = 0x80000000L,
+    override val SIZE: Long = 0x80000000L
+  ) extends MMAP
 
   class RegConf {
     val readPortsNum  = 3

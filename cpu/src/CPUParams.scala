@@ -22,6 +22,7 @@ abstract trait CPUParams extends UtilsParams {
   val useClint     = p(USECLINT)
   val handleMisaln = p(HANDLEMISALIGN)
   val isZmb        = p(GEN_NAME) == "zmb"
+  val isLxb        = p(GEN_NAME) == "lxb"
   
   def ext(extension: Char): Boolean = extensions.contains(extension)
 }

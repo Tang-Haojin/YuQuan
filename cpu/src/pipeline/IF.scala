@@ -21,9 +21,9 @@ class IF(implicit p: Parameters) extends YQModule {
 
   private class csrsAddr(implicit val p: Parameters) extends CPUParams with cpu.privileged.CSRsAddr
   private val csrsAddr = new csrsAddr
-  private val MEMBase = if (UseFlash) SPIFLASH.BASE else DRAM.BASE
+  private val MEMBase = if (isLxb) 0x1C000000L else if (UseFlash) SPIFLASH.BASE else DRAM.BASE
 
-  private val instr      = RegInit(0x00000013.U(32.W))
+  private val instr      = RegInit((if (isLxb) 0x03400000 else 0x00000013).U(32.W))
   private val instrCode  = RegInit(0x13.U(7.W))
   private val rs         = RegInit(VecInit(0.U(5.W), 0.U(5.W)))
   private val rd         = RegInit(0.U(5.W))
@@ -48,12 +48,13 @@ class IF(implicit p: Parameters) extends YQModule {
   io.nextVR.VALID      := NVALID
 
   private val wireInstr = io.immu.pipelineResult.cpuResult.data
-  private val wirePause = wireInstr(6, 0) === "b1110011".U && (
-                          (ext('S').B && wireInstr(31, 20) === csrsAddr.Satp)    ||
-                          (!isZmb.B   && wireInstr(31, 20) === csrsAddr.Mstatus) ||
-                          (ext('S').B && wireInstr(31, 20) === csrsAddr.Sstatus) ||
-                          (ext('S').B && wireInstr(31, 25) === "b0001001".U && wireInstr(14, 7) === 0.U)
-                        )
+  private val wirePause = if (isLxb) 0.B else
+    wireInstr(6, 0) === "b1110011".U && (
+      (ext('S').B && wireInstr(31, 20) === csrsAddr.Satp)    ||
+      (!isZmb.B   && wireInstr(31, 20) === csrsAddr.Mstatus) ||
+      (ext('S').B && wireInstr(31, 20) === csrsAddr.Sstatus) ||
+      (ext('S').B && wireInstr(31, 25) === "b0001001".U && wireInstr(14, 7) === 0.U)
+    )
 
   io.immu.pipelineReq.cpuReq.data   := DontCare
   io.immu.pipelineReq.cpuReq.rw     := DontCare
@@ -80,9 +81,12 @@ class IF(implicit p: Parameters) extends YQModule {
     crossCache := io.immu.pipelineResult.crossCache
     pause      := wirePause
   }.elsewhen(io.nextVR.READY && io.nextVR.VALID) {
-    pause     := 0.B
-    instr     := 0x00000013.U
-    NVALID    := 0.B
+    pause  := 0.B
+    instr  := (if (isLxb) 0x03400000 else 0x00000013).U
+    instrCode := 0x13.U
+    rs := 0.U.asTypeOf(rs)
+    rd := 0.U
+    NVALID := 0.B
   }
 
   when(io.immu.pipelineResult.cpuResult.ready && io.immu.pipelineResult.exception && io.immu.pipelineResult.fromMem) {

@@ -43,7 +43,8 @@ class Bypass(implicit p: Parameters) extends YQModule {
 
   private def willWait(rs: UInt): Unit = willWait(Seq(rs))
 
-  when(!ext('C').B || insCmp === "b11".U) { willWait(insRs) }
+  if (isLxb) willWait(io.receive.raddr)
+  else when(!ext('C').B || insCmp === "b11".U) { willWait(insRs) }
   if (ext('C')) when(insCmp === "b00".U) {
     when(insCF3 === "b000".U) { willWait(2.U) }
     .elsewhen(!insCF3(2)) { willWait(insRsp(0)) }

@@ -56,7 +56,7 @@ class ALU(implicit p: Parameters) extends YQModule {
   when(!mulTop.io.input.ready) { io.output.valid := mulTop.io.output.valid }
   when(!divTop.io.input.ready) { io.output.valid := divTop.io.output.valid }
 
-  private val (cpop_hi, cpop_lo) = (a(xlen - 1, 32).countHigh, a(31, 0).countHigh)
+  private val (cpop_hi, cpop_lo) = (if (xlen == 32) 0.U else PopCount(a(xlen - 1, 32)), PopCount(a(31, 0)))
   private val cpop_hi_lo = cpop_hi +& cpop_lo
   private val cpop_ans = Mux(io.input.bits.word || (xlen == 32).B, cpop_lo, cpop_hi_lo)
 

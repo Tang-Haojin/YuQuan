@@ -202,6 +202,7 @@ object UseSatp {
     wireSatp.mode := satp(63) ## satp(60)
     new UseSatp(wireSatp)
   }
+  def apply(): UseSatp = new UseSatp(0.U.asTypeOf(new SatpBundle))
   import scala.language.implicitConversions
   implicit def Satp2UInt(x: UseSatp): UInt = x.asUInt
 }

@@ -72,6 +72,7 @@ class WbBuffer(memIO: AXI_BUNDLE, sendData: UInt, sendAddr: UInt)(implicit val p
   memIO.w .bits.last   := 0.B
   memIO.w .bits.strb   := Fill(xlen / 8, 1.B)
   memIO.w .bits.user   := DontCare
+  if (isAxi3) memIO.w.bits.id := 0.U
   when(ready) {
     when(valid) {
       used    := 1.B

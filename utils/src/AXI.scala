@@ -53,6 +53,7 @@ class AXI_BUNDLE_AR(implicit p: Parameters, valName: ValName) extends ReadyValid
 
 // Write data channel signals
 class AXI_BUNDLE_W(implicit p: Parameters, valName: ValName) extends ReadyValidIO(new Bundle with HasGetName {
+  val id   = if (p(ISAXI3)) UInt(p(IDLEN).W) else null
   val data = UInt(p(XLEN).W)
   val strb = UInt((p(XLEN)/8).W)
   val last = Bool()

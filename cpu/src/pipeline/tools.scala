@@ -63,6 +63,16 @@ object NumTypes {
   val non::rs1::rs2::imm::four::pc::csr::rs1c::rs2c::rs1p::rs2p::rd1c::rd1p::x2::two::Nil = numtypes
 }
 
+object LAInstrTypes {
+  val instrTypes: List[UInt] = (0 until 7).map(x => (1 << x).U(7.W)).toList
+  val r2::r3::i12::i14::i16::i26::err::Nil = instrTypes
+}
+
+object LANumTypes {
+  val numtypes: List[UInt] = (0 until 8).map(x => (1 << x).U(8.W)).toList
+  val non::rd::rj::rk::imm::four::pc::csr::Nil = numtypes
+}
+
 case class RVInstr()(implicit val p: Parameters) extends CPUParams {
   val instrTypeNum = if (isZmb) 5 else if (ext('C')) InstrTypes.instrTypes.length else 7
   val numTypeNum = if (isZmb) 6 else if (ext('C')) NumTypes.numtypes.length else 7
@@ -76,6 +86,12 @@ case class RVInstr()(implicit val p: Parameters) extends CPUParams {
   )).toArray
 }
 
+case class LAInstr()(implicit val p: Parameters) extends CPUParams {
+  val instrTypeNum = LAInstrTypes.instrTypes.length
+  val numTypeNum = LANumTypes.numtypes.length
+  val table: Array[(BitPat, List[UInt])] = LA().table.toArray
+}
+
 object RVInstrDecoder {
   def apply(instr: UInt)(implicit p: Parameters): Seq[UInt] = {
     val isZmb = p(GEN_NAME) == "zmb"
@@ -85,6 +101,19 @@ object RVInstrDecoder {
       Seq(if (isZmb) InstrTypes.i(RVInstr().instrTypeNum - 1, 0) else InstrTypes.err) ++
       Seq.fill(4)(NumTypes.non(RVInstr().numTypeNum - 1, 0)) ++
       Seq(cpu.component.Operators.nop, 0.B, if (isZmb) ExecSpecials.norm else ExecSpecials.inv)
+    ).map(BitPat(_))
+    decodeSeq.map(x => decoder.qmc(instr, TruthTable(x._1, x._2)))
+  }
+}
+
+object LAInstrDecoder {
+  def apply(instr: UInt)(implicit p: Parameters): Seq[UInt] = {
+    val table = LAInstr().table
+    val splitTable = Seq.tabulate(table.head._2.length)(x => table.map(y => (y._1, BitPat(y._2(x)))))
+    val decodeSeq = splitTable zip (
+      Seq(LAInstrTypes.err) ++
+      Seq.fill(4)(LANumTypes.non(LAInstr().numTypeNum - 1, 0)) ++
+      Seq(cpu.component.Operators.nop, 0.B, ExecSpecials.inv)
     ).map(BitPat(_))
     decodeSeq.map(x => decoder.qmc(instr, TruthTable(x._1, x._2)))
   }

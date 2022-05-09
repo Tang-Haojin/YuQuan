@@ -11,7 +11,6 @@ class PeripheralConfig extends Config(PeripheralConfig.f)
 object PeripheralConfig {
   val f: (View, View, View) => PartialFunction[Any, Any] = (site, here, up) => {
     case XLEN          => 64
-    case AxSIZE        => log2Ceil(here(XLEN) / 8)
     case ALEN          => 32
     case IDLEN         => 4
     case USRLEN        => 0
@@ -20,6 +19,7 @@ object PeripheralConfig {
     case USECACHE      => 0
     case USELOCK       => 0
     case USEREGION     => 0
+    case ISAXI3        => false
     case SPI_MMAP      => new SPI
   }
 

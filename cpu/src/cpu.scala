@@ -16,7 +16,7 @@ class CPU(implicit p: Parameters) extends YQModule with CacheParams with HasGetN
   override val desiredName = if (modulePrefix.length() > 1) modulePrefix.dropRight(1) else modulePrefix + this.getClass().getSimpleName()
   val io = IO(new YQBundle {
     val master    = new AXI_BUNDLE
-    val slave     = Flipped(new AXI_BUNDLE)
+    val slave     = if (!isLxb) Flipped(new AXI_BUNDLE) else null
     val interrupt = Input(Bool())
     val sram      =
     if(usePubRam)   Flipped(Vec(2 * Associativity, new PublicSramWrapper.PublicSramIO(BlockSize * 8, IndexSize)))
@@ -43,7 +43,7 @@ class CPU(implicit p: Parameters) extends YQModule with CacheParams with HasGetN
   private val modulePlic   = if (usePlic) Module(new SimplePlic) else null
 
   private val moduleIF  = Module(new IF)
-  private val moduleID  = Module(new ID)
+  private val moduleID  = Module(if (isLxb) new LAID else new RVID)
   private val moduleEX  = Module(new EX)
   private val moduleMEM = Module(new MEM)
   private val moduleWB  = Module(new WB)
@@ -67,7 +67,7 @@ class CPU(implicit p: Parameters) extends YQModule with CacheParams with HasGetN
     moduleDCacheMux.io.dcacheIO <> moduleDCache.io.cpuIO
   } else {
     moduleMMU.io.dcacheIO <> moduleDCache.io.cpuIO
-    io.slave <> DontCare
+    if (!isLxb)  io.slave <> DontCare
   }
 
   moduleID.io.gprsR <> moduleBypass.io.receive

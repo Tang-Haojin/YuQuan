@@ -20,7 +20,7 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
     val sum      = Input (Bool())
     val mprv     = Input (Bool())
     val mpp      = Input (UInt(2.W))
-    val revAmo   = Output(Bool())
+    val revAmo   = Output(Bool()) // revoke in-flight amo instruction
   })
 
   private val idle::walking::writing::Nil = Enum(3)
@@ -34,7 +34,7 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
   private val ifVaddr  = if (ext('S')) Mux(crossCache, crossAddr, io.ifIO.pipelineReq.cpuReq.addr).asTypeOf(new Vaddr) else null
   private val memVaddr = if (ext('S')) io.memIO.pipelineReq.cpuReq.addr.asTypeOf(new Vaddr) else null
   private val vaddr    = if (ext('S')) RegInit(new Vaddr, 0.U.asTypeOf(new Vaddr)) else null
-  private val satp     = UseSatp(io.satp)
+  private val satp     = if (ext('S')) UseSatp(io.satp) else UseSatp()
   private val pte      = RegInit(new PTE, 0.U.asTypeOf(new PTE))
   private val newPte   = io.dcacheIO.cpuResult.data.asTypeOf(new PTE)
   private val current  = RegInit(0.U(1.W))

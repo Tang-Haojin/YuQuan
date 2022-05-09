@@ -6,15 +6,182 @@ import chipsalliance.rocketchip.config._
 
 import cpu.component._
 import ExecSpecials._
-import InstrTypes._
-import ExceptionCode._
 import cpu.tools._
 import cpu._
 import cpu.privileged._
 
-// instruction decoding module
-class ID(implicit p: Parameters) extends YQModule {
+abstract class AbstractID(implicit p: Parameters) extends YQModule {
   val io = IO(new IDIO)
+}
+
+class LAID(implicit p: Parameters) extends AbstractID {
+  import LAInstrTypes._
+
+  private val NVALID  = RegInit(0.B)
+  private val rd      = RegInit(0.U(5.W))
+  private val pc      = RegInit(0.U(valen.W))
+  private val wcsr    = RegInit(VecInit(Seq.fill(RegConf.writeCsrsPort)(0xFFF.U(12.W))))
+  private val isWcsr  = RegInit(0.B)
+  private val op1_2   = RegInit(0.U(Operators.quantity.W))
+  private val op1_3   = RegInit(0.U(Operators.quantity.W))
+  private val special = RegInit(0.U(5.W))
+  private val instr   = RegInit(0.U(32.W))
+  private val newPriv = RegInit(3.U(2.W))
+  private val isPriv  = RegInit(0.B)
+  private val blocked = RegInit(0.B)
+  private val retire  = RegInit(0.B)
+  private val isSatp  = RegInit(0.B)
+  private val except  = RegInit(0.B)
+  private val cause   = RegInit(0.U(4.W))
+  private val jmpBch  = RegInit(0.B)
+  private val jbAddr  = RegInit(0.U(valen.W))
+  private val jbPend  = RegInit(0.B)
+  private val num = RegInit(VecInit(Seq.fill(4)(0.U(xlen.W))))
+
+  private val decoded = LAInstrDecoder(io.input.instr)
+
+  private val wireInstr   = io.input.instr
+  private val wireSpecial = WireDefault(UInt(5.W), decoded(7))
+  private val wireType    = WireDefault(7.U(3.W))
+  private val wireRd      = Wire(UInt(5.W))
+  private val wireIsWcsr  = WireDefault(0.B)
+  private val wireCsr     = WireDefault(VecInit(Seq.fill(RegConf.writeCsrsPort)(0xFFF.U(12.W))))
+  private val wireOp1_2   = WireDefault(UInt(Operators.quantity.W), decoded(5))
+  private val wireNum     = WireDefault(VecInit(Seq.fill(4)(0.U(xlen.W))))
+  private val wireImm     = WireDefault(0.U(xlen.W))
+  private val wireRs1     = WireDefault(UInt(5.W), io.input.rs(0))
+  private val wireRs2     = WireDefault(UInt(5.W), io.input.rs(1))
+  private val wireExcept  = WireDefault(VecInit(Seq.fill(32)(0.B)))
+  private val wirePriv    = WireDefault(UInt(2.W), io.currentPriv)
+  private val wireIsPriv  = WireDefault(0.B)
+  private val wireRetire  = WireDefault(Bool(), 1.B)
+  private val wireBlocked = WireDefault(Bool(), blocked)
+  private val wireIsSatp  = WireDefault(0.B)
+
+  private val isMemExcept = 0.B
+
+  private val lessthan  = io.gprsR.rdata(1).asSInt <   io.gprsR.rdata(0).asSInt
+  private val ulessthan = io.gprsR.rdata(1)        <   io.gprsR.rdata(0)
+  private val equal     = io.gprsR.rdata(1)        === io.gprsR.rdata(0)
+
+  private val instRs = Seq.tabulate(3)(i => io.input.instr(i * 5 + 4, i * 5))
+  private val Seq(instRd, instRj, instRk) = instRs
+  private val Seq(readRd, readRj, readRk) = io.gprsR.rdata
+
+  private def hasNumType(numType: UInt): Bool = VecInit(decoded.slice(1, 5).map(_ === numType)).asUInt.orR
+  private val hasRsType = Seq(LANumTypes.rd, LANumTypes.rj, LANumTypes.rk).map(hasNumType(_))
+
+  io.gprsR.raddr := (instRs zip hasRsType).map {
+    case (rs, has) => VecInit(rs.asBools.map(_ & has)).asUInt
+  }
+
+  private val immMap = Seq(
+    i16 -> Fill(xlen - 18, io.input.instr(25)) ## io.input.instr(25, 10) ## 0.U(2.W),
+    i26 -> Fill(xlen - 28, io.input.instr(9)) ## io.input.instr(9, 0) ## io.input.instr(25, 10) ## 0.U(2.W),
+    i12 -> Fill(xlen - 12, !io.input.instr(25, 24).andR && io.input.instr(21)) ## io.input.instr(21, 10),
+    i14 -> Fill(xlen - 16, io.input.instr(23)) ## io.input.instr(23, 10) ## 0.U(2.W),
+    r2  -> 0.U(32.W),
+    r3  -> 0.U(32.W),
+    err -> 0.U(32.W)
+  )
+
+  wireImm := Mux1H(immMap.map(x => (decoded.head === x._1, x._2)))
+  wireRd := Fill(5, decoded(6)(0)) & Mux(io.input.instr(31, 30) === "b01".U, 0.U(4.W) ## io.input.instr(26), instRd)
+
+  for (i <- wireNum.indices) wireNum(i) := Mux1H(decoded(i + 1), Seq(
+    /* non  */ 0.U,
+    /* rd   */ readRd,
+    /* rj   */ readRj,
+    /* rk   */ readRk,
+    /* imm  */ wireImm,
+    /* four */ 4.U,
+    /* pc   */ io.input.pc,
+    /* csr  */ io.csrsR.rdata(0)
+  ))
+
+  private val wireJmpBch = WireDefault(
+    io.input.instr(31, 30) === "b01".U &&
+    MuxLookup(io.input.instr(29, 26), 1.B, Seq(
+      "b0110".U -> equal,
+      "b0111".U -> !equal,
+      "b1000".U -> lessthan,
+      "b1001".U -> !lessthan,
+      "b1010".U -> ulessthan,
+      "b1011".U -> !ulessthan
+    ))
+  )
+
+  private val wireJbAddr = WireDefault(Mux(io.input.instr(29, 26) === "b0011".U, readRj, io.input.pc) + wireImm)
+
+  io.jmpBch := jmpBch; io.jbAddr := jbAddr
+  io.lastVR.READY := io.nextVR.READY && !io.isWait && !blocked
+  io.nextVR.VALID   := NVALID
+  io.output.rd      := rd
+  io.output.isWcsr  := isWcsr
+  io.output.wcsr    := wcsr
+  io.output.num     := num
+  io.output.op1_2   := op1_2
+  io.output.op1_3   := op1_3
+  io.output.special := special
+  io.output.retire  := retire
+  io.isAmo          := 0.B
+  io.output.priv    := newPriv
+  io.output.isPriv  := isPriv
+  io.output.isSatp  := isSatp
+  io.output.except  := except
+  io.output.cause   := cause
+  io.output.pc      := pc
+  io.csrsR.rcsr     := VecInit(Seq.fill(RegConf.readCsrsPort)(0xFFF.U(12.W)))
+
+  when(io.lastVR.VALID && io.lastVR.READY) { // let's start working
+    when(!jbPend || jbAddr === io.input.pc || isMemExcept) {
+      NVALID     := 1.B
+      rd         := wireRd
+      isWcsr     := wireIsWcsr
+      wcsr       := wireCsr
+      num        := wireNum
+      op1_2      := wireOp1_2
+      op1_3      := wireInstr(14, 12)
+      special    := wireSpecial
+      instr      := wireInstr
+      wireIsPriv := wirePriv =/= io.currentPriv
+      newPriv    := wirePriv
+      isPriv     := wireIsPriv
+      blocked    := wireBlocked
+      isSatp     := wireIsSatp
+      retire     := wireRetire
+      except     := io.input.except
+      cause      := io.input.cause
+      pc         := io.input.pc
+      jbPend     := 0.B
+      jbAddr     := wireJbAddr
+      when(wireJmpBch && wireJbAddr =/= io.input.pc + 4.U) { jmpBch := 1.B; jbPend := 1.B }
+    }.otherwise { NVALID := 0.B }
+  }.otherwise {
+    when(io.isWait && io.nextVR.READY) {
+      NVALID  := 0.B
+      rd      := 0.U
+      isWcsr  := 0.B
+      wcsr    := VecInit(Seq.fill(RegConf.writeCsrsPort)(0xFFF.U(12.W)))
+      num     := VecInit(Seq.fill(4)(0.U))
+      op1_2   := 0.U
+      op1_3   := 0.U
+      special := 0.U
+    }
+    when(io.nextVR.READY && io.nextVR.VALID) {
+      NVALID  := 0.B
+      blocked := 0.B
+      isSatp  := 0.B
+    }
+  }
+
+  when(jmpBch) { jmpBch := 0.B }
+}
+
+// instruction decoding module
+class RVID(implicit p: Parameters) extends AbstractID {
+  import InstrTypes._
+  import ExceptionCode._
 
   private class csrsAddr(implicit val p: Parameters) extends CPUParams with cpu.privileged.CSRsAddr
   private val csrsAddr = new csrsAddr
@@ -117,7 +284,6 @@ class ID(implicit p: Parameters) extends YQModule {
   io.output.except  := except
   io.output.cause   := cause
   io.output.pc      := pc
-  io.gprsR.raddr    := VecInit(0.U, 0.U, 0.U)
   io.csrsR.rcsr     := VecInit(Seq.fill(RegConf.readCsrsPort)(0xFFF.U(12.W)))
 
   io.csrsR.rcsr(0) := wireInstr(31, 20)
@@ -168,23 +334,23 @@ class ID(implicit p: Parameters) extends YQModule {
     /* two  */ 2.U) else Nil) else Nil)))
 
   private val immMap = Map(
-    i       -> Fill(xlen - 12, wireInstr(31)) ## wireInstr(31, 20),
-    u       -> Fill(xlen - 32, wireInstr(31)) ## wireInstr(31, 12) ## 0.U(12.W),
-    j       -> Cat(Fill(xlen - 20, wireInstr(31)), wireInstr(19, 12), wireInstr(20), wireInstr(30, 21), 0.B),
-    s       -> Fill(xlen - 12, wireInstr(31)) ## wireInstr(31, 25) ## wireInstr(11, 7),
-    b       -> Cat(Fill(xlen - 12, wireInstr(31)), wireInstr(7), wireInstr(30, 25), wireInstr(11, 8), 0.B)) ++ (if (!isZmb) Map(
-    c       -> 0.U((xlen - 5).W) ## wireInstr(19, 15)) else Nil) ++ (if (ext('C')) Map(
-    cinv    -> 0.U(xlen.W),
-    cni     -> 0.U(xlen.W),
-    caddi4  -> 0.U((xlen - 10).W) ## wireInstr(10, 7) ## wireInstr(12, 11) ## wireInstr(5) ## wireInstr(6) ## 0.U(2.W),
-    cldst   -> 0.U((xlen - 8).W) ## Mux(wireFunct3c(1, 0) === "b10".U, 0.B ## wireInstr(5) ## wireInstr(12, 10) ## wireInstr(6), wireInstr(6, 5) ## wireInstr(12, 10) ## 0.B) ## 0.U(2.W),
-    c540    -> Fill(xlen - 5, wireInstr(12)) ## wireInstr(6, 2),
-    clui    -> Mux(wireRs1c =/= "b00010".U, Fill(xlen - 17, wireInstr(12)) ## wireInstr(6, 2) ## 0.U(12.W),
-               Fill(xlen - 9, wireInstr(12)) ## wireInstr(4, 3) ## wireInstr(5) ## wireInstr(2) ## wireInstr(6) ## 0.U(4.W)),
-    cj      -> Fill(xlen - 11, wireInstr(12)) ## wireInstr(8) ## wireInstr(10, 9) ## wireInstr(6) ## wireInstr(7) ## wireInstr(2) ## wireInstr(11) ## wireInstr(5, 3) ## 0.B,
-    cb      -> Fill(xlen - 8, wireInstr(12)) ## wireInstr(6, 5) ## wireInstr(2) ## wireInstr(11, 10) ## wireInstr(4, 3) ## 0.B,
-    clsp    -> 0.U((xlen - 9).W) ## Mux(wireFunct3c(1, 0) === "b10".U, 0.B ## wireInstr(3, 2) ## wireInstr(12) ## wireInstr(6, 4), wireInstr(4, 2) ## wireInstr(12) ## wireInstr(6, 5) ## 0.B) ## 0.U(2.W),
-    cssp    -> 0.U((xlen - 9).W) ## Mux(wireFunct3c(1, 0) === "b10".U, 0.B ## wireInstr(8, 7) ## wireInstr(12, 9), wireInstr(9, 7) ## wireInstr(12, 10) ## 0.B) ## 0.U(2.W)
+    i      -> Fill(xlen - 12, wireInstr(31)) ## wireInstr(31, 20),
+    u      -> Fill(xlen - 32, wireInstr(31)) ## wireInstr(31, 12) ## 0.U(12.W),
+    j      -> Cat(Fill(xlen - 20, wireInstr(31)), wireInstr(19, 12), wireInstr(20), wireInstr(30, 21), 0.B),
+    s      -> Fill(xlen - 12, wireInstr(31)) ## wireInstr(31, 25) ## wireInstr(11, 7),
+    b      -> Cat(Fill(xlen - 12, wireInstr(31)), wireInstr(7), wireInstr(30, 25), wireInstr(11, 8), 0.B)) ++ (if (!isZmb) Map(
+    c      -> 0.U((xlen - 5).W) ## wireInstr(19, 15)) else Nil) ++ (if (ext('C')) Map(
+    cinv   -> 0.U(xlen.W),
+    cni    -> 0.U(xlen.W),
+    caddi4 -> 0.U((xlen - 10).W) ## wireInstr(10, 7) ## wireInstr(12, 11) ## wireInstr(5) ## wireInstr(6) ## 0.U(2.W),
+    cldst  -> 0.U((xlen - 8).W) ## Mux(wireFunct3c(1, 0) === "b10".U, 0.B ## wireInstr(5) ## wireInstr(12, 10) ## wireInstr(6), wireInstr(6, 5) ## wireInstr(12, 10) ## 0.B) ## 0.U(2.W),
+    c540   -> Fill(xlen - 5, wireInstr(12)) ## wireInstr(6, 2),
+    clui   -> Mux(wireRs1c =/= "b00010".U, Fill(xlen - 17, wireInstr(12)) ## wireInstr(6, 2) ## 0.U(12.W),
+              Fill(xlen - 9, wireInstr(12)) ## wireInstr(4, 3) ## wireInstr(5) ## wireInstr(2) ## wireInstr(6) ## 0.U(4.W)),
+    cj     -> Fill(xlen - 11, wireInstr(12)) ## wireInstr(8) ## wireInstr(10, 9) ## wireInstr(6) ## wireInstr(7) ## wireInstr(2) ## wireInstr(11) ## wireInstr(5, 3) ## 0.B,
+    cb     -> Fill(xlen - 8, wireInstr(12)) ## wireInstr(6, 5) ## wireInstr(2) ## wireInstr(11, 10) ## wireInstr(4, 3) ## 0.B,
+    clsp   -> 0.U((xlen - 9).W) ## Mux(wireFunct3c(1, 0) === "b10".U, 0.B ## wireInstr(3, 2) ## wireInstr(12) ## wireInstr(6, 4), wireInstr(4, 2) ## wireInstr(12) ## wireInstr(6, 5) ## 0.B) ## 0.U(2.W),
+    cssp   -> 0.U((xlen - 9).W) ## Mux(wireFunct3c(1, 0) === "b10".U, 0.B ## wireInstr(8, 7) ## wireInstr(12, 9), wireInstr(9, 7) ## wireInstr(12, 10) ## 0.B) ## 0.U(2.W)
   ) else Nil)
   private val wireCRd = (if (ext('C')) MuxCase(io.input.rd, Seq(
     hasRsType(NumTypes.rd1p)                            -> wireRd1p,
