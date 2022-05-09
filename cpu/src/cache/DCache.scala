@@ -9,7 +9,7 @@ import cpu.tools._
 
 class DCache(implicit p: Parameters) extends YQModule with CacheParams {
   val io = IO(new YQBundle {
-    val cpuIO   = new CpuIO
+    val cpuIO   = new CpuIO(xlen)
     val memIO   = new AXI_BUNDLE
     val clintIO = Flipped(new cpu.component.ClintIO)
     val plicIO  = Flipped(new cpu.component.SimplePlicIO)
@@ -97,12 +97,12 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
 
   private val inBuffer = Reg(UInt((BlockSize * 8).W))
 
-  private val dwordData = Mux1H(if (isZmb) Seq.tabulate(Associativity)(x =>
-    (grp === x.U) -> RegNext(VecInit((0 until BlockSize / 8).map { i =>
-      data(x)(i * 64 + 63, i * 64)
+  private val wordData = Mux1H(if (isZmb) Seq.tabulate(Associativity)(x =>
+    (grp === x.U) -> RegNext(VecInit((0 until BlockSize * 8 / xlen).map { i =>
+      data(x)(i * xlen + xlen - 1, i * xlen)
   })(addrOffset))) else Seq.tabulate(Associativity)(x =>
-    (grp === x.U) -> VecInit((0 until BlockSize / 8).map { i =>
-      data(x)(i * 64 + 63, i * 64)
+    (grp === x.U) -> VecInit((0 until BlockSize * 8 / xlen).map { i =>
+      data(x)(i * xlen + xlen - 1, i * xlen)
   })(addrOffset)))
 
   private val wdata  = WireDefault(UInt((8 * BlockSize).W), inBuffer)
@@ -116,7 +116,7 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
   ramData .write(realIndex, wdata , wen, bwe.asUInt)
 
   io.cpuIO.cpuResult.ready := hit
-  io.cpuIO.cpuResult.data  := dwordData
+  io.cpuIO.cpuResult.data  := wordData
   io.cpuIO.cpuResult.fastReady := (if (isZmb) 0.B else DontCare)
 
   private val useEmpty = RegInit(0.B)
@@ -145,9 +145,9 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
   when(state === idle) {
     willDrop := 0.B
     if (isZmb) {
-      answerData := inBuffer.asTypeOf(Vec(BlockSize / 8, UInt(xlen.W)))(io.cpuIO.cpuReq.addr(Offset - 1, log2Ceil(xlen / 8)))
+      answerData := inBuffer.asTypeOf(Vec(BlockSize * 8 / xlen, UInt(xlen.W)))(io.cpuIO.cpuReq.addr(Offset - 1, log2Ceil(xlen / 8)))
       wdirty := 1.B
-      wdata := Fill(BlockSize / 8, io.cpuIO.cpuReq.data)
+      wdata := Fill(BlockSize * 8 / xlen, io.cpuIO.cpuReq.data)
     }
     when(io.cpuIO.cpuReq.valid) {
       state := starting
@@ -187,7 +187,7 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
       if (isZmb) fastAddr := addr(alen - 1, Offset)
       if (isZmb) fastReadOK := 0.B
       wdirty := 1.B
-      wdata := Fill(BlockSize / 8, reqData)
+      wdata := Fill(BlockSize * 8 / xlen, reqData)
       when(reqRw) { wen(grp) := 1.B }
     }.elsewhen(useEmpty || !compDirty(way)) { // have empty cache line or the selected cacheline is clean
       when(wbBufferGo) { readBack := 1.B; grp := way; if (isZmb) state := starting else compareHit := 1.B }

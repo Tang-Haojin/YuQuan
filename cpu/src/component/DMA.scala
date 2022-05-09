@@ -10,7 +10,7 @@ import utils._
 
 class DMA(implicit p: Parameters) extends YQModule {
   val io = IO(new Bundle {
-    val cpuIO = Flipped(new CpuIO)
+    val cpuIO = Flipped(new CpuIO(xlen))
     val memIO = Flipped(new AXI_BUNDLE)
   })
 

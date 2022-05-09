@@ -61,7 +61,7 @@ class MEM(implicit p: Parameters) extends YQModule {
     2.U -> Fill(xlen - 32, ~extType(2) & shiftRdata(31)) ## shiftRdata(31, 0)
   ))
 
-  private val rawStrb = VecInit((0 until 4).map { i => Fill(pow(2, i).round.toInt, 1.B) })(io.input.mask)
+  private val rawStrb = VecInit((0 until log2Ceil(xlen) - 2).map { i => Fill(pow(2, i).round.toInt, 1.B) })(io.input.mask)
 
   io.dmmu.pipelineReq.cpuReq.data   := wireData
   io.dmmu.pipelineReq.cpuReq.rw     := wireRw

@@ -64,8 +64,8 @@ object NumTypes {
 }
 
 object LAInstrTypes {
-  val instrTypes: List[UInt] = (0 until 7).map(x => (1 << x).U(7.W)).toList
-  val r2::r3::i12::i14::i16::i26::err::Nil = instrTypes
+  val instrTypes: List[UInt] = (0 until 8).map(x => (1 << x).U(8.W)).toList
+  val r2::r3::i12::i14::i16::i20::i26::err::Nil = instrTypes
 }
 
 object LANumTypes {
@@ -172,7 +172,7 @@ class EXIO(implicit p: Parameters) extends YQBundle {
 }
 
 class MEMIO(implicit p: Parameters) extends YQBundle {
-  val dmmu   = Flipped(new PipelineIO)
+  val dmmu   = Flipped(new PipelineIO(xlen))
   val lastVR = new LastVR
   val nextVR = Flipped(new LastVR)
   val input  = Flipped(new EXOutput)

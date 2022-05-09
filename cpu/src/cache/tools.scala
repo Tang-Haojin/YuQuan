@@ -20,14 +20,14 @@ class CpuReq(implicit p: Parameters) extends YQBundle {
 }
 
 // Cache Controller -> CPU
-class CpuResult(datalen: Int = 64)(implicit p: Parameters) extends YQBundle {
+class CpuResult(datalen: Int)(implicit p: Parameters) extends YQBundle {
   val data      = UInt(datalen.W)
   val ready     = Bool()
   val fastReady = Bool()
 }
 
 // CPU <-> Cache Controller
-class CpuIO(datalen: Int = 64)(implicit p: Parameters) extends YQBundle {
+class CpuIO(datalen: Int)(implicit p: Parameters) extends YQBundle {
   val cpuReq    = Input (new CpuReq)
   val cpuResult = Output(new CpuResult(datalen))
 }
@@ -54,8 +54,8 @@ class WbBuffer(memIO: AXI_BUNDLE, sendData: UInt, sendAddr: UInt)(implicit val p
   private val sent    = RegInit(0.U(LogBurstLen.W))
 
   private val wireWdata = WireDefault(0.U(xlen.W))
-  private val wdata = VecInit((0 until BlockSize / 8).map { i =>
-    buffer(i * 64 + 63, i * 64)
+  private val wdata = VecInit((0 until BlockSize * 8 / xlen).map { i =>
+    buffer(i * xlen + xlen - 1, i * xlen)
   })
   memIO.aw.bits.id     := 0.U
   memIO.aw.bits.len    := (BurstLen - 1).U // (AWLEN + 1) AXI Burst per AXI Transfer (a.k.a. AXI Beat)

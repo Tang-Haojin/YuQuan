@@ -80,6 +80,7 @@ class LAID(implicit p: Parameters) extends AbstractID {
     i26 -> Fill(xlen - 28, io.input.instr(9)) ## io.input.instr(9, 0) ## io.input.instr(25, 10) ## 0.U(2.W),
     i12 -> Fill(xlen - 12, !io.input.instr(25, 24).andR && io.input.instr(21)) ## io.input.instr(21, 10),
     i14 -> Fill(xlen - 16, io.input.instr(23)) ## io.input.instr(23, 10) ## 0.U(2.W),
+    i20 -> io.input.instr(24, 5) ## 0.U(10.W),
     r2  -> 0.U(32.W),
     r3  -> 0.U(32.W),
     err -> 0.U(32.W)
@@ -141,7 +142,7 @@ class LAID(implicit p: Parameters) extends AbstractID {
       wcsr       := wireCsr
       num        := wireNum
       op1_2      := wireOp1_2
-      op1_3      := wireInstr(14, 12)
+      op1_3      := io.input.instr(25) ## io.input.instr(23, 22)
       special    := wireSpecial
       instr      := wireInstr
       wireIsPriv := wirePriv =/= io.currentPriv

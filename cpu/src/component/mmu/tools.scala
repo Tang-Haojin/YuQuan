@@ -12,7 +12,7 @@ class PipelineReq(implicit p: Parameters) extends YQBundle with CacheParams {
   val offset = UInt(Offset.W)
 }
 
-class PipelineResult(datalen: Int = 64)(implicit p: Parameters) extends YQBundle {
+class PipelineResult(datalen: Int)(implicit p: Parameters) extends YQBundle {
   val exception  = Bool()
   val cause      = UInt(4.W)
   val cpuResult  = new cpu.cache.CpuResult(datalen)
@@ -21,7 +21,7 @@ class PipelineResult(datalen: Int = 64)(implicit p: Parameters) extends YQBundle
   val crossCache = Bool()
 }
 
-class PipelineIO(datalen: Int = 64)(implicit p: Parameters) extends YQBundle {
+class PipelineIO(datalen: Int)(implicit p: Parameters) extends YQBundle {
   val pipelineReq    = Input (new PipelineReq)
   val pipelineResult = Output(new PipelineResult(datalen))
 }

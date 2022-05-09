@@ -11,9 +11,9 @@ import cpu.privileged._
 class MMU(implicit p: Parameters) extends YQModule with CacheParams {
   val io = IO(new YQBundle {
     val ifIO     = new PipelineIO(32)
-    val memIO    = new PipelineIO
+    val memIO    = new PipelineIO(xlen)
     val icacheIO = Flipped(new CpuIO(32))
-    val dcacheIO = Flipped(new CpuIO)
+    val dcacheIO = Flipped(new CpuIO(xlen))
     val satp     = Input (UInt(xlen.W))
     val priv     = Input (UInt(2.W))
     val jmpBch   = Input (Bool())
@@ -167,7 +167,7 @@ class MMU(implicit p: Parameters) extends YQModule with CacheParams {
   }.elsewhen(handleMisaln.B && io.memIO.pipelineReq.cpuReq.valid && (
     (io.memIO.pipelineReq.cpuReq.size === 1.U && io.memIO.pipelineReq.cpuReq.addr(0)) ||
     (io.memIO.pipelineReq.cpuReq.size === 2.U && io.memIO.pipelineReq.cpuReq.addr(1, 0) =/= 0.U) ||
-    (io.memIO.pipelineReq.cpuReq.size === 3.U && io.memIO.pipelineReq.cpuReq.addr(2, 0) =/= 0.U)
+    (io.memIO.pipelineReq.cpuReq.size === 3.U && io.memIO.pipelineReq.cpuReq.addr(2, 0) =/= 0.U && (xlen > 32).B)
   )) {
     io.dcacheIO.cpuReq.valid := 0.B
     MemRaiseException(Mux(isWrite, 6.U, 4.U), false) // load/store/amo address misaligned
