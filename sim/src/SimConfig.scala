@@ -44,6 +44,7 @@ object SimConfig {
     case USECLINT         => site(GEN_NAME) match { case "ysyx" => true; case "zmb" => false }
     case HANDLEMISALIGN   => site(GEN_NAME) match { case "ysyx" => true; case "zmb" => false }
     case USEXILINX        => site(GEN_NAME) match { case "ysyx" => false; case "zmb" => true }
+    case USEDIFFTEST      => false
     case USEPUBRAM        => false
     case USEFLASH         => false
   }

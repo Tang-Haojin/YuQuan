@@ -33,6 +33,12 @@ class MEM(implicit p: Parameters) extends YQModule {
   private val mmio    = if (Debug) RegInit(0.B) else null
   private val intr    = if (Debug) RegInit(0.B) else null
   private val rvc     = if (Debug) RegInit(0.B) else null
+  private val instr   = RegInit(0.U(32.W))
+  private val diffStoreValid = RegInit(0.U(4.W))
+  private val diffLSPAddr    = RegInit(0.U(alen.W))
+  private val diffLSVAddr    = RegInit(0.U(valen.W))
+  private val diffStoreData  = RegInit(0.U(xlen.W))
+  private val diffLoadValid  = RegInit(0.U(6.W))
 
   private val offset   = addr(axSize - 1, 0)
 
@@ -126,6 +132,28 @@ class MEM(implicit p: Parameters) extends YQModule {
       intr  := io.input.debug.intr
       rvc   := io.input.debug.rvc
     }
+    if (io.input.diff.isDefined) {
+      instr := io.input.diff.get.instr
+      diffLSPAddr := io.input.addr
+      diffLSVAddr := io.input.addr
+      diffLoadValid := Cat(
+        0.B,
+        io.input.isMem && io.input.isLd && io.input.mask(2, 0) === "b010".U, // LW
+        io.input.isMem && io.input.isLd && io.input.mask(2, 0) === "b101".U, // LHU
+        io.input.isMem && io.input.isLd && io.input.mask(2, 0) === "b001".U, // LH
+        io.input.isMem && io.input.isLd && io.input.mask(2, 0) === "b100".U, // LBU
+        io.input.isMem && io.input.isLd && io.input.mask(2, 0) === "b000".U  // LB
+      )
+      diffStoreValid := Cat(
+        0.B,
+        io.input.isMem && !io.input.isLd && io.input.mask(1, 0) === 2.U,
+        io.input.isMem && !io.input.isLd && io.input.mask(1, 0) === 1.U,
+        io.input.isMem && !io.input.isLd && io.input.mask(1, 0) === 0.U
+      )
+      diffStoreData := Mux(io.input.mask(1, 0) === 0.U, io.input.data(7, 0),
+                       Mux(io.input.mask(1, 0) === 1.U, io.input.data(15, 0),
+                                                        io.input.data(31, 0)))
+    }
     when(io.input.isMem) {
       NVALID    := 0.B
       LREADY    := 0.B
@@ -148,12 +176,21 @@ class MEM(implicit p: Parameters) extends YQModule {
     isSatp := 0.B
   }
 
-  if (Debug) {
-    io.output.debug.exit := exit
-    io.output.debug.pc   := pc
-    io.output.debug.rcsr := rcsr
-    io.output.debug.mmio := mmio
-    io.output.debug.intr := intr
-    io.output.debug.rvc  := rvc
-  }
+  if (Debug) io.output.debug.connect(
+    _.exit := exit,
+    _.pc   := pc,
+    _.rcsr := rcsr,
+    _.mmio := mmio,
+    _.intr := intr,
+    _.rvc  := rvc
+  )
+  if (io.output.diff.isDefined) io.output.diff.get.connect(
+    _.instr      := instr,
+    _.pc         := pc,
+    _.lsPAddr    := diffLSPAddr,
+    _.lsVAddr    := diffLSVAddr,
+    _.loadValid  := diffLoadValid,
+    _.storeValid := diffStoreValid,
+    _.storeData  := diffStoreData
+  )
 }

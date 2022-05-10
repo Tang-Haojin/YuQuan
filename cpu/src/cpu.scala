@@ -186,4 +186,80 @@ class CPU(implicit p: Parameters) extends YQModule with CacheParams with HasGetN
     io.debug.mie      := moduleCSRs.io.debug.mie
     io.debug.mscratch := moduleCSRs.io.debug.mscratch
   }
+
+  if (useDifftest) {
+    import cpu.tools.difftest._
+    if (isLxb) {
+      Module(new DifftestInstrCommit).io.connect(
+        _.clock          := clock,
+        _.coreid         := 0.U,
+        _.index          := 0.U,
+        _.valid          := RegNext(moduleWB.io.lastVR.VALID && moduleWB.io.input.retire, 0.B),
+        _.pc             := RegNext(moduleWB.io.input.diff.get.pc),
+        _.instr          := RegNext(moduleWB.io.input.diff.get.instr),
+        _.skip           := 0.B,
+        _.is_TLBFILL     := 0.B,
+        _.TLBFILL_index  := 0.U,
+        _.is_CNTinst     := 0.B,
+        _.timer_64_value := 0.U,
+        _.wen            := RegNext(moduleWB.io.lastVR.VALID && moduleWB.io.input.rd =/= 0.U, 0.B),
+        _.wdest          := RegNext(moduleWB.io.input.rd),
+        _.wdata          := RegNext(moduleWB.io.input.data),
+        _.csr_rstat      := 0.B,
+        _.csr_data       := 0.U
+      )
+
+      Module(new DifftestExcpEvent).io.connect(
+        _.clock         := clock,
+        _.coreid        := 0.U,
+        _.excp_valid    := 0.B,
+        _.eret          := 0.B,
+        _.intrNo        := 0.U,
+        _.cause         := 0.U,
+        _.exceptionPC   := 0.U,
+        _.exceptionInst := 0.U
+      )
+
+      Module(new DifftestTrapEvent).io.connect(
+        _.clock    := clock,
+        _.coreid   := 0.U,
+        _.valid    := 0.B,
+        _.code     := 0.U,
+        _.pc       := 0.U,
+        _.cycleCnt := 0.U,
+        _.instrCnt := 0.U
+      )
+
+      Module(new DifftestStoreEvent).io.connect(
+        _.clock      := clock,
+        _.coreid     := 0.U,
+        _.index      := 0.U,
+        _.valid      := RegNext(moduleWB.io.input.diff.get.storeValid, 0.U(4.W)),
+        _.storePAddr := RegNext(moduleWB.io.input.diff.get.lsPAddr),
+        _.storeVAddr := RegNext(moduleWB.io.input.diff.get.lsVAddr),
+        _.storeData  := RegNext(moduleWB.io.input.diff.get.storeData)
+      )
+
+      Module(new DifftestLoadEvent).io.connect(
+        _.clock  := clock,
+        _.coreid := 0.U,
+        _.index  := 0.U,
+        _.valid  := RegNext(moduleWB.io.input.diff.get.loadValid, 0.U(6.W)),
+        _.paddr  := RegNext(moduleWB.io.input.diff.get.lsPAddr),
+        _.vaddr  := RegNext(moduleWB.io.input.diff.get.lsVAddr)
+      )
+
+      Module(new DifftestCSRRegState).io.connect(
+        _        := DontCare,
+        _.clock  := clock,
+        _.coreid := 0.U
+      )
+
+      Module(new DifftestGRegState).io.connect(
+        _.clock  := clock,
+        _.coreid := 0.U,
+        _.gpr    := moduleGPRs.io.rregs
+      )
+    }
+  }
 }

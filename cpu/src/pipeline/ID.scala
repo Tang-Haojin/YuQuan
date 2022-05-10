@@ -80,14 +80,14 @@ class LAID(implicit p: Parameters) extends AbstractID {
     i26 -> Fill(xlen - 28, io.input.instr(9)) ## io.input.instr(9, 0) ## io.input.instr(25, 10) ## 0.U(2.W),
     i12 -> Fill(xlen - 12, !io.input.instr(25, 24).andR && io.input.instr(21)) ## io.input.instr(21, 10),
     i14 -> Fill(xlen - 16, io.input.instr(23)) ## io.input.instr(23, 10) ## 0.U(2.W),
-    i20 -> io.input.instr(24, 5) ## 0.U(10.W),
+    i20 -> io.input.instr(24, 5) ## 0.U(12.W),
     r2  -> 0.U(32.W),
     r3  -> 0.U(32.W),
     err -> 0.U(32.W)
   )
 
   wireImm := Mux1H(immMap.map(x => (decoded.head === x._1, x._2)))
-  wireRd := Fill(5, decoded(6)(0)) & Mux(io.input.instr(31, 30) === "b01".U, 0.U(4.W) ## io.input.instr(26), instRd)
+  wireRd := Fill(5, decoded(6)(0)) & Mux(io.input.instr(31, 27) === "b01010".U, 0.U(4.W) ## io.input.instr(26), instRd)
 
   for (i <- wireNum.indices) wireNum(i) := Mux1H(decoded(i + 1), Seq(
     /* non  */ 0.U,
@@ -133,6 +133,9 @@ class LAID(implicit p: Parameters) extends AbstractID {
   io.output.cause   := cause
   io.output.pc      := pc
   io.csrsR.rcsr     := VecInit(Seq.fill(RegConf.readCsrsPort)(0xFFF.U(12.W)))
+  if (io.output.diff.isDefined) {
+    io.output.diff.get.instr := instr
+  }
 
   when(io.lastVR.VALID && io.lastVR.READY) { // let's start working
     when(!jbPend || jbAddr === io.input.pc || isMemExcept) {

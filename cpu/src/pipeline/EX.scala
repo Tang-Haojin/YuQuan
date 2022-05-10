@@ -53,6 +53,7 @@ class EX(implicit p: Parameters) extends YQModule {
   private val isSatp  = RegInit(0.B)
   private val except  = RegInit(0.B)
   private val cause   = RegInit(0.U(4.W))
+  private val instr   = RegInit(0.U(32.W))
   private val fshTLB  = if (ext('S')) RegInit(0.B) else null
   private val exit    = if (Debug) RegInit(0.U(3.W)) else null
   private val rcsr    = if (Debug) RegInit(0xfff.U(12.W)) else null
@@ -223,6 +224,9 @@ class EX(implicit p: Parameters) extends YQModule {
       intr := io.input.debug.intr
       rvc  := io.input.debug.rvc
     }
+    if (io.input.diff.isDefined) {
+      instr := io.input.diff.get.instr
+    }
   }.elsewhen(io.nextVR.READY && io.nextVR.VALID) {
     NVALID := 0.B
     isSatp := 0.B
@@ -242,5 +246,9 @@ class EX(implicit p: Parameters) extends YQModule {
     io.output.debug.rcsr := rcsr
     io.output.debug.intr := intr
     io.output.debug.rvc  := rvc
+  }
+
+  if (io.output.diff.isDefined) {
+    io.output.diff.get.instr := instr
   }
 }

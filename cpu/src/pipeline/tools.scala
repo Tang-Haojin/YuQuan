@@ -44,6 +44,10 @@ class EXOutput(implicit p: Parameters) extends YQBundle {
       val intr = Output(Bool())
       val rvc  = Output(Bool())
     } else null
+  val diff    =
+    if (useDifftest) Some(new YQBundle {
+      val instr = Output(UInt(32.W))
+    }) else None
 }
 
 // ID
@@ -141,6 +145,10 @@ class IDOutput(implicit p: Parameters) extends YQBundle {
       val priv = Output(UInt(2.W))
       val rvc  = Output(Bool())
     } else null
+  val diff    =
+    if (useDifftest) Some(new YQBundle {
+      val instr = Output(UInt(32.W))
+    }) else None
 }
 
 class IDIO(implicit p: Parameters) extends YQBundle {
@@ -204,14 +212,24 @@ class MEMOutput(implicit p: Parameters) extends YQBundle {
   val isSatp  = Output(Bool())
   val except  = Output(Bool())
   val debug   =
-    if (Debug) new YQBundle {
-      val exit = Output(UInt(3.W))
-      val pc   = Output(UInt(valen.W))
-      val rcsr = Output(UInt(12.W))
-      val mmio = Output(Bool())
-      val intr = Output(Bool())
-      val rvc  = Output(Bool())
-    } else null
+    if (Debug) Output(new YQBundle {
+      val exit = UInt(3.W)
+      val pc   = UInt(valen.W)
+      val rcsr = UInt(12.W)
+      val mmio = Bool()
+      val intr = Bool()
+      val rvc  = Bool()
+    }) else null
+  val diff    =
+    if (useDifftest) Some(Output(new YQBundle {
+      val instr      = UInt(32.W)
+      val pc         = UInt(valen.W)
+      val lsPAddr    = UInt(alen.W)
+      val lsVAddr    = UInt(valen.W)
+      val loadValid  = UInt(6.W)
+      val storeValid = UInt(4.W)
+      val storeData  = UInt(xlen.W)
+    })) else None
 }
 
 // Bypass
