@@ -80,7 +80,8 @@ class ALU(implicit p: Parameters) extends YQModule {
     sub  -> (a - b),
     and  -> (a & b),
     or   -> (a | b),
-    xor  -> (a ^ b),
+    xor  -> (a ^ b)) ++ (if (isLxb) Seq(
+    nor  -> ~(a | b)) else Nil) ++ Seq(
     sll  -> (sl(xlen - 1, 0).asSInt),
     sra  -> (a >> (if (xlen == 64) b(5, 0) else b(4, 0))),
     srl  -> ((a.asUInt >> (if (xlen == 64) b(5, 0) else b(4, 0))).asSInt),
@@ -112,11 +113,11 @@ class ALU(implicit p: Parameters) extends YQModule {
 }
 
 object Operators {
-  val quantity = 30
-  val nop::add::sub::and::or::xor::sll::sra::Nil = Seq.tabulate(8)(x => (1 << x).U(quantity.W))
-  val srl::lts::ltu::sllw::srlw::sraw::mul::divw::Nil = Seq.tabulate(8)(x => (1 << (x + 8)).U(quantity.W))
+  val quantity = 31
+  val nop::add::sub::and::or::xor::nor::sll::Nil = Seq.tabulate(8)(x => (1 << x).U(quantity.W))
+  val sra::srl::lts::ltu::sllw::srlw::sraw::mul::Nil = Seq.tabulate(8)(x => (1 << (x + 8)).U(quantity.W))
   val remw::rem::div::remu::divu::mulh::duw::ruw::Nil = Seq.tabulate(8)(x => (1 << (x + 16)).U(quantity.W))
-  val max::min::maxu::minu::cpop::ctz::Nil = Seq.tabulate(6)(x => (1 << (x + 24)).U(quantity.W))
+  val divw::max::min::maxu::minu::cpop::ctz::Nil = Seq.tabulate(7)(x => (1 << (x + 24)).U(quantity.W))
   val (lr, sc) = (sll, sra)
   val muldivMask = (for { i <- 0 until quantity
     if (1 << i >= mul.litValue && 1 << i <= ruw.litValue)
