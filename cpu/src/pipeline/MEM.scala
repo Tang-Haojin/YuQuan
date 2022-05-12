@@ -150,8 +150,8 @@ class MEM(implicit p: Parameters) extends YQModule {
         io.input.isMem && !io.input.isLd && io.input.mask(1, 0) === 1.U,
         io.input.isMem && !io.input.isLd && io.input.mask(1, 0) === 0.U
       )
-      diffStoreData := Mux(io.input.mask(1, 0) === 0.U, io.input.data(7, 0),
-                       Mux(io.input.mask(1, 0) === 1.U, io.input.data(15, 0),
+      diffStoreData := Mux(io.input.mask(1, 0) === 0.U, io.input.data(7, 0)  << (wireOff ## 0.U(3.W)),
+                       Mux(io.input.mask(1, 0) === 1.U, io.input.data(15, 0) << (wireOff ## 0.U(3.W)),
                                                         io.input.data(31, 0)))
     }
     when(io.input.isMem) {
