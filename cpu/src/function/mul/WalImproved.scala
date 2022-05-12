@@ -1,12 +1,13 @@
 package cpu.function.mul
 
+import chisel3._
 import chipsalliance.rocketchip.config.Parameters
 import cpu.tools._
 
-class WalImproved(length: Int = 128)(implicit p: Parameters) extends YQRawModule {
-  val io = IO(new WalImprovedIO(length))
-  private val CSAs   = List.fill(8)(CSA(length))
-  private val comp42s = List.fill(4)(Compressor_42(length))
+class WalImproved(implicit p: Parameters) extends YQRawModule {
+  val io = IO(new WalImprovedIO)
+  private val CSAs   = List.fill(8)(Module(new CSA))
+  private val comp42s = List.fill(4)(Module(new Compressor_42))
 
   for (i <- 0 until 3)
     for (j <- 0 until 2) {

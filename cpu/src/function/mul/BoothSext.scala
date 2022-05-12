@@ -5,7 +5,7 @@ import chisel3.util._
 import chipsalliance.rocketchip.config.Parameters
 import cpu.tools._
 
-class BoothSext(entries: Int = 17, size: Int = 64)(implicit p: Parameters) extends YQRawModule {
+class BoothSext(entries: Int, size: Int)(implicit p: Parameters) extends YQRawModule {
   val io = IO(new BoothSextIO(entries, size))
   private val op_sign = io.op_0(size - 1) & io.sign
   for (i <- io.output.indices) {
