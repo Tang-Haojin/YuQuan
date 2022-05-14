@@ -29,7 +29,7 @@ class CPU(implicit p: Parameters) extends YQModule with CacheParams with HasGetN
   dontTouch(io)
 
   private val moduleGPRs      = Module(new GPRs)
-  private val moduleCSRs      = Module(new cpu.privileged.CSRs)
+  private val moduleCSRs      = Module(if (isLxb) new cpu.privileged.LACSRs else new cpu.privileged.CSRs)
   private val moduleBypass    = Module(new Bypass)
   private val moduleBypassCsr = Module(new BypassCsr)
   private val moduleAXIRMux   = Module(new AXIRMux)
@@ -250,7 +250,7 @@ class CPU(implicit p: Parameters) extends YQModule with CacheParams with HasGetN
       )
 
       Module(new DifftestCSRRegState).io.connect(
-        _        := DontCare,
+        _        := moduleCSRs.asInstanceOf[cpu.privileged.LACSRs].difftestIO,
         _.clock  := clock,
         _.coreid := 0.U
       )

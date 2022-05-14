@@ -16,7 +16,7 @@ abstract class PrefixModule(implicit val p: Parameters) extends Module with Pref
       if (in.getWidth == 1) ~in.asUInt() else VecInit(in.asUInt().asBools().map(~_.asUInt)).reduceTree(_ +& _)
   }
 
-  implicit class connect[T <: Bundle](x: T) {
+  implicit class Connect[T <: Bundle](x: T) {
     def connect(elems: (T => Unit)*): Unit = elems.foreach(_(x))
   }
 

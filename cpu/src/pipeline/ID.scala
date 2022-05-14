@@ -14,7 +14,7 @@ abstract class AbstractID(implicit p: Parameters) extends YQModule {
   val io = IO(new IDIO)
 }
 
-class LAID(implicit p: Parameters) extends AbstractID {
+class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRsAddr {
   import LAInstrTypes._
 
   private val NVALID  = RegInit(0.B)
@@ -47,11 +47,14 @@ class LAID(implicit p: Parameters) extends AbstractID {
   private val wireIsWcsr  = WireDefault(0.B)
   private val wireCsr     = WireDefault(VecInit(Seq.fill(RegConf.writeCsrsPort)(0xFFF.U(12.W))))
   private val wireOp1_2   = WireDefault(UInt(Operators.quantity.W), decoded(5))
+  private val wireOp1_3   = WireDefault(io.input.instr(25) ## io.input.instr(23, 22))
   private val wireNum     = WireDefault(VecInit(Seq.fill(4)(0.U(xlen.W))))
   private val wireImm     = WireDefault(0.U(xlen.W))
   private val wireRs1     = WireDefault(UInt(5.W), io.input.rs(0))
   private val wireRs2     = WireDefault(UInt(5.W), io.input.rs(1))
-  private val wireExcept  = WireDefault(VecInit(Seq.fill(32)(0.B)))
+  private val wireExcept  = WireDefault(0.B)
+  private val wireEcode   = WireDefault(0.U(6.W))
+  private val wireEsub    = WireDefault(0.U(9.W))
   private val wirePriv    = WireDefault(UInt(2.W), io.currentPriv)
   private val wireIsPriv  = WireDefault(0.B)
   private val wireRetire  = WireDefault(Bool(), 1.B)
@@ -137,6 +140,60 @@ class LAID(implicit p: Parameters) extends AbstractID {
     io.output.diff.get.instr := instr
   }
 
+  io.csrsR.rcsr(0) := io.input.instr(21, 10)
+  io.csrsR.rcsr(1) := CRMD
+  io.csrsR.rcsr(2) := PRMD
+  io.csrsR.rcsr(3) := ECFG
+  io.csrsR.rcsr(4) := ESTAT
+  io.csrsR.rcsr(5) := ERA
+  io.csrsR.rcsr(6) := EENTRY
+  private val crmd   = io.csrsR.rdata(1).asTypeOf(new CRMDBundle)
+  private val prmd   = io.csrsR.rdata(2).asTypeOf(new PRMDBundle)
+  private val ecfg   = io.csrsR.rdata(3).asTypeOf(new ECFGBundle)
+  private val estat  = io.csrsR.rdata(4).asTypeOf(new ESTATBundle)
+  private val era    = io.csrsR.rdata(5)
+  private val eentry = io.csrsR.rdata(6)
+
+  when(decoded(7) === zicsr) {
+    wireIsWcsr := io.input.instr(9, 5) =/= 0.U
+    wireCsr(0) := io.input.instr(21, 10)
+    wireOp1_3  := io.input.instr(9, 5)
+    // when(wireCsr(0) === csrsAddr.Satp) { wireIsSatp := 1.B }
+  }
+  when(decoded(7) === ecall) {
+    wireExcept := 1.B
+    wireEcode  := 0xB.U
+    wireEsub   := 0.U
+  }
+  when(decoded(7) === mret) {
+    wireIsWcsr := 1.B
+    wireCsr(0) := CRMD
+    wireNum(0) := crmd.asUInt
+    wireNum(1) := prmd.asUInt
+    wireIsPriv := crmd.PLV =/= prmd.PPLV
+    wireJmpBch := 1.B
+    wireJbAddr := era
+  }
+
+  val newCrmd = WireDefault(crmd)
+  newCrmd.PLV := 0.U
+  newCrmd.IE  := 0.U
+  val newPrmd = WireDefault(prmd)
+  newPrmd.PPLV := crmd.PLV
+  newPrmd.PIE  := crmd.IE
+  val newEstat = WireDefault(estat)
+  newEstat.Ecode    := wireEcode
+  newEstat.EsubCode := wireEsub
+  when(io.lastVR.VALID && wireExcept) {
+    wireJmpBch := 1.B
+    wireJbAddr := Mux(wireEcode === 0x3F.U, 0.U /*TODO: TLBRENTRY*/, eentry)
+    wireSpecial := exception
+    wireIsPriv := crmd.PLV =/= 0.U
+    wireCsr := VecInit(CRMD, PRMD, ESTAT, ERA)
+    wireNum := VecInit(newCrmd.asUInt, newPrmd.asUInt, newEstat.asUInt, io.input.pc)
+    wireIsSatp := 0.B; wireBlocked := 0.B
+  }
+
   when(io.lastVR.VALID && io.lastVR.READY) { // let's start working
     when(!jbPend || jbAddr === io.input.pc || isMemExcept) {
       NVALID     := 1.B
@@ -145,10 +202,9 @@ class LAID(implicit p: Parameters) extends AbstractID {
       wcsr       := wireCsr
       num        := wireNum
       op1_2      := wireOp1_2
-      op1_3      := io.input.instr(25) ## io.input.instr(23, 22)
+      op1_3      := wireOp1_3
       special    := wireSpecial
       instr      := wireInstr
-      wireIsPriv := wirePriv =/= io.currentPriv
       newPriv    := wirePriv
       isPriv     := wireIsPriv
       blocked    := wireBlocked

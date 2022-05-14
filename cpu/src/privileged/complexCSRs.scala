@@ -5,6 +5,7 @@ import chisel3.util._
 import chipsalliance.rocketchip.config._
 
 import cpu._
+import cpu.tools.YQBundle
 
 class MstatusBundle(implicit val p: Parameters) extends Bundle with CPUParams {
   val SD     = Bool()
@@ -205,4 +206,69 @@ object UseSatp {
   def apply(): UseSatp = new UseSatp(0.U.asTypeOf(new SatpBundle))
   import scala.language.implicitConversions
   implicit def Satp2UInt(x: UseSatp): UInt = x.asUInt
+}
+
+class CRMDBundle(implicit p: Parameters) extends YQBundle with CPUParams {
+  val DATM = UInt(2.W)
+  val DATF = UInt(2.W)
+  val PG   = Bool()
+  val DA   = Bool()
+  val IE   = Bool()
+  val PLV  = UInt(2.W)
+
+  def := (that: => Data): Unit = that.asTypeOf(new CRMDBundle).connect(
+    PLV  := _.PLV,
+    IE   := _.IE,
+    DA   := _.DA,
+    PG   := _.PG,
+    DATF := _.DATF,
+    DATM := _.DATM
+  )
+}
+
+class PRMDBundle(implicit p: Parameters) extends YQBundle with CPUParams {
+  val PIE  = Bool()
+  val PPLV = UInt(2.W)
+
+  def := (that: => Data): Unit = that.asTypeOf(new PRMDBundle).connect(
+    PPLV := _.PPLV,
+    PIE  := _.PIE
+  )
+}
+
+class ECFGBundle(implicit p: Parameters) extends YQBundle with CPUParams {
+  val LIE = Vec(13, Bool())
+
+  def := (that: => Data): Unit = that.asTypeOf(new ECFGBundle).connect(
+    LIE     := _.LIE,
+    LIE(10) := _.LIE(10) & 0.B
+  )
+}
+
+class ESTATBundle(implicit p: Parameters) extends YQBundle with CPUParams {
+  val EsubCode = UInt(9.W)
+  val Ecode    = UInt(6.W)
+  val RES1     = UInt(3.W)
+  val IPIS     = Bool()
+  val TIS      = Bool()
+  val RES0     = UInt(1.W)
+  val HWIS     = Vec(8, Bool())
+  val SWIS     = Vec(2, Bool())
+
+  def := (that: => Data): Unit = that.asTypeOf(new ESTATBundle).connect(
+    SWIS     := _.SWIS,
+    Ecode    := _.Ecode,
+    EsubCode := _.EsubCode
+  )
+}
+
+class LLBCTLBundle(implicit p: Parameters) extends YQBundle with CPUParams {
+  val KLO   = Bool()
+  val WCLLB = Bool()
+  val ROLLB = Bool()
+
+  def := (that: => Data): Unit = that.asTypeOf(new LLBCTLBundle).connect(
+    that => ROLLB := that.ROLLB & ~that.WCLLB,
+    KLO := _.KLO
+  )
 }

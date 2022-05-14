@@ -2,6 +2,38 @@ package cpu.tools.difftest
 
 import chisel3._
 
+class DifftestCSRRegStateIO extends Bundle {
+  val clock     = Clock()
+  val coreid    = UInt(8.W)
+  val crmd      = UInt(64.W)
+  val prmd      = UInt(64.W)
+  val euen      = UInt(64.W)
+  val ecfg      = UInt(64.W)
+  val estat     = UInt(64.W)
+  val era       = UInt(64.W)
+  val badv      = UInt(64.W)
+  val eentry    = UInt(64.W)
+  val tlbidx    = UInt(64.W)
+  val tlbehi    = UInt(64.W)
+  val tlbelo0   = UInt(64.W)
+  val tlbelo1   = UInt(64.W)
+  val asid      = UInt(64.W)
+  val pgdl      = UInt(64.W)
+  val pgdh      = UInt(64.W)
+  val save0     = UInt(64.W)
+  val save1     = UInt(64.W)
+  val save2     = UInt(64.W)
+  val save3     = UInt(64.W)
+  val tid       = UInt(64.W)
+  val tcfg      = UInt(64.W)
+  val tval      = UInt(64.W)
+  val ticlr     = UInt(64.W)
+  val llbctl    = UInt(64.W)
+  val tlbrentry = UInt(64.W)
+  val dmw0      = UInt(64.W)
+  val dmw1      = UInt(64.W)
+}
+
 class DifftestInstrCommit extends BlackBox {
   val io = IO(Input(new Bundle {
     val clock          = Clock()
@@ -72,37 +104,7 @@ class DifftestLoadEvent extends BlackBox {
 }
 
 class DifftestCSRRegState extends BlackBox {
-  val io = IO(Input(new Bundle {
-    val clock     = Clock()
-    val coreid    = UInt(8.W)
-    val crmd      = UInt(64.W)
-    val prmd      = UInt(64.W)
-    val euen      = UInt(64.W)
-    val ecfg      = UInt(64.W)
-    val estat     = UInt(64.W)
-    val era       = UInt(64.W)
-    val badv      = UInt(64.W)
-    val eentry    = UInt(64.W)
-    val tlbidx    = UInt(64.W)
-    val tlbehi    = UInt(64.W)
-    val tlbelo0   = UInt(64.W)
-    val tlbelo1   = UInt(64.W)
-    val asid      = UInt(64.W)
-    val pgdl      = UInt(64.W)
-    val pgdh      = UInt(64.W)
-    val save0     = UInt(64.W)
-    val save1     = UInt(64.W)
-    val save2     = UInt(64.W)
-    val save3     = UInt(64.W)
-    val tid       = UInt(64.W)
-    val tcfg      = UInt(64.W)
-    val tval      = UInt(64.W)
-    val ticlr     = UInt(64.W)
-    val llbctl    = UInt(64.W)
-    val tlbrentry = UInt(64.W)
-    val dmw0      = UInt(64.W)
-    val dmw1      = UInt(64.W)
-  }))
+  val io = IO(Input(new DifftestCSRRegStateIO))
 }
 
 class DifftestGRegState extends BlackBox {

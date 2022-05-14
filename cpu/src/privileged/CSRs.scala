@@ -85,7 +85,7 @@ trait CSRsAddr extends CPUParams {
   val Uip           = 0x044.U
 }
 
-class CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
+abstract class AbstractCSRs(implicit p: Parameters) extends YQModule {
   val io = IO(new YQBundle {
     val csrsW       = new CSRsW
     val csrsR       = new CSRsR
@@ -119,7 +119,9 @@ class CSRs(implicit p: Parameters) extends YQModule with CSRsAddr {
       val mscratch = Output(UInt(xlen.W))
     } else null
   })
+}
 
+class CSRs(implicit p: Parameters) extends AbstractCSRs with CSRsAddr {
   private val misa      = (log2Down(xlen) - 4).U(2.W) ## 0.U((xlen - 28).W) ## extensions.foldLeft(0)((res, x) => res | 1 << x - 'A').U(26.W)
   private val mvendorid = 0.U(32.W) // non-commercial implementation
   private val marchid   = 0.U(xlen.W) // the field is not implemented

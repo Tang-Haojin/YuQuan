@@ -26,7 +26,7 @@ class GPRs(implicit p: Parameters) extends YQModule {
       val gprs    = Output(Vec(32, UInt(xlen.W)))
     } else null
   })
-  private val regs  = RegInit(VecInit(Seq.fill(32)(0.U(xlen.W))))
+  private val regs  = Reg(Vec(32, UInt(xlen.W)))
   private val rregs = WireDefault(Vec(32, UInt(xlen.W)), regs); rregs(0) := 0.U; io.rregs := rregs
   private val rd    = RegInit(0.U(5.W))
   when(io.gprsW.wen) {

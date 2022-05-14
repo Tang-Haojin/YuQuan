@@ -99,27 +99,43 @@ class EX(implicit p: Parameters) extends YQModule {
   when(io.wbDch.fire)  { writebackDCache  := 0.B }
 
   when(io.input.special === zicsr) {
-    case class csrsAddr()(implicit val p: Parameters) extends cpu.CPUParams with cpu.privileged.CSRsAddr
-    val oldValue = io.input.num(0).asTypeOf(new MipBundle)
-    val newValue = WireDefault(new MipBundle, oldValue)
-    if (ext('S')) newValue.SEIP := Mux(io.input.wcsr(0) === csrsAddr().Mip, io.seip, oldValue.SEIP)
-    if (ext('U')) newValue.UEIP := Mux(io.input.wcsr(0) === csrsAddr().Mip || io.input.wcsr(0) === csrsAddr().Sip, io.ueip, oldValue.UEIP)
-    wireCsrData(0) := MuxLookup(io.input.op1_3(1, 0), 0.U, Seq(
-      1.U -> io.input.num(1),
-      2.U -> (newValue | io.input.num(1)),
-      3.U -> (newValue & ~io.input.num(1))
-    ))
+    if (isLxb) {
+      wireCsrData(0) := Mux(
+        io.input.op1_3 === 1.U,
+        io.input.num(1),
+        io.input.num(1) & io.input.num(2) | io.input.num(0) & ~io.input.num(2)
+      )
+    } else {
+      case class csrsAddr()(implicit val p: Parameters) extends cpu.CPUParams with cpu.privileged.CSRsAddr
+      val oldValue = io.input.num(0).asTypeOf(new MipBundle)
+      val newValue = WireDefault(new MipBundle, oldValue)
+      if (ext('S')) newValue.SEIP := Mux(io.input.wcsr(0) === csrsAddr().Mip, io.seip, oldValue.SEIP)
+      if (ext('U')) newValue.UEIP := Mux(io.input.wcsr(0) === csrsAddr().Mip || io.input.wcsr(0) === csrsAddr().Sip, io.ueip, oldValue.UEIP)
+      wireCsrData(0) := MuxLookup(io.input.op1_3(1, 0), 0.U, Seq(
+        1.U -> io.input.num(1),
+        2.U -> (newValue | io.input.num(1)),
+        3.U -> (newValue & ~io.input.num(1))
+      ))
+    }
   }
   if (!isZmb) when(io.input.special === mret) {
-    wireCsrData(0) := Cat(
-      io.input.num(0)(xlen - 1, 13),
-      0.U(2.W),
-      io.input.num(0)(10, 8),
-      1.B,
-      io.input.num(0)(6, 4),
-      io.input.num(0)(7), // MPIE
-      io.input.num(0)(2, 0)
-    )
+    if (isLxb) {
+      val newCrmd = WireDefault(io.input.num(0).asTypeOf(new CRMDBundle))
+      val prmd = io.input.num(1).asTypeOf(new PRMDBundle)
+      newCrmd.PLV := prmd.PPLV
+      newCrmd.IE  := prmd.PIE
+      wireCsrData(0) := newCrmd.asUInt
+    } else {
+      wireCsrData(0) := Cat(
+        io.input.num(0)(xlen - 1, 13),
+        0.U(2.W),
+        io.input.num(0)(10, 8),
+        1.B,
+        io.input.num(0)(6, 4),
+        io.input.num(0)(7), // MPIE
+        io.input.num(0)(2, 0)
+      )
+    }
   }
   if (ext('S')) when(io.input.special === sret) {
     val oldMstatus = io.input.num(0).asTypeOf(new MstatusBundle)
@@ -130,27 +146,29 @@ class EX(implicit p: Parameters) extends YQModule {
     wireCsrData(0)  := newMstatus.asUInt
   }
   if (!isZmb) when(io.input.special === exception) {
-    val currentPriv = io.input.num(3)(xlen - 2, xlen - 3)
-    val newPriv     = io.input.num(3)(xlen - 4, xlen - 5)
-    val oldMstatus  = io.input.num(3).asTypeOf(new MstatusBundle)
-    val newMstatus  = WireDefault(new MstatusBundle, oldMstatus)
-    newMstatus.WPRI_0 := 0.U
-    when(newPriv === "b11".U) {
-      newMstatus.MPP  := currentPriv
-      newMstatus.MPIE := oldMstatus.MIE
-      newMstatus.MIE  := 0.B
+    wireCsrData := io.input.num
+    if (!isLxb) {
+      val currentPriv = io.input.num(3)(xlen - 2, xlen - 3)
+      val newPriv     = io.input.num(3)(xlen - 4, xlen - 5)
+      val oldMstatus  = io.input.num(3).asTypeOf(new MstatusBundle)
+      val newMstatus  = WireDefault(new MstatusBundle, oldMstatus)
+      newMstatus.WPRI_0 := 0.U
+      when(newPriv === "b11".U) {
+        newMstatus.MPP  := currentPriv
+        newMstatus.MPIE := oldMstatus.MIE
+        newMstatus.MIE  := 0.B
+      }
+      if (ext('S')) when(newPriv === "b01".U) {
+        newMstatus.SPP  := currentPriv
+        newMstatus.SPIE := oldMstatus.SIE
+        newMstatus.SIE  := 0.B
+      }
+      if (ext('U')) when(newPriv === "b00".U) {
+        newMstatus.UPIE := oldMstatus.UIE
+        newMstatus.UIE  := 0.B
+      }
+      wireCsrData(3) := newMstatus.asUInt
     }
-    if (ext('S')) when(newPriv === "b01".U) {
-      newMstatus.SPP  := currentPriv
-      newMstatus.SPIE := oldMstatus.SIE
-      newMstatus.SIE  := 0.B
-    }
-    if (ext('U')) when(newPriv === "b00".U) {
-      newMstatus.UPIE := oldMstatus.UIE
-      newMstatus.UIE  := 0.B
-    }
-    wireCsrData    := io.input.num
-    wireCsrData(3) := newMstatus.asUInt
     wireRd := 0.U
     wireIsWcsr := 1.B
   }
