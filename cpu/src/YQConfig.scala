@@ -30,7 +30,7 @@ object YQConfig {
     case USEFLASH         => site(GEN_NAME) match { case "ysyx" => true; case _ => false }
     case SPIFLASH_MMAP    => new PeripheralConfig.SPIFLASH
     case ENABLE_DEBUG     => false
-    case REG_CONF         => new RegConf
+    case REG_CONF         => site(GEN_NAME) match { case "lxb" => new RegConf(3, 10, 5); case _ => new RegConf(3, 10, 4) }
     case TLB_ENTRIES      => 16
     case VALEN            => site(GEN_NAME) match { case "ysyx" => 64; case _ => 32 }
     case USESLAVE         => site(GEN_NAME) match { case "ysyx" => true; case _ => false }
@@ -65,11 +65,7 @@ object YQConfig {
     override val SIZE: Long = 0x80000000L
   ) extends MMAP
 
-  class RegConf {
-    val readPortsNum  = 3
-    val readCsrsPort  = 10
-    val writeCsrsPort = 4
-  }
+  class RegConf(val readPortsNum: Int, val readCsrsPort: Int, val writeCsrsPort: Int)
 
   def apply(): YQConfig = new YQConfig
 }

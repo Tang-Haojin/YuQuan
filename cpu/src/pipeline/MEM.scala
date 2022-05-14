@@ -39,6 +39,8 @@ class MEM(implicit p: Parameters) extends YQModule {
   private val diffLSVAddr    = RegInit(0.U(valen.W))
   private val diffStoreData  = RegInit(0.U(xlen.W))
   private val diffLoadValid  = RegInit(0.U(6.W))
+  private val allExcept      = RegInit(0.B)
+  private val isEret         = RegInit(0.B)
 
   private val offset   = addr(axSize - 1, 0)
 
@@ -119,8 +121,10 @@ class MEM(implicit p: Parameters) extends YQModule {
     isSatp   := io.input.isSatp
     isWfe    := 0.B
     except   := isWfe
-    when(isWfe) { csrData(0) := pc; csrData(2) := addr }
-    .otherwise { pc := io.input.pc }
+    when(isWfe) {
+      if (isLxb) { csrData(3) := pc; csrData(4) := addr }
+      else       { csrData(0) := pc; csrData(2) := addr }
+    }.otherwise { pc := io.input.pc }
     if (ext('S')) {
       wireFsh := io.input.fshTLB
       flush   := wireFsh
@@ -153,6 +157,8 @@ class MEM(implicit p: Parameters) extends YQModule {
       diffStoreData := Mux(io.input.mask(1, 0) === 0.U, io.input.data(7, 0)  << (wireOff ## 0.U(3.W)),
                        Mux(io.input.mask(1, 0) === 1.U, io.input.data(15, 0) << (wireOff ## 0.U(3.W)),
                                                         io.input.data(31, 0)))
+      allExcept := io.input.diff.get.allExcept
+      isEret := io.input.diff.get.eret
     }
     when(io.input.isMem) {
       NVALID    := 0.B
@@ -191,6 +197,8 @@ class MEM(implicit p: Parameters) extends YQModule {
     _.lsVAddr    := diffLSVAddr,
     _.loadValid  := diffLoadValid,
     _.storeValid := diffStoreValid,
-    _.storeData  := diffStoreData
+    _.storeData  := diffStoreData,
+    _.allExcept  := allExcept,
+    _.eret       := isEret
   )
 }

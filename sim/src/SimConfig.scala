@@ -35,7 +35,7 @@ object SimConfig {
     case SPI_MMAP         => new PeripheralConfig.SPI
     case SPIFLASH_MMAP    => new PeripheralConfig.SPIFLASH
     case MODULE_PREFIX    => s""
-    case REG_CONF         => new YQConfig.RegConf
+    case REG_CONF         => new YQConfig.RegConf(3, 10, 4)
     case ENABLE_DEBUG     => true
     case TLB_ENTRIES      => 16
     case VALEN            => site(GEN_NAME) match { case "ysyx" => 64; case "zmb" => 32 }

@@ -38,7 +38,7 @@ class CPU(implicit p: Parameters) extends YQModule with CacheParams with HasGetN
 
   private val moduleICache = ICache()
   private val moduleDCache = DCache()
-  private val moduleMMU    = Module(new MMU)
+  private val moduleMMU    = Module(if (isLxb) new LAMMU else new RVMMU)
   private val moduleClint  = if (useClint) Module(new Clint) else null
   private val modulePlic   = if (usePlic) Module(new SimplePlic) else null
 
@@ -194,7 +194,7 @@ class CPU(implicit p: Parameters) extends YQModule with CacheParams with HasGetN
         _.clock          := clock,
         _.coreid         := 0.U,
         _.index          := 0.U,
-        _.valid          := RegNext(moduleWB.io.lastVR.VALID && moduleWB.io.input.retire, 0.B),
+        _.valid          := RegNext(moduleWB.io.lastVR.VALID && moduleWB.io.input.retire && ~moduleWB.io.input.diff.get.allExcept, 0.B),
         _.pc             := RegNext(moduleWB.io.input.diff.get.pc),
         _.instr          := RegNext(moduleWB.io.input.diff.get.instr),
         _.skip           := 0.B,
@@ -212,12 +212,12 @@ class CPU(implicit p: Parameters) extends YQModule with CacheParams with HasGetN
       Module(new DifftestExcpEvent).io.connect(
         _.clock         := clock,
         _.coreid        := 0.U,
-        _.excp_valid    := 0.B,
-        _.eret          := 0.B,
-        _.intrNo        := 0.U,
-        _.cause         := 0.U,
-        _.exceptionPC   := 0.U,
-        _.exceptionInst := 0.U
+        _.excp_valid    := RegNext(moduleWB.io.lastVR.VALID && moduleWB.io.input.diff.get.allExcept, 0.B),
+        _.eret          := RegNext(moduleWB.io.lastVR.VALID && moduleWB.io.input.diff.get.eret, 0.B),
+        _.intrNo        := moduleCSRs.asInstanceOf[cpu.privileged.LACSRs].difftestIO.estat(12, 2),
+        _.cause         := moduleCSRs.asInstanceOf[cpu.privileged.LACSRs].difftestIO.estat(21, 16),
+        _.exceptionPC   := RegNext(moduleWB.io.input.diff.get.pc),
+        _.exceptionInst := RegNext(moduleWB.io.input.diff.get.instr)
       )
 
       Module(new DifftestTrapEvent).io.connect(

@@ -54,6 +54,8 @@ class EX(implicit p: Parameters) extends YQModule {
   private val except  = RegInit(0.B)
   private val cause   = RegInit(0.U(4.W))
   private val instr   = RegInit(0.U(32.W))
+  private val allExpt = RegInit(0.B)
+  private val isEret  = RegInit(0.B)
   private val fshTLB  = if (ext('S')) RegInit(0.B) else null
   private val exit    = if (Debug) RegInit(0.U(3.W)) else null
   private val rcsr    = if (Debug) RegInit(0xfff.U(12.W)) else null
@@ -146,8 +148,8 @@ class EX(implicit p: Parameters) extends YQModule {
     wireCsrData(0)  := newMstatus.asUInt
   }
   if (!isZmb) when(io.input.special === exception) {
-    wireCsrData := io.input.num
     if (!isLxb) {
+      wireCsrData := io.input.num
       val currentPriv = io.input.num(3)(xlen - 2, xlen - 3)
       val newPriv     = io.input.num(3)(xlen - 4, xlen - 5)
       val oldMstatus  = io.input.num(3).asTypeOf(new MstatusBundle)
@@ -168,6 +170,8 @@ class EX(implicit p: Parameters) extends YQModule {
         newMstatus.UIE  := 0.B
       }
       wireCsrData(3) := newMstatus.asUInt
+    } else {
+      wireCsrData := io.input.num :+ io.input.num(3)
     }
     wireRd := 0.U
     wireIsWcsr := 1.B
@@ -244,6 +248,8 @@ class EX(implicit p: Parameters) extends YQModule {
     }
     if (io.input.diff.isDefined) {
       instr := io.input.diff.get.instr
+      allExpt := io.input.diff.get.allExcept
+      isEret := io.input.diff.get.eret
     }
   }.elsewhen(io.nextVR.READY && io.nextVR.VALID) {
     NVALID := 0.B
@@ -268,5 +274,7 @@ class EX(implicit p: Parameters) extends YQModule {
 
   if (io.output.diff.isDefined) {
     io.output.diff.get.instr := instr
+    io.output.diff.get.allExcept := allExpt
+    io.output.diff.get.eret := isEret
   }
 }

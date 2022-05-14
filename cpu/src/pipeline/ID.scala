@@ -138,6 +138,8 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
   io.csrsR.rcsr     := VecInit(Seq.fill(RegConf.readCsrsPort)(0xFFF.U(12.W)))
   if (io.output.diff.isDefined) {
     io.output.diff.get.instr := instr
+    io.output.diff.get.allExcept := special === exception
+    io.output.diff.get.eret := special === mret
   }
 
   io.csrsR.rcsr(0) := io.input.instr(21, 10)
@@ -174,23 +176,29 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
     wireJmpBch := 1.B
     wireJbAddr := era
   }
+  when(io.input.except) {
+    wireExcept := 1.B
+    wireEcode  := MuxLookup(io.input.cause, io.input.cause, Seq(0x5.U -> 0x8.U, 0x6.U -> 0x3F.U))
+    wireEsub   := (io.input.cause === 0x5.U).asUInt
+  }
 
-  val newCrmd = WireDefault(crmd)
+  private val newCrmd = WireDefault(crmd)
   newCrmd.PLV := 0.U
   newCrmd.IE  := 0.U
-  val newPrmd = WireDefault(prmd)
+  private val newPrmd = WireDefault(prmd)
   newPrmd.PPLV := crmd.PLV
   newPrmd.PIE  := crmd.IE
-  val newEstat = WireDefault(estat)
+  private val newEstat = WireDefault(estat)
   newEstat.Ecode    := wireEcode
   newEstat.EsubCode := wireEsub
+  private val WBADV = VecInit((0x1 to 0x9).map(_.U)).contains(io.input.cause)
   when(io.lastVR.VALID && wireExcept) {
     wireJmpBch := 1.B
     wireJbAddr := Mux(wireEcode === 0x3F.U, 0.U /*TODO: TLBRENTRY*/, eentry)
     wireSpecial := exception
     wireIsPriv := crmd.PLV =/= 0.U
-    wireCsr := VecInit(CRMD, PRMD, ESTAT, ERA)
-    wireNum := VecInit(newCrmd.asUInt, newPrmd.asUInt, newEstat.asUInt, io.input.pc)
+    wireCsr := Seq(CRMD, PRMD, ESTAT, ERA, Mux(WBADV, BADV, 0xFFF.U))
+    wireNum := Seq(newCrmd.asUInt, newPrmd.asUInt, newEstat.asUInt, io.input.pc)
     wireIsSatp := 0.B; wireBlocked := 0.B
   }
 

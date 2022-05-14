@@ -45,9 +45,11 @@ class EXOutput(implicit p: Parameters) extends YQBundle {
       val rvc  = Output(Bool())
     } else null
   val diff    =
-    if (useDifftest) Some(new YQBundle {
-      val instr = Output(UInt(32.W))
-    }) else None
+    if (useDifftest) Some(Output(new YQBundle {
+      val instr = UInt(32.W)
+      val allExcept = Bool()
+      val eret = Bool()
+    })) else None
 }
 
 // ID
@@ -146,9 +148,11 @@ class IDOutput(implicit p: Parameters) extends YQBundle {
       val rvc  = Output(Bool())
     } else null
   val diff    =
-    if (useDifftest) Some(new YQBundle {
-      val instr = Output(UInt(32.W))
-    }) else None
+    if (useDifftest) Some(Output(new YQBundle {
+      val instr = UInt(32.W)
+      val allExcept = Bool()
+      val eret = Bool()
+    })) else None
 }
 
 class IDIO(implicit p: Parameters) extends YQBundle {
@@ -229,6 +233,8 @@ class MEMOutput(implicit p: Parameters) extends YQBundle {
       val loadValid  = UInt(6.W)
       val storeValid = UInt(4.W)
       val storeData  = UInt(xlen.W)
+      val allExcept  = Bool()
+      val eret       = Bool()
     })) else None
 }
 
