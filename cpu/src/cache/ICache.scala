@@ -67,7 +67,10 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   io.cpuIO.cpuResult.ready := hit
   io.cpuIO.cpuResult.data  := wordData
 
-  private val isPeripheral = if (FetchFromPeri) IsPeripheral(io.cpuIO.cpuReq.addr) else 0.B
+  private val isPeripheral = if (FetchFromPeri) {
+    if (isLxb) io.cpuIO.cpuReq.noCache.get
+    else IsPeripheral(io.cpuIO.cpuReq.addr)
+  } else 0.B
   private val passThrough  = if (FetchFromPeri) PassThrough(true)(io.memIO, 0.B, addr, 0.U, 0.U, 0.B) else null
 
   private val compareHit = RegInit(0.B)

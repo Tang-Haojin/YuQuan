@@ -6,6 +6,7 @@ import chisel3.util.experimental._
 import chipsalliance.rocketchip.config._
 
 import cpu.pipeline._
+import cpu.privileged._
 import component._
 import component.mmu._
 import tools._
@@ -102,6 +103,10 @@ class CPU(implicit p: Parameters) extends YQModule with CacheParams with HasGetN
   moduleDCache.io.clintIO <> (if (useClint) moduleClint.io.clintIO else DontCare)
   moduleDCache.io.plicIO  <> (if (usePlic) modulePlic.io.plicIO else DontCare)
   if (usePlic) modulePlic.io.int <> io.interrupt
+  if (isLxb) {
+    moduleMMU.asInstanceOf[LAMMU].laIO.crmd := moduleCSRs.asInstanceOf[LACSRs].laIO.crmd
+    moduleMMU.asInstanceOf[LAMMU].laIO.dmw  := moduleCSRs.asInstanceOf[LACSRs].laIO.dmw
+  }
 
   moduleBypass.io.rregs  <> moduleGPRs.io.rregs
   moduleBypass.io.idOut.valid  := moduleID.io.nextVR.VALID

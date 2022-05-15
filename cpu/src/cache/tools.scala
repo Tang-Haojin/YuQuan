@@ -10,13 +10,14 @@ import cpu._
 
 // CPU -> Cache Controller
 class CpuReq(implicit p: Parameters) extends YQBundle {
-  val addr   = UInt(alen.W)
-  val data   = UInt(xlen.W)
-  val size   = UInt(3.W)
-  val rw     = Bool()
-  val wmask  = UInt((xlen / 8).W)
-  val valid  = Bool()
-  val revoke = Bool()
+  val addr    = UInt(alen.W)
+  val data    = UInt(xlen.W)
+  val size    = UInt(3.W)
+  val rw      = Bool()
+  val wmask   = UInt((xlen / 8).W)
+  val valid   = Bool()
+  val revoke  = Bool()
+  val noCache = if (isLxb) Some(Bool()) else None
 }
 
 // Cache Controller -> CPU

@@ -216,7 +216,7 @@ class CRMDBundle(implicit p: Parameters) extends YQBundle with CPUParams {
   val IE   = Bool()
   val PLV  = UInt(2.W)
 
-  def := (that: => Data): Unit = that.asTypeOf(new CRMDBundle).connect(
+  def := (that: => Data): Unit = that.asTypeOf(this).connect(
     PLV  := _.PLV,
     IE   := _.IE,
     DA   := _.DA,
@@ -230,7 +230,7 @@ class PRMDBundle(implicit p: Parameters) extends YQBundle with CPUParams {
   val PIE  = Bool()
   val PPLV = UInt(2.W)
 
-  def := (that: => Data): Unit = that.asTypeOf(new PRMDBundle).connect(
+  def := (that: => Data): Unit = that.asTypeOf(this).connect(
     PPLV := _.PPLV,
     PIE  := _.PIE
   )
@@ -239,7 +239,7 @@ class PRMDBundle(implicit p: Parameters) extends YQBundle with CPUParams {
 class ECFGBundle(implicit p: Parameters) extends YQBundle with CPUParams {
   val LIE = Vec(13, Bool())
 
-  def := (that: => Data): Unit = that.asTypeOf(new ECFGBundle).connect(
+  def := (that: => Data): Unit = that.asTypeOf(this).connect(
     LIE     := _.LIE,
     LIE(10) := _.LIE(10) & 0.B
   )
@@ -255,7 +255,7 @@ class ESTATBundle(implicit p: Parameters) extends YQBundle with CPUParams {
   val HWIS     = Vec(8, Bool())
   val SWIS     = Vec(2, Bool())
 
-  def := (that: => Data): Unit = that.asTypeOf(new ESTATBundle).connect(
+  def := (that: => Data): Unit = that.asTypeOf(this).connect(
     SWIS     := _.SWIS,
     Ecode    := _.Ecode,
     EsubCode := _.EsubCode
@@ -267,8 +267,27 @@ class LLBCTLBundle(implicit p: Parameters) extends YQBundle with CPUParams {
   val WCLLB = Bool()
   val ROLLB = Bool()
 
-  def := (that: => Data): Unit = that.asTypeOf(new LLBCTLBundle).connect(
+  def := (that: => Data): Unit = that.asTypeOf(this).connect(
     that => ROLLB := that.ROLLB & ~that.WCLLB,
     KLO := _.KLO
+  )
+}
+
+class DMWBundle(implicit p: Parameters) extends YQBundle with CPUParams {
+  val VSEG = UInt(3.W)
+  val RES2 = UInt(1.W)
+  val PSEG = UInt(3.W)
+  val RES1 = UInt(19.W)
+  val MAT  = UInt(2.W)
+  val PLV3 = Bool()
+  val RES0 = UInt(2.W)
+  val PLV0 = Bool()
+
+  def := (that: => Data): Unit = that.asTypeOf(this).connect(
+    VSEG := _.VSEG,
+    PSEG := _.PSEG,
+    MAT  := _.MAT,
+    PLV3 := _.PLV3,
+    PLV0 := _.PLV0
   )
 }

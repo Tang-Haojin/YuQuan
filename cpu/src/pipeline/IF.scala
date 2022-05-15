@@ -8,7 +8,7 @@ import cpu._
 import cpu.tools._
 import cpu.component.mmu._
 
-class IF(implicit p: Parameters) extends YQModule {
+class IF(implicit p: Parameters) extends YQModule with cpu.privileged.LACSRsAddr {
   val io = IO(new YQBundle {
     val immu   = Flipped(new PipelineIO(32))
     val nextVR = Flipped(new LastVR)
@@ -48,13 +48,21 @@ class IF(implicit p: Parameters) extends YQModule {
   io.nextVR.VALID      := NVALID
 
   private val wireInstr = io.immu.pipelineResult.cpuResult.data
-  private val wirePause = if (isLxb) 0.B else
+  private val wirePause = if (isLxb) {
+    wireInstr(31, 24) === "b00000100".U && wireInstr(9, 5) =/= 0.U && (
+      wireInstr(23, 10) === CRMD ||
+      wireInstr(23, 10) === ASID ||
+      wireInstr(23, 10) === DMW(0) ||
+      wireInstr(23, 10) === DMW(1)
+    ) || wireInstr(31, 10) === "b0000011001001000001110".U
+  } else {
     wireInstr(6, 0) === "b1110011".U && (
       (ext('S').B && wireInstr(31, 20) === csrsAddr.Satp)    ||
       (!isZmb.B   && wireInstr(31, 20) === csrsAddr.Mstatus) ||
       (ext('S').B && wireInstr(31, 20) === csrsAddr.Sstatus) ||
       (ext('S').B && wireInstr(31, 25) === "b0001001".U && wireInstr(14, 7) === 0.U)
     )
+  }
 
   io.immu.pipelineReq.cpuReq.data   := DontCare
   io.immu.pipelineReq.cpuReq.rw     := DontCare
@@ -65,6 +73,7 @@ class IF(implicit p: Parameters) extends YQModule {
   io.immu.pipelineReq.cpuReq.size   := DontCare
   io.immu.pipelineReq.flush         := DontCare
   io.immu.pipelineReq.offset        := regPC
+  io.immu.pipelineReq.cpuReq.noCache.getOrElse(WireDefault(0.B)) := DontCare
 
   when(io.immu.pipelineResult.cpuResult.ready && (!io.nextVR.VALID || io.nextVR.READY)) {
     NVALID     := 1.B

@@ -40,6 +40,10 @@ trait LACSRsAddr extends CPUParams {
 
 class LACSRs(implicit p: Parameters) extends AbstractCSRs with LACSRsAddr {
   val difftestIO = IO(Output(new DifftestCSRRegStateIO))
+  val laIO = IO(new Bundle {
+    val crmd = Output(new CRMDBundle)
+    val dmw  = Output(Vec(2, new DMWBundle))
+  })
   private val crmd = RegInit((new CRMDBundle).Lit(
     _.PLV  -> 0.U(2.W),
     _.IE   -> 0.B,
@@ -57,6 +61,10 @@ class LACSRs(implicit p: Parameters) extends AbstractCSRs with LACSRsAddr {
   private val eentry = Reg(UInt((32 - 6).W))
   private val save   = Reg(Vec(4, UInt(32.W)))
   private val llbctl = RegInit(0.U.asTypeOf(new LLBCTLBundle))
+  private val dmw    = RegInit(VecInit(Seq.fill(2)(0.U.asTypeOf(new DMWBundle))))
+
+  laIO.crmd := crmd
+  laIO.dmw  := dmw
 
   if (useDifftest) {
     difftestIO.connect(
@@ -93,6 +101,9 @@ class LACSRs(implicit p: Parameters) extends AbstractCSRs with LACSRsAddr {
         when(io.csrsW.wcsr(i) === addr) { save   := io.csrsW.wdata(i) }
       }
       when(io.csrsW.wcsr(i) === LLBCTL) { llbctl := io.csrsW.wdata(i) }
+      DMW zip dmw foreach { case (addr, dmw) =>
+        when(io.csrsW.wcsr(i) === addr) { dmw    := io.csrsW.wdata(i) }
+      }
     }
   }
 
@@ -111,6 +122,9 @@ class LACSRs(implicit p: Parameters) extends AbstractCSRs with LACSRsAddr {
       when(io.csrsR.rcsr(i) === addr) { io.csrsR.rdata(i) := save }
     }
     when(io.csrsR.rcsr(i) === LLBCTL) { io.csrsR.rdata(i) := llbctl.asUInt }
+    DMW zip dmw foreach { case (addr, dmw) =>
+      when(io.csrsR.rcsr(i) === addr) { io.csrsR.rdata(i) := dmw.asUInt }
+    }
   }
 
   io.bareSEIP := DontCare; io.bareUEIP := DontCare

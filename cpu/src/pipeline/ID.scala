@@ -160,11 +160,16 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
     wireIsWcsr := io.input.instr(9, 5) =/= 0.U
     wireCsr(0) := io.input.instr(21, 10)
     wireOp1_3  := io.input.instr(9, 5)
-    // when(wireCsr(0) === csrsAddr.Satp) { wireIsSatp := 1.B }
+    when(wireCsr(0) === DMW(0) || wireCsr(0) === DMW(1) || wireCsr(0) === ASID) { wireIsSatp := 1.B }
   }
   when(decoded(7) === ecall) {
     wireExcept := 1.B
     wireEcode  := 0xB.U
+    wireEsub   := 0.U
+  }
+  when(decoded(7) === ebreak) {
+    wireExcept := 1.B
+    wireEcode  := 0xC.U
     wireEsub   := 0.U
   }
   when(decoded(7) === mret) {

@@ -78,7 +78,7 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
 
   private val way = Reg(UInt(log2Ceil(Associativity).W))
 
-  private val isPeripheral = IsPeripheral(io.cpuIO.cpuReq.addr)
+  private val isPeripheral = if (isLxb) io.cpuIO.cpuReq.noCache.get else IsPeripheral(io.cpuIO.cpuReq.addr)
   private val isClint      = if (useClint) IsClint(io.cpuIO.cpuReq.addr) else null
   if (useClint) {
     io.clintIO.addr  := isClint.address

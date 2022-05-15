@@ -58,6 +58,7 @@ case class LA()(implicit val p: Parameters) extends CPUParams {
   private def MULHU   = BitPat("b00000000000111010_?????_?????_?????")
   private def CSROP   = BitPat("b00000100_??????????????_?????_?????")
   private def SYSCALL = BitPat("b00000000001010110_???????????????")
+  private def BREAK   = BitPat("b00000000001010100_???????????????")
   private def ERTN    = BitPat("b0000011001001000001110_00000_00000")
   //private def FENCE  = BitPat("b???????_?????_?????_000_?????_0001111")
   //private def ECALL  = BitPat("b0000000_00000_00000_000_00000_1110011")
@@ -114,6 +115,7 @@ case class LA()(implicit val p: Parameters) extends CPUParams {
     MULHU   -> List(r3  , rj  , rk  , non , non , mulh, 1.B, mu    ),
     CSROP   -> List(i12 , csr , rd  , rj  , non , nop , 1.B, zicsr ),
     SYSCALL -> List(i12 , non , non , non , non , nop , 0.B, ecall ),
+    BREAK   -> List(i12 , non , non , non , non , nop , 0.B, ebreak),
     ERTN    -> List(i12 , non , non , non , non , nop , 0.B, mret  )
     // ) ++ (if (!isZmb) List(
     // FENCE -> List(i   , non , non , non , non , nop , 0.B, norm  ), // do nothing

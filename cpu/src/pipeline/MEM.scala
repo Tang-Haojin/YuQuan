@@ -80,6 +80,7 @@ class MEM(implicit p: Parameters) extends YQModule {
   io.dmmu.pipelineReq.cpuReq.revoke := DontCare
   io.dmmu.pipelineReq.flush         := (if (ext('S')) wireFsh else 0.B)
   io.dmmu.pipelineReq.offset        := DontCare
+  io.dmmu.pipelineReq.cpuReq.noCache.getOrElse(WireDefault(0.B)) := DontCare
   io.output.retire := retire
   io.output.priv   := priv
   io.output.isPriv := isPriv
