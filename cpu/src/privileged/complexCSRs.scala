@@ -239,9 +239,10 @@ class PRMDBundle(implicit p: Parameters) extends YQBundle with CPUParams {
 class ECFGBundle(implicit p: Parameters) extends YQBundle with CPUParams {
   val LIE = Vec(13, Bool())
 
+  def TIE: Bool = LIE(11)
   def := (that: => Data): Unit = that.asTypeOf(this).connect(
     LIE     := _.LIE,
-    LIE(10) := _.LIE(10) & 0.B
+    // LIE(10) := _.LIE(10) & 0.B FIXME: intentionally comment it for difftest
   )
 }
 
@@ -255,6 +256,7 @@ class ESTATBundle(implicit p: Parameters) extends YQBundle with CPUParams {
   val HWIS     = Vec(8, Bool())
   val SWIS     = Vec(2, Bool())
 
+  def IS: Vec[Bool] = VecInit(this.asUInt(12, 0).asBools)
   def := (that: => Data): Unit = that.asTypeOf(this).connect(
     SWIS     := _.SWIS,
     Ecode    := _.Ecode,
@@ -289,5 +291,17 @@ class DMWBundle(implicit p: Parameters) extends YQBundle with CPUParams {
     MAT  := _.MAT,
     PLV3 := _.PLV3,
     PLV0 := _.PLV0
+  )
+}
+
+class TCFGBundle(implicit p: Parameters) extends YQBundle with CPUParams {
+  val InitVal  = UInt(30.W)
+  val Periodic = Bool()
+  val En       = Bool()
+
+  def := (that: => Data): Unit = that.asTypeOf(this).connect(
+    InitVal  := _.InitVal,
+    Periodic := _.Periodic,
+    En       := _.En
   )
 }

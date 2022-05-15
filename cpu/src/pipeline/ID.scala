@@ -186,6 +186,11 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
     wireEcode  := MuxLookup(io.input.cause, io.input.cause, Seq(0x5.U -> 0x8.U, 0x6.U -> 0x3F.U))
     wireEsub   := (io.input.cause === 0x5.U).asUInt
   }
+  when(crmd.IE && (ecfg.LIE.asUInt & estat.IS.asUInt).orR) {
+    wireExcept := 1.B
+    wireEcode  := 0x0.U
+    wireEsub   := 0x0.U
+  }
 
   private val newCrmd = WireDefault(crmd)
   newCrmd.PLV := 0.U

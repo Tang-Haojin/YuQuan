@@ -62,6 +62,8 @@ class LACSRs(implicit p: Parameters) extends AbstractCSRs with LACSRsAddr {
   private val save   = Reg(Vec(4, UInt(32.W)))
   private val llbctl = RegInit(0.U.asTypeOf(new LLBCTLBundle))
   private val dmw    = RegInit(VecInit(Seq.fill(2)(0.U.asTypeOf(new DMWBundle))))
+  private val tval   = RegInit(0.U(32.W)) // reset is not necessary
+  private val tcfg   = RegInit(0.U.asTypeOf(new TCFGBundle))
 
   laIO.crmd := crmd
   laIO.dmw  := dmw
@@ -82,9 +84,22 @@ class LACSRs(implicit p: Parameters) extends AbstractCSRs with LACSRsAddr {
       _.save1  := save(1),
       _.save2  := save(2),
       _.save3  := save(3),
-      _.llbctl := llbctl.asUInt
+      _.llbctl := llbctl.asUInt,
+      _.dmw0   := dmw(0).asUInt,
+      _.dmw1   := dmw(1).asUInt,
+      _.tval   := tval,
+      _.tcfg   := tcfg.asUInt,
+      _.ticlr  := 0.U
     )
   } else difftestIO := DontCare
+
+  when(tcfg.En) {
+    tval := Mux(tval === 0.U, 0.U, tval - 1.U)
+    when(tval === 1.U || tval === 0.U) {
+      estat.TIS := 1.B
+      when(!tcfg.Periodic) { tcfg.En := 0.B }
+    }
+  }
 
   for (i <- 0 until RegConf.writeCsrsPort) {
     when(io.csrsW.wen(i)) {
@@ -104,6 +119,15 @@ class LACSRs(implicit p: Parameters) extends AbstractCSRs with LACSRsAddr {
       DMW zip dmw foreach { case (addr, dmw) =>
         when(io.csrsW.wcsr(i) === addr) { dmw    := io.csrsW.wdata(i) }
       }
+      when(io.csrsW.wcsr(i) === TID)    {}
+      when(io.csrsW.wcsr(i) === TVAL)   {}
+      when(io.csrsW.wcsr(i) === TCFG)   { tcfg := io.csrsW.wdata(i) }
+
+      when(io.csrsW.wcsr(i) === TCFG)   {
+        val newTcfg = io.csrsW.wdata(i).asTypeOf(tcfg)
+        when(~tcfg.En && newTcfg.En) { tval := newTcfg.InitVal ## 0.U(2.W) }
+      }
+      when(io.csrsW.wcsr(i) === TICLR)  { when(io.csrsW.wdata(i)(0)) { estat.TIS := 0.B } }
     }
   }
 
@@ -125,6 +149,10 @@ class LACSRs(implicit p: Parameters) extends AbstractCSRs with LACSRsAddr {
     DMW zip dmw foreach { case (addr, dmw) =>
       when(io.csrsR.rcsr(i) === addr) { io.csrsR.rdata(i) := dmw.asUInt }
     }
+    when(io.csrsR.rcsr(i) === TID)    { io.csrsR.rdata(i) := 0.U }
+    when(io.csrsR.rcsr(i) === TVAL)   { io.csrsR.rdata(i) := tval }
+    when(io.csrsR.rcsr(i) === TCFG)   { io.csrsR.rdata(i) := tcfg.asUInt }
+    when(io.csrsR.rcsr(i) === TICLR)  { io.csrsR.rdata(i) := 0.U }
   }
 
   io.bareSEIP := DontCare; io.bareUEIP := DontCare
