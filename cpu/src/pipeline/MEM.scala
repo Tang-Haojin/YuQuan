@@ -41,6 +41,8 @@ class MEM(implicit p: Parameters) extends YQModule {
   private val diffLoadValid  = RegInit(0.U(6.W))
   private val allExcept      = RegInit(0.B)
   private val isEret         = RegInit(0.B)
+  private val isRdcnt        = RegInit(0.B)
+  private val counter        = RegInit(0.U(64.W))
 
   private val offset   = addr(axSize - 1, 0)
 
@@ -160,6 +162,8 @@ class MEM(implicit p: Parameters) extends YQModule {
                                                         io.input.data(31, 0)))
       allExcept := io.input.diff.get.allExcept
       isEret := io.input.diff.get.eret
+      isRdcnt := io.input.diff.get.is_CNTinst
+      counter := io.input.diff.get.timer_64_value
     }
     when(io.input.isMem) {
       NVALID    := 0.B
@@ -200,6 +204,8 @@ class MEM(implicit p: Parameters) extends YQModule {
     _.storeValid := diffStoreValid,
     _.storeData  := diffStoreData,
     _.allExcept  := allExcept,
-    _.eret       := isEret
+    _.eret       := isEret,
+    _.is_CNTinst := isRdcnt,
+    _.timer_64_value := counter
   )
 }

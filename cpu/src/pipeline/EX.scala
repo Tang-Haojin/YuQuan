@@ -56,6 +56,8 @@ class EX(implicit p: Parameters) extends YQModule {
   private val instr   = RegInit(0.U(32.W))
   private val allExpt = RegInit(0.B)
   private val isEret  = RegInit(0.B)
+  private val isRdcnt = RegInit(0.B)
+  private val counter = RegInit(0.U(64.W))
   private val fshTLB  = if (ext('S')) RegInit(0.B) else null
   private val exit    = if (Debug) RegInit(0.U(3.W)) else null
   private val rcsr    = if (Debug) RegInit(0xfff.U(12.W)) else null
@@ -250,6 +252,8 @@ class EX(implicit p: Parameters) extends YQModule {
       instr := io.input.diff.get.instr
       allExpt := io.input.diff.get.allExcept
       isEret := io.input.diff.get.eret
+      isRdcnt := io.input.diff.get.is_CNTinst
+      counter := io.input.diff.get.timer_64_value
     }
   }.elsewhen(io.nextVR.READY && io.nextVR.VALID) {
     NVALID := 0.B
@@ -276,5 +280,7 @@ class EX(implicit p: Parameters) extends YQModule {
     io.output.diff.get.instr := instr
     io.output.diff.get.allExcept := allExpt
     io.output.diff.get.eret := isEret
+    io.output.diff.get.is_CNTinst := isRdcnt
+    io.output.diff.get.timer_64_value := counter
   }
 }

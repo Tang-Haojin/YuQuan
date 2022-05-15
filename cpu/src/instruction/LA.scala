@@ -60,6 +60,7 @@ case class LA()(implicit val p: Parameters) extends CPUParams {
   private def SYSCALL = BitPat("b00000000001010110_???????????????")
   private def BREAK   = BitPat("b00000000001010100_???????????????")
   private def ERTN    = BitPat("b0000011001001000001110_00000_00000")
+  private def RDCNT   = BitPat("b000000000000000001100?_?????_?????")
   //private def FENCE  = BitPat("b???????_?????_?????_000_?????_0001111")
   //private def ECALL  = BitPat("b0000000_00000_00000_000_00000_1110011")
   //private def EBREAK = BitPat("b0000000_00001_00000_000_00000_1110011")
@@ -116,7 +117,8 @@ case class LA()(implicit val p: Parameters) extends CPUParams {
     CSROP   -> List(i12 , csr , rd  , rj  , non , nop , 1.B, zicsr ),
     SYSCALL -> List(i12 , non , non , non , non , nop , 0.B, ecall ),
     BREAK   -> List(i12 , non , non , non , non , nop , 0.B, ebreak),
-    ERTN    -> List(i12 , non , non , non , non , nop , 0.B, mret  )
+    ERTN    -> List(i12 , non , non , non , non , nop , 0.B, mret  ),
+    RDCNT   -> List(i12 , non , non , non , non , nop , 1.B, rdcnt )
     // ) ++ (if (!isZmb) List(
     // FENCE -> List(i   , non , non , non , non , nop , 0.B, norm  ), // do nothing
     // ECALL -> List(i   , non , non , non , non , nop , 0.B, ecall ),

@@ -49,6 +49,8 @@ class EXOutput(implicit p: Parameters) extends YQBundle {
       val instr = UInt(32.W)
       val allExcept = Bool()
       val eret = Bool()
+      val is_CNTinst = Bool()
+      val timer_64_value = UInt(64.W)
     })) else None
 }
 
@@ -56,6 +58,7 @@ class EXOutput(implicit p: Parameters) extends YQBundle {
 object ExecSpecials {
   val specials: List[UInt] = Enum(17)
   val norm::ld::st::trap::inv::word::zicsr::mret::exception::mu::msu::ecall::ebreak::sret::fencei::amo::sfence::Nil = specials
+  val rdcnt = word
 }
 
 object InstrTypes {
@@ -152,6 +155,8 @@ class IDOutput(implicit p: Parameters) extends YQBundle {
       val instr = UInt(32.W)
       val allExcept = Bool()
       val eret = Bool()
+      val is_CNTinst = Bool()
+      val timer_64_value = UInt(64.W)
     })) else None
 }
 
@@ -235,6 +240,8 @@ class MEMOutput(implicit p: Parameters) extends YQBundle {
       val storeData  = UInt(xlen.W)
       val allExcept  = Bool()
       val eret       = Bool()
+      val is_CNTinst = Bool()
+      val timer_64_value = UInt(64.W)
     })) else None
 }
 

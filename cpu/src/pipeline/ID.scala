@@ -38,6 +38,10 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
   private val jbPend  = RegInit(0.B)
   private val num = RegInit(VecInit(Seq.fill(4)(0.U(xlen.W))))
 
+  private val stableCounter = RegInit(0.U(64.W))
+  stableCounter := stableCounter + 1.U
+  private val counter = RegInit(0.U(64.W))
+
   private val decoded = LAInstrDecoder(io.input.instr)
 
   private val wireInstr   = io.input.instr
@@ -140,6 +144,8 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
     io.output.diff.get.instr := instr
     io.output.diff.get.allExcept := special === exception
     io.output.diff.get.eret := special === mret
+    io.output.diff.get.is_CNTinst := special === rdcnt
+    io.output.diff.get.timer_64_value := counter
   }
 
   io.csrsR.rcsr(0) := io.input.instr(21, 10)
@@ -161,6 +167,11 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
     wireCsr(0) := io.input.instr(21, 10)
     wireOp1_3  := io.input.instr(9, 5)
     when(wireCsr(0) === DMW(0) || wireCsr(0) === DMW(1) || wireCsr(0) === ASID) { wireIsSatp := 1.B }
+  }
+  when(decoded(7) === rdcnt) {
+    when(io.input.instr(10)) { wireNum(0) := stableCounter(63, 32) }
+    .elsewhen(io.input.instr(9, 5).orR) { wireRd := instRj }
+    .otherwise { wireNum(0) := stableCounter(31, 0) }
   }
   when(decoded(7) === ecall) {
     wireExcept := 1.B
@@ -238,6 +249,7 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
       pc         := io.input.pc
       jbPend     := 0.B
       jbAddr     := wireJbAddr
+      counter    := stableCounter
       when(wireJmpBch && wireJbAddr =/= io.input.pc + 4.U) { jmpBch := 1.B; jbPend := 1.B }
     }.otherwise { NVALID := 0.B }
   }.otherwise {
