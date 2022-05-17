@@ -85,8 +85,7 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
     i14 -> Fill(xlen - 16, io.input.instr(23)) ## io.input.instr(23, 10) ## 0.U(2.W),
     i20 -> io.input.instr(24, 5) ## 0.U(12.W),
     r2  -> 0.U(32.W),
-    r3  -> 0.U(32.W),
-    err -> 0.U(32.W)
+    r3  -> 0.U(32.W)
   )
 
   wireImm := Mux1H(immMap.map(x => (decoded.head === x._1, x._2)))
@@ -151,12 +150,14 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
   io.csrsR.rcsr(4) := ESTAT
   io.csrsR.rcsr(5) := ERA
   io.csrsR.rcsr(6) := EENTRY
+  io.csrsR.rcsr(7) := LLBCTL
   private val crmd   = io.csrsR.rdata(1).asTypeOf(new CRMDBundle)
   private val prmd   = io.csrsR.rdata(2).asTypeOf(new PRMDBundle)
   private val ecfg   = io.csrsR.rdata(3).asTypeOf(new ECFGBundle)
   private val estat  = io.csrsR.rdata(4).asTypeOf(new ESTATBundle)
   private val era    = io.csrsR.rdata(5)
   private val eentry = io.csrsR.rdata(6)
+  private val llbctl = io.csrsR.rdata(7).asTypeOf(new LLBCTLBundle)
 
   when(decoded(7) === zicsr) {
     wireIsWcsr := io.input.instr(9, 5) =/= 0.U
@@ -191,11 +192,19 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
   when(decoded(7) === mret) {
     wireIsWcsr := 1.B
     wireCsr(0) := CRMD
+    wireCsr(2) := LLBCTL
     wireNum(0) := crmd.asUInt
     wireNum(1) := prmd.asUInt
+    wireNum(2) := llbctl.asUInt
     wireIsPriv := crmd.PLV =/= prmd.PPLV
     wireJmpBch := 1.B
     wireJbAddr := era
+  }
+  when(decoded(7) === amo) {
+    wireIsWcsr := 1.B
+    wireCsr(0) := LLBCTL
+    wireNum(1) := llbctl.asUInt
+    wireOp1_3 := "b10".U
   }
   when(io.input.except) {
     wireExcept := 1.B

@@ -126,9 +126,14 @@ class EX(implicit p: Parameters) extends YQModule {
     if (isLxb) {
       val newCrmd = WireDefault(io.input.num(0).asTypeOf(new CRMDBundle))
       val prmd = io.input.num(1).asTypeOf(new PRMDBundle)
+      val llbctl = io.input.num(2).asTypeOf(new LLBCTLBundle)
+      val newLlbctl = WireDefault(llbctl)
       newCrmd.PLV := prmd.PPLV
       newCrmd.IE  := prmd.PIE
+      newLlbctl.ROLLB := llbctl.KLO
+      newLlbctl.KLO   := 0.B
       wireCsrData(0) := newCrmd.asUInt
+      wireCsrData(2) := newLlbctl.asUInt
     } else {
       wireCsrData(0) := Cat(
         io.input.num(0)(xlen - 1, 13),
@@ -178,16 +183,21 @@ class EX(implicit p: Parameters) extends YQModule {
     wireRd := 0.U
     wireIsWcsr := 1.B
   }
-  if (ext('A')) when(io.input.special === amo) {
+  if (ext('A') || isLxb) when(io.input.special === amo) {
     when(io.input.op1_2 === Operators.lr) {
       wireIsMem   := 1.B
       wireIsLd    := 1.B
-      wireLraddr  := wireAddr
-      wireLrvalid := 1.B
+      if (isLxb) {
+        wireCsrData(0) := io.input.num(1) | 1.U(xlen.W)
+      } else {
+        wireLraddr  := wireAddr
+        wireLrvalid := 1.B
+      }
     }
     when(io.input.op1_2 === Operators.sc) {
-      wireLrvalid := 0.B
-      when(wireAddr =/= lraddr || !lrvalid) { wireData := 1.U }
+      if (!isLxb) wireLrvalid := 0.B
+      (if (isLxb) when(!io.input.num(1)(0))             { wireData := 0.U }
+       else       when(wireAddr =/= lraddr || !lrvalid) { wireData := 1.U })
       .otherwise {
         wireScState := storing
         wireRetire  := 0.B
@@ -195,6 +205,7 @@ class EX(implicit p: Parameters) extends YQModule {
         wireIsMem   := 1.B
         wireTmpRd   := io.input.rd
       }
+      if (isLxb) wireCsrData(0) := io.input.num(1)(xlen - 1, 1) ## 0.B
     }
   }
 
@@ -260,10 +271,10 @@ class EX(implicit p: Parameters) extends YQModule {
     isSatp := 0.B
   }
 
-  if (ext('A')) when(scState === storing) {
+  if (ext('A') || isLxb) when(scState === storing) {
     scState := idle
     rd      := tmpRd
-    data    := 0.U
+    data    := isLxb.B.asUInt
     isMem   := 0.B
     retire  := 1.B
     NVALID  := 1.B

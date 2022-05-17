@@ -74,8 +74,8 @@ object NumTypes {
 }
 
 object LAInstrTypes {
-  val instrTypes: List[UInt] = (0 until 8).map(x => (1 << x).U(8.W)).toList
-  val r2::r3::i12::i14::i16::i20::i26::err::Nil = instrTypes
+  val instrTypes: List[UInt] = (0 until 7).map(x => (1 << x).U(7.W)).toList
+  val r2::r3::i12::i14::i16::i20::i26::Nil = instrTypes
 }
 
 object LANumTypes {
@@ -121,7 +121,7 @@ object LAInstrDecoder {
     val table = LAInstr().table
     val splitTable = Seq.tabulate(table.head._2.length)(x => table.map(y => (y._1, BitPat(y._2(x)))))
     val decodeSeq = splitTable zip (
-      Seq(LAInstrTypes.err) ++
+      Seq(LAInstrTypes.i12) ++
       Seq.fill(4)(LANumTypes.non(LAInstr().numTypeNum - 1, 0)) ++
       Seq(cpu.component.Operators.nop, 0.B, ExecSpecials.inv)
     ).map(BitPat(_))

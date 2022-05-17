@@ -43,6 +43,7 @@ class MEM(implicit p: Parameters) extends YQModule {
   private val isEret         = RegInit(0.B)
   private val isRdcnt        = RegInit(0.B)
   private val counter        = RegInit(0.U(64.W))
+  private val isHold         = RegInit(0.B)
 
   private val offset   = addr(axSize - 1, 0)
 
@@ -140,30 +141,33 @@ class MEM(implicit p: Parameters) extends YQModule {
       rvc   := io.input.debug.rvc
     }
     if (io.input.diff.isDefined) {
-      instr := io.input.diff.get.instr
-      diffLSPAddr := io.input.addr
-      diffLSVAddr := io.input.addr
-      diffLoadValid := Cat(
-        0.B,
-        io.input.isMem && io.input.isLd && io.input.mask(2, 0) === "b010".U, // LW
-        io.input.isMem && io.input.isLd && io.input.mask(2, 0) === "b101".U, // LHU
-        io.input.isMem && io.input.isLd && io.input.mask(2, 0) === "b001".U, // LH
-        io.input.isMem && io.input.isLd && io.input.mask(2, 0) === "b100".U, // LBU
-        io.input.isMem && io.input.isLd && io.input.mask(2, 0) === "b000".U  // LB
-      )
-      diffStoreValid := Cat(
-        0.B,
-        io.input.isMem && !io.input.isLd && io.input.mask(1, 0) === 2.U,
-        io.input.isMem && !io.input.isLd && io.input.mask(1, 0) === 1.U,
-        io.input.isMem && !io.input.isLd && io.input.mask(1, 0) === 0.U
-      )
-      diffStoreData := Mux(io.input.mask(1, 0) === 0.U, io.input.data(7, 0)  << (wireOff ## 0.U(3.W)),
-                       Mux(io.input.mask(1, 0) === 1.U, io.input.data(15, 0) << (wireOff ## 0.U(3.W)),
-                                                        io.input.data(31, 0)))
-      allExcept := io.input.diff.get.allExcept
-      isEret := io.input.diff.get.eret
-      isRdcnt := io.input.diff.get.is_CNTinst
-      counter := io.input.diff.get.timer_64_value
+      isHold := !io.input.retire
+      when(!isHold) {
+        instr := io.input.diff.get.instr
+        diffLSPAddr := io.input.addr
+        diffLSVAddr := io.input.addr
+        diffLoadValid := Cat(
+          0.B,
+          io.input.isMem && io.input.isLd && io.input.mask(2, 0) === "b010".U, // LW
+          io.input.isMem && io.input.isLd && io.input.mask(2, 0) === "b101".U, // LHU
+          io.input.isMem && io.input.isLd && io.input.mask(2, 0) === "b001".U, // LH
+          io.input.isMem && io.input.isLd && io.input.mask(2, 0) === "b100".U, // LBU
+          io.input.isMem && io.input.isLd && io.input.mask(2, 0) === "b000".U  // LB
+        )
+        diffStoreValid := Cat(
+          0.B,
+          io.input.isMem && !io.input.isLd && io.input.mask(1, 0) === 2.U,
+          io.input.isMem && !io.input.isLd && io.input.mask(1, 0) === 1.U,
+          io.input.isMem && !io.input.isLd && io.input.mask(1, 0) === 0.U
+        )
+        diffStoreData := Mux(io.input.mask(1, 0) === 0.U, io.input.data(7, 0)  << (wireOff ## 0.U(3.W)),
+                        Mux(io.input.mask(1, 0) === 1.U, io.input.data(15, 0) << (wireOff ## 0.U(3.W)),
+                                                          io.input.data(31, 0)))
+        allExcept := io.input.diff.get.allExcept
+        isEret := io.input.diff.get.eret
+        isRdcnt := io.input.diff.get.is_CNTinst
+        counter := io.input.diff.get.timer_64_value
+      }
     }
     when(io.input.isMem) {
       NVALID    := 0.B

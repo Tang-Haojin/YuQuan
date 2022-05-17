@@ -62,6 +62,8 @@ case class LA()(implicit val p: Parameters) extends CPUParams {
   private def ERTN    = BitPat("b0000011001001000001110_00000_00000")
   private def RDCNT   = BitPat("b000000000000000001100?_?????_?????")
   private def IDLE    = BitPat("b00000110010010001_???????????????")
+  private def LR      = BitPat("b00100000_??????????????_?????_?????")
+  private def SC      = BitPat("b00100001_??????????????_?????_?????")
   //private def FENCE  = BitPat("b???????_?????_?????_000_?????_0001111")
   //private def TRAP   = BitPat("b???????_?????_?????_???_?????_1101011")
 
@@ -117,7 +119,9 @@ case class LA()(implicit val p: Parameters) extends CPUParams {
     BREAK   -> List(i12 , non , non , non , non , nop , 0.B, ebreak),
     ERTN    -> List(i12 , non , non , non , non , nop , 0.B, mret  ),
     RDCNT   -> List(i12 , non , non , non , non , nop , 1.B, rdcnt ),
-    IDLE    -> List(i12 , non , non , non , non , nop , 0.B, exidle)
+    IDLE    -> List(i12 , non , non , non , non , nop , 0.B, exidle),
+    LR      -> List(i14 , non , non , rj  , imm , lr  , 1.B, amo   ),
+    SC      -> List(i14 , rd  , non , rj  , imm , sc  , 1.B, amo   )
     // FENCE -> List(i   , non , non , non , non , nop , 0.B, norm  ), // do nothing
     // TRAP  -> List(i   , rs1 , non , non , non , nop , 0.B, trap  )
   )

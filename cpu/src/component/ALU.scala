@@ -4,6 +4,7 @@ import chisel3._
 import chisel3.util._
 import chipsalliance.rocketchip.config._
 
+import cpu._
 import cpu.tools._
 import cpu.function.mul._
 import cpu.function.div._
@@ -118,7 +119,8 @@ object Operators {
   val sra::srl::lts::ltu::sllw::srlw::sraw::mul::Nil = Seq.tabulate(8)(x => (1 << (x + 8)).U(quantity.W))
   val remw::rem::div::remu::divu::mulh::duw::ruw::Nil = Seq.tabulate(8)(x => (1 << (x + 16)).U(quantity.W))
   val divw::max::min::maxu::minu::cpop::ctz::Nil = Seq.tabulate(7)(x => (1 << (x + 24)).U(quantity.W))
-  val (lr, sc) = (sll, sra)
+  def lr = sll
+  def sc(implicit p: Parameters) = if(p(GEN_NAME) == "lxb") nop else sra
   val muldivMask = (for { i <- 0 until quantity
     if (1 << i >= mul.litValue && 1 << i <= ruw.litValue)
   } yield 1 << i).fold(0)(_ | _).U(quantity.W)
