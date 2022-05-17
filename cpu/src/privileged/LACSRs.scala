@@ -53,6 +53,7 @@ class LACSRs(implicit p: Parameters) extends AbstractCSRs with LACSRsAddr {
     _.DATM -> 0.U(2.W)
   ))
   io.currentPriv := ~crmd.PLV
+  private val cnten  = RegInit(0.B)
   private val prmd   = Reg(new PRMDBundle)
   private val ecfg   = RegInit(0.U.asTypeOf(new ECFGBundle))
   private val estat  = RegInit(0.U.asTypeOf(new ESTATBundle))
@@ -95,11 +96,11 @@ class LACSRs(implicit p: Parameters) extends AbstractCSRs with LACSRsAddr {
     )
   } else difftestIO := DontCare
 
-  when(tcfg.En) {
-    tval := Mux(tval === 0.U, 0.U, tval - 1.U)
-    when(tval === 1.U || tval === 0.U) {
+  when(cnten) {
+    tval := Mux(tval === 0.U, Mux(tcfg.Periodic, tcfg.InitVal ## 0.U(2.W), 0xffffffffL.U), tval - 1.U)
+    when(tval === 0.U) {
       estat.TIS := 1.B
-      when(!tcfg.Periodic) { tcfg.En := 0.B }
+      cnten     := tcfg.Periodic
     }
   }
 
@@ -127,7 +128,8 @@ class LACSRs(implicit p: Parameters) extends AbstractCSRs with LACSRsAddr {
 
       when(io.csrsW.wcsr(i) === TCFG)   {
         val newTcfg = io.csrsW.wdata(i).asTypeOf(tcfg)
-        when(~tcfg.En && newTcfg.En) { tval := newTcfg.InitVal ## 0.U(2.W) }
+        tval := newTcfg.InitVal ## 0.U(2.W)
+        when(newTcfg.En) { cnten := 1.B }
       }
       when(io.csrsW.wcsr(i) === TICLR)  { when(io.csrsW.wdata(i)(0)) { estat.TIS := 0.B } }
     }
