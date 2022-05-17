@@ -36,6 +36,7 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
   private val jmpBch  = RegInit(0.B)
   private val jbAddr  = RegInit(0.U(valen.W))
   private val jbPend  = RegInit(0.B)
+  private val isIdle  = RegInit(0.B)
   private val num = RegInit(VecInit(Seq.fill(4)(0.U(xlen.W))))
 
   private val stableCounter = RegInit(0.U(64.W))
@@ -64,8 +65,6 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
   private val wireRetire  = WireDefault(Bool(), 1.B)
   private val wireBlocked = WireDefault(Bool(), blocked)
   private val wireIsSatp  = WireDefault(0.B)
-
-  private val isMemExcept = 0.B
 
   private val lessthan  = io.gprsR.rdata(1).asSInt <   io.gprsR.rdata(0).asSInt
   private val ulessthan = io.gprsR.rdata(1)        <   io.gprsR.rdata(0)
@@ -122,7 +121,7 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
   private val wireJbAddr = WireDefault(Mux(io.input.instr(29, 26) === "b0011".U, readRj, io.input.pc) + wireImm)
 
   io.jmpBch := jmpBch; io.jbAddr := jbAddr
-  io.lastVR.READY := io.nextVR.READY && !io.isWait && !blocked
+  io.lastVR.READY := io.nextVR.READY && !io.isWait && !blocked && !isIdle
   io.nextVR.VALID   := NVALID
   io.output.rd      := rd
   io.output.isWcsr  := isWcsr
@@ -210,6 +209,7 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
     wireExcept := 1.B
     wireEcode  := 0x0.U
     wireEsub   := 0x0.U
+    isIdle := 0.B
   }
 
   private val newCrmd = WireDefault(crmd)
@@ -233,7 +233,7 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
   }
 
   when(io.lastVR.VALID && io.lastVR.READY) { // let's start working
-    when(!jbPend || jbAddr === io.input.pc || isMemExcept) {
+    when(!jbPend || jbAddr === io.input.pc || io.input.memExcept) {
       NVALID     := 1.B
       rd         := wireRd
       isWcsr     := wireIsWcsr
@@ -253,6 +253,7 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
       pc         := io.input.pc
       jbPend     := 0.B
       jbAddr     := wireJbAddr
+      isIdle     := decoded(7) === exidle
       counter    := stableCounter
       when(wireJmpBch && wireJbAddr =/= io.input.pc + 4.U) { jmpBch := 1.B; jbPend := 1.B }
     }.otherwise { NVALID := 0.B }
@@ -275,6 +276,7 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
   }
 
   when(jmpBch) { jmpBch := 0.B }
+  when(io.input.memExcept) { isIdle := 0.B }
 }
 
 // instruction decoding module

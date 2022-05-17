@@ -58,7 +58,8 @@ class EXOutput(implicit p: Parameters) extends YQBundle {
 object ExecSpecials {
   val specials: List[UInt] = Enum(17)
   val norm::ld::st::trap::inv::word::zicsr::mret::exception::mu::msu::ecall::ebreak::sret::fencei::amo::sfence::Nil = specials
-  val rdcnt = word
+  val rdcnt = trap
+  val exidle = word
 }
 
 object InstrTypes {
@@ -204,6 +205,7 @@ class IFOutput(implicit p: Parameters) extends YQBundle {
   val rd         = Output(UInt(5.W))
   val pc         = Output(UInt(valen.W))
   val except     = Output(Bool())
+  val memExcept  = Output(Bool())
   val cause      = Output(UInt(4.W))
   val crossCache = Output(Bool())
 }

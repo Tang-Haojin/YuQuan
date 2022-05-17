@@ -31,6 +31,7 @@ class IF(implicit p: Parameters) extends YQModule with cpu.privileged.LACSRsAddr
   private val pc         = RegInit(MEMBase.U(valen.W))
   private val NVALID     = RegInit(0.B)
   private val except     = RegInit(0.B)
+  private val memExcept  = RegInit(0.B)
   private val cause      = RegInit(0.U(4.W))
   private val crossCache = RegInit(0.B)
   private val pause      = RegInit(0.B)
@@ -43,6 +44,7 @@ class IF(implicit p: Parameters) extends YQModule with cpu.privileged.LACSRsAddr
   io.output.rd         := rd
   io.output.pc         := pc
   io.output.except     := except
+  io.output.memExcept  := memExcept
   io.output.cause      := cause
   io.output.crossCache := crossCache
   io.nextVR.VALID      := NVALID
@@ -86,6 +88,7 @@ class IF(implicit p: Parameters) extends YQModule with cpu.privileged.LACSRsAddr
     wirePC     := regPC + Mux(wireInstr(1, 0).andR || !ext('C').B, 4.U, 2.U)
     regPC      := regPC + Mux(wireInstr(1, 0).andR || !ext('C').B, 4.U, 2.U)
     except     := io.immu.pipelineResult.exception
+    memExcept  := 0.B
     cause      := io.immu.pipelineResult.cause
     crossCache := io.immu.pipelineResult.crossCache
     pause      := wirePause
@@ -99,8 +102,9 @@ class IF(implicit p: Parameters) extends YQModule with cpu.privileged.LACSRsAddr
   }
 
   when(io.immu.pipelineResult.cpuResult.ready && io.immu.pipelineResult.exception && io.immu.pipelineResult.fromMem) {
-    except := 1.B
-    cause  := io.immu.pipelineResult.cause
+    except    := 1.B
+    memExcept := 1.B
+    cause     := io.immu.pipelineResult.cause
     when(io.jmpBch) { pc := io.jbAddr }
   }
 

@@ -61,14 +61,12 @@ case class LA()(implicit val p: Parameters) extends CPUParams {
   private def BREAK   = BitPat("b00000000001010100_???????????????")
   private def ERTN    = BitPat("b0000011001001000001110_00000_00000")
   private def RDCNT   = BitPat("b000000000000000001100?_?????_?????")
+  private def IDLE    = BitPat("b00000110010010001_???????????????")
   //private def FENCE  = BitPat("b???????_?????_?????_000_?????_0001111")
-  //private def ECALL  = BitPat("b0000000_00000_00000_000_00000_1110011")
-  //private def EBREAK = BitPat("b0000000_00001_00000_000_00000_1110011")
-//
   //private def TRAP   = BitPat("b???????_?????_?????_???_?????_1101011")
 
   val table = List(
-    //           |Type|num1 |num2 |num3 |num4 |op1_2| WB |Special|
+    //             |Type|num1 |num2 |num3 |num4 |op1_2| WB |Special|
     JIRL    -> List(i16 , pc  , four, rj  , non , add , 1.B, norm  ),
     BL      -> List(i26 , pc  , four, non , non , add , 1.B, norm  ),
     BEQ     -> List(i16 , rj  , rd  , imm , non , nop , 0.B, norm  ),
@@ -118,11 +116,9 @@ case class LA()(implicit val p: Parameters) extends CPUParams {
     SYSCALL -> List(i12 , non , non , non , non , nop , 0.B, ecall ),
     BREAK   -> List(i12 , non , non , non , non , nop , 0.B, ebreak),
     ERTN    -> List(i12 , non , non , non , non , nop , 0.B, mret  ),
-    RDCNT   -> List(i12 , non , non , non , non , nop , 1.B, rdcnt )
-    // ) ++ (if (!isZmb) List(
+    RDCNT   -> List(i12 , non , non , non , non , nop , 1.B, rdcnt ),
+    IDLE    -> List(i12 , non , non , non , non , nop , 0.B, exidle)
     // FENCE -> List(i   , non , non , non , non , nop , 0.B, norm  ), // do nothing
-    // ECALL -> List(i   , non , non , non , non , nop , 0.B, ecall ),
-    // EBREAK-> List(i   , non , non , non , non , nop , 0.B, ebreak)) else Nil) ++ (if (Debug) List(
-    // TRAP  -> List(i   , rs1 , non , non , non , nop , 0.B, trap  )) else Nil) 
+    // TRAP  -> List(i   , rs1 , non , non , non , nop , 0.B, trap  )
   )
 }
