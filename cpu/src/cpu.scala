@@ -106,6 +106,7 @@ class CPU(implicit p: Parameters) extends YQModule with CacheParams with HasGetN
   if (isLxb) {
     moduleMMU.asInstanceOf[LAMMU].laIO.crmd := moduleCSRs.asInstanceOf[LACSRs].laIO.crmd
     moduleMMU.asInstanceOf[LAMMU].laIO.dmw  := moduleCSRs.asInstanceOf[LACSRs].laIO.dmw
+    moduleMMU.asInstanceOf[LAMMU].laIO.asid := moduleCSRs.asInstanceOf[LACSRs].laIO.asid
   }
 
   moduleBypass.io.rregs  <> moduleGPRs.io.rregs

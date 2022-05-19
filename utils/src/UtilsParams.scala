@@ -21,6 +21,9 @@ abstract trait UtilsParams {
   val useXilinx = p(USEXILINX)
   val usePubRam = p(USEPUBRAM)
   val isAxi3    = p(ISAXI3)
+  implicit class UtilsParamsConnect[T <: Bundle](x: T) {
+    def connect(elems: (T => Unit)*): T = { elems.foreach(_(x)); x }
+  }
 }
 
 case object XLEN      extends Field[Int]

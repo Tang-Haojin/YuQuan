@@ -16,10 +16,6 @@ abstract class PrefixModule(implicit val p: Parameters) extends Module with Pref
       if (in.getWidth == 1) ~in.asUInt() else VecInit(in.asUInt().asBools().map(~_.asUInt)).reduceTree(_ +& _)
   }
 
-  implicit class Connect[T <: Bundle](x: T) {
-    def connect(elems: (T => Unit)*): Unit = elems.foreach(_(x))
-  }
-
   def IndexofMax(in: Seq[(UInt, UInt)]): UInt =
     if (in.length == 2) Mux(in(0)._2 > in(1)._2, in(0)._1, in(1)._1)
     else Mux(in(0)._2 > in(1)._2, IndexofMax(in.filterNot(_ == in(1))), IndexofMax(in.filterNot(_ == in(0))))

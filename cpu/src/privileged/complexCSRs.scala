@@ -305,3 +305,13 @@ class TCFGBundle(implicit p: Parameters) extends YQBundle with CPUParams {
     En       := _.En
   )
 }
+
+class ASIDBundle(implicit p: Parameters) extends YQBundle with CPUParams {
+  val ASIDBITS = UInt(16.W)
+  val RES      = UInt(6.W)
+  val ASID     = UInt(10.W)
+
+  def := (that: => UInt): Unit = that.asTypeOf(this).connect(
+    ASID := _.ASID
+  )
+}

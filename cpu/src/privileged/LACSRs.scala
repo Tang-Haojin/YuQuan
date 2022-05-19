@@ -43,6 +43,7 @@ class LACSRs(implicit p: Parameters) extends AbstractCSRs with LACSRsAddr {
   val laIO = IO(new Bundle {
     val crmd = Output(new CRMDBundle)
     val dmw  = Output(Vec(2, new DMWBundle))
+    val asid = Output(new ASIDBundle)
   })
   private val crmd = RegInit((new CRMDBundle).Lit(
     _.PLV  -> 0.U(2.W),
@@ -66,9 +67,11 @@ class LACSRs(implicit p: Parameters) extends AbstractCSRs with LACSRsAddr {
   private val tid    = Reg(UInt(32.W))
   private val tval   = RegInit(0.U(32.W)) // reset is not necessary
   private val tcfg   = RegInit(0.U.asTypeOf(new TCFGBundle))
+  private val asid   = RegInit((new ASIDBundle).Lit(_.ASID -> 0.U, _.RES -> 0.U, _.ASIDBITS -> 10.U))
 
   laIO.crmd := crmd
   laIO.dmw  := dmw
+  laIO.asid := asid
 
   if (useDifftest) {
     difftestIO.connect(
@@ -92,7 +95,8 @@ class LACSRs(implicit p: Parameters) extends AbstractCSRs with LACSRsAddr {
       _.tid    := tid,
       _.tval   := tval,
       _.tcfg   := tcfg.asUInt,
-      _.ticlr  := 0.U
+      _.ticlr  := 0.U,
+      _.asid   := asid.asUInt
     )
   } else difftestIO := DontCare
 
@@ -132,6 +136,7 @@ class LACSRs(implicit p: Parameters) extends AbstractCSRs with LACSRsAddr {
         when(newTcfg.En) { cnten := 1.B }
       }
       when(io.csrsW.wcsr(i) === TICLR)  { when(io.csrsW.wdata(i)(0)) { estat.TIS := 0.B } }
+      when(io.csrsW.wcsr(i) === ASID)   { asid := io.csrsW.wdata(i) }
     }
   }
 
@@ -157,6 +162,7 @@ class LACSRs(implicit p: Parameters) extends AbstractCSRs with LACSRsAddr {
     when(io.csrsR.rcsr(i) === TVAL)   { io.csrsR.rdata(i) := tval }
     when(io.csrsR.rcsr(i) === TCFG)   { io.csrsR.rdata(i) := tcfg.asUInt }
     when(io.csrsR.rcsr(i) === TICLR)  { io.csrsR.rdata(i) := 0.U }
+    when(io.csrsR.rcsr(i) === ASID)   { io.csrsR.rdata(i) := asid.asUInt }
   }
 
   io.bareSEIP := DontCare; io.bareUEIP := DontCare
