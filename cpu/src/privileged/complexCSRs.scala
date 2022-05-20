@@ -257,7 +257,7 @@ class ESTATBundle(implicit p: Parameters) extends YQBundle with CPUParams {
   val SWIS     = Vec(2, Bool())
 
   def IS: Vec[Bool] = VecInit(this.asUInt(12, 0).asBools)
-  def := (that: => Data): Unit = that.asTypeOf(this).connect(
+  def := (that: => UInt): Unit = that.asTypeOf(this).connect(
     SWIS     := _.SWIS,
     Ecode    := _.Ecode,
     EsubCode := _.EsubCode
@@ -271,7 +271,8 @@ class LLBCTLBundle(implicit p: Parameters) extends YQBundle with CPUParams {
 
   def := (that: => Data): Unit = that.asTypeOf(this).connect(
     that => ROLLB := that.ROLLB & ~that.WCLLB,
-    KLO := _.KLO
+    KLO := _.KLO,
+    _ => WCLLB := 0.B
   )
 }
 
@@ -286,11 +287,14 @@ class DMWBundle(implicit p: Parameters) extends YQBundle with CPUParams {
   val PLV0 = Bool()
 
   def := (that: => Data): Unit = that.asTypeOf(this).connect(
-    VSEG := _.VSEG,
-    PSEG := _.PSEG,
-    MAT  := _.MAT,
-    PLV3 := _.PLV3,
-    PLV0 := _.PLV0
+         VSEG := _.VSEG,
+         PSEG := _.PSEG,
+         MAT  := _.MAT,
+         PLV3 := _.PLV3,
+         PLV0 := _.PLV0,
+    _ => RES2 := 0.U,
+    _ => RES1 := 0.U,
+    _ => RES0 := 0.U
   )
 }
 
@@ -311,7 +315,45 @@ class ASIDBundle(implicit p: Parameters) extends YQBundle with CPUParams {
   val RES      = UInt(6.W)
   val ASID     = UInt(10.W)
 
-  def := (that: => UInt): Unit = that.asTypeOf(this).connect(
-    ASID := _.ASID
+  def := (that: => Data): Unit = that.asTypeOf(this).connect(
+         ASID     := _.ASID,
+    _ => RES      := 0.U,
+    _ => ASIDBITS := 10.U
+  )
+}
+
+class TLBIDXBundle(implicit p: Parameters) extends YQBundle with CPUParams {
+  val NE = Bool()
+  val RES1 = UInt(1.W)
+  val PS = UInt(6.W)
+  val RES0 = UInt(8.W)
+  val Index = UInt(16.W)
+
+  def := (that: => Data): Unit = that.asTypeOf(this).connect(
+         NE    := _.NE,
+         PS    := _.PS,
+         Index := _.Index,
+    _ => RES0  := 0.U,
+    _ => RES1  := 0.U
+  )
+}
+
+class TLBELOBundle(implicit p: Parameters) extends YQBundle with CPUParams {
+  val PPN = UInt(20.W)
+  val RES = UInt(1.W)
+  val G   = Bool()
+  val MAT = UInt(2.W)
+  val PLV = UInt(2.W)
+  val D   = Bool()
+  val V   = Bool()
+
+  def := (that: => Data): Unit = that.asTypeOf(this).connect(
+         PPN := _.PPN,
+         G   := _.G,
+         MAT := _.MAT,
+         PLV := _.PLV,
+         D   := _.D,
+         V   := _.V,
+    _ => RES := 0.U
   )
 }

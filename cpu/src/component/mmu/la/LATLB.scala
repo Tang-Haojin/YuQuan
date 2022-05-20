@@ -30,8 +30,9 @@ class LATlbEntryBundle(implicit p: Parameters) extends Bundle {
   val lo = Vec(2, new LATlbEntryLoBundle)
 }
 
-class TranslateResult(implicit p: Parameters) extends YQBundle {
+class TranslateResult(implicit p: Parameters) extends YQBundle with CacheParams {
   val hit   = Bool()
+  val hitOH = UInt(TlbEntries.W)
   val paddr = UInt(alen.W)
   val v     = Bool()
   val d     = Bool()
@@ -39,8 +40,8 @@ class TranslateResult(implicit p: Parameters) extends YQBundle {
   val plv   = UInt(2.W)
 }
 
-class LATLB(implicit val p: Parameters, implicit val asid: ASIDBundle) extends CacheParams with CPUParams {
-  private val tlbEntries = RegInit(VecInit(Seq.fill(TlbEntries)(0.U.asTypeOf(new LATlbEntryBundle))))
+class LATLB(implicit val asid: ASIDBundle, implicit val p: Parameters) extends CacheParams with CPUParams {
+  val tlbEntries = RegInit(VecInit(Seq.fill(TlbEntries)(0.U.asTypeOf(new LATlbEntryBundle))))
 
   private val realVppn = tlbEntries.map(entry => Mux(entry.hi.ps === 12.U, entry.hi.vppn, entry.hi.vppn(valen - 14, 9)))
 
@@ -54,6 +55,7 @@ class LATLB(implicit val p: Parameters, implicit val asid: ASIDBundle) extends C
     val foundLo = Mux(Mux(found.hi.ps === 12.U, vaddr(12), vaddr(21)), found.lo(1), found.lo(0))
     Wire(new TranslateResult).connect(
       _.hit   := VecInit(hitMask).asUInt.orR,
+      _.hitOH := VecInit(hitMask).asUInt,
       _.paddr := Mux(found.hi.ps === 12.U, foundLo.ppn ## vaddr(11, 0), foundLo.ppn(alen - 13, 9) ## vaddr(20, 0)),
       _.v     := foundLo.v,
       _.d     := foundLo.d,

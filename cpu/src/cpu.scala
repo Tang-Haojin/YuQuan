@@ -103,11 +103,7 @@ class CPU(implicit p: Parameters) extends YQModule with CacheParams with HasGetN
   moduleDCache.io.clintIO <> (if (useClint) moduleClint.io.clintIO else DontCare)
   moduleDCache.io.plicIO  <> (if (usePlic) modulePlic.io.plicIO else DontCare)
   if (usePlic) modulePlic.io.int <> io.interrupt
-  if (isLxb) {
-    moduleMMU.asInstanceOf[LAMMU].laIO.crmd := moduleCSRs.asInstanceOf[LACSRs].laIO.crmd
-    moduleMMU.asInstanceOf[LAMMU].laIO.dmw  := moduleCSRs.asInstanceOf[LACSRs].laIO.dmw
-    moduleMMU.asInstanceOf[LAMMU].laIO.asid := moduleCSRs.asInstanceOf[LACSRs].laIO.asid
-  }
+  if (isLxb) moduleMMU.asInstanceOf[LAMMU].laIO <> moduleCSRs.asInstanceOf[LACSRs].laIO
 
   moduleBypass.io.rregs  <> moduleGPRs.io.rregs
   moduleBypass.io.idOut.valid  := moduleID.io.nextVR.VALID
@@ -204,8 +200,8 @@ class CPU(implicit p: Parameters) extends YQModule with CacheParams with HasGetN
         _.pc             := RegNext(moduleWB.io.input.diff.get.pc),
         _.instr          := RegNext(moduleWB.io.input.diff.get.instr),
         _.skip           := 0.B,
-        _.is_TLBFILL     := 0.B,
-        _.TLBFILL_index  := 0.U,
+        _.is_TLBFILL     := RegNext(moduleWB.io.input.diff.get.is_TLBFILL, 0.B),
+        _.TLBFILL_index  := RegNext(moduleWB.io.input.diff.get.TLBFILL_index),
         _.is_CNTinst     := RegNext(moduleWB.io.input.diff.get.is_CNTinst, 0.B),
         _.timer_64_value := RegNext(moduleWB.io.input.diff.get.timer_64_value),
         _.wen            := RegNext(moduleWB.io.lastVR.VALID && moduleWB.io.input.rd =/= 0.U, 0.B),

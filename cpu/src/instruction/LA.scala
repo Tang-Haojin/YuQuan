@@ -64,6 +64,11 @@ case class LA()(implicit val p: Parameters) extends CPUParams {
   private def IDLE    = BitPat("b00000110010010001_???????????????")
   private def LR      = BitPat("b00100000_??????????????_?????_?????")
   private def SC      = BitPat("b00100001_??????????????_?????_?????")
+  private def TLBSRCH = BitPat("b0000011001001000001010_00000_00000")
+  private def TLBRD   = BitPat("b0000011001001000001011_00000_00000")
+  private def TLBWR   = BitPat("b0000011001001000001100_00000_00000")
+  private def TLBFILL = BitPat("b0000011001001000001101_00000_00000")
+  private def INVTLB  = BitPat("b00000110010010011_?????_?????_?????")
   //private def FENCE  = BitPat("b???????_?????_?????_000_?????_0001111")
   //private def TRAP   = BitPat("b???????_?????_?????_???_?????_1101011")
 
@@ -121,7 +126,12 @@ case class LA()(implicit val p: Parameters) extends CPUParams {
     RDCNT   -> List(i12 , non , non , non , non , nop , 1.B, rdcnt ),
     IDLE    -> List(i12 , non , non , non , non , nop , 0.B, exidle),
     LR      -> List(i14 , non , non , rj  , imm , lr  , 1.B, amo   ),
-    SC      -> List(i14 , rd  , non , rj  , imm , sc  , 1.B, amo   )
+    SC      -> List(i14 , rd  , non , rj  , imm , sc  , 1.B, amo   ),
+    TLBSRCH -> List(i12 , non , non , non , non , nop , 0.B, tlbrw ),
+    TLBRD   -> List(i12 , non , non , non , non , nop , 0.B, tlbrw ),
+    TLBWR   -> List(i12 , non , non , non , non , nop , 0.B, tlbrw ),
+    TLBFILL -> List(i12 , non , non , non , non , nop , 0.B, tlbrw ),
+    INVTLB  -> List(i12 , non , non , non , non , nop , 0.B, invtlb)
     // FENCE -> List(i   , non , non , non , non , nop , 0.B, norm  ), // do nothing
     // TRAP  -> List(i   , rs1 , non , non , non , nop , 0.B, trap  )
   )

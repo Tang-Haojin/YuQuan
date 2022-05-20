@@ -7,9 +7,10 @@ import chipsalliance.rocketchip.config._
 
 import utils._
 
-import cpu.instruction._
-import cpu.component._
+import cpu.cache._
 import cpu.component.mmu._
+import cpu.component._
+import cpu.instruction._
 import cpu.tools._
 import cpu._
 
@@ -36,6 +37,7 @@ class EXOutput(implicit p: Parameters) extends YQBundle {
   val except  = Output(Bool())
   val cause   = Output(UInt(4.W))
   val fshTLB  = if (ext('S')) Output(Bool()) else null
+  val isTlbrw = Output(Bool())
   val pc      = Output(UInt(valen.W))
   val debug   =
     if (Debug) new YQBundle {
@@ -60,6 +62,8 @@ object ExecSpecials {
   val norm::ld::st::trap::inv::word::zicsr::mret::exception::mu::msu::ecall::ebreak::sret::fencei::amo::sfence::Nil = specials
   val rdcnt = trap
   val exidle = word
+  val tlbrw = sret
+  val invtlb = sfence
 }
 
 object InstrTypes {
@@ -144,6 +148,7 @@ class IDOutput(implicit p: Parameters) extends YQBundle {
   val except  = Output(Bool())
   val cause   = Output(UInt(4.W))
   val pc      = Output(UInt(valen.W))
+  val isTlbrw = if (isLxb) Some(Output(Bool())) else None
   val debug   =
     if (Debug) new YQBundle {
       val rcsr = Output(UInt(12.W))
@@ -232,7 +237,7 @@ class MEMOutput(implicit p: Parameters) extends YQBundle {
       val rvc  = Bool()
     }) else null
   val diff    =
-    if (useDifftest) Some(Output(new YQBundle {
+    if (useDifftest) Some(Output(new YQBundle with CacheParams {
       val instr      = UInt(32.W)
       val pc         = UInt(valen.W)
       val lsPAddr    = UInt(alen.W)
@@ -244,6 +249,8 @@ class MEMOutput(implicit p: Parameters) extends YQBundle {
       val eret       = Bool()
       val is_CNTinst = Bool()
       val timer_64_value = UInt(64.W)
+      val is_TLBFILL = Bool()
+      val TLBFILL_index = UInt(log2Ceil(TlbEntries).W)
     })) else None
 }
 

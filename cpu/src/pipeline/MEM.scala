@@ -6,8 +6,9 @@ import chisel3.util._
 import chipsalliance.rocketchip.config._
 
 import cpu.tools._
+import utils._
 
-class MEM(implicit p: Parameters) extends YQModule {
+class MEM(implicit p: Parameters) extends YQModule with cpu.cache.CacheParams {
   val io = IO(new MEMIO)
 
   private val mask    = Reg(UInt(8.W))
@@ -42,6 +43,8 @@ class MEM(implicit p: Parameters) extends YQModule {
   private val allExcept      = RegInit(0.B)
   private val isEret         = RegInit(0.B)
   private val isRdcnt        = RegInit(0.B)
+  private val isTLBFill      = RegInit(0.B)
+  private val tlbFillIndex   = RegInit(0.U(log2Ceil(TlbEntries).W))
   private val counter        = RegInit(0.U(64.W))
   private val isHold         = RegInit(0.B)
 
@@ -55,12 +58,13 @@ class MEM(implicit p: Parameters) extends YQModule {
   private val isMem = RegInit(0.B); private val wireIsMem = WireDefault(Bool(), isMem)
   private val rw    = RegInit(0.B); private val wireRw    = WireDefault(Bool(), rw)
 
-  private val wireData = WireDefault(UInt(xlen.W), data)
-  private val wireAddr = WireDefault(UInt(valen.W), addr)
-  private val wireMask = WireDefault(UInt((xlen / 8).W), mask)
-  private val wireRetr = WireDefault(Bool(), io.input.retire)
-  private val wireReql = WireDefault(UInt(3.W), extType)
-  private val wireFsh  = if (ext('S')) WireDefault(Bool(), flush) else null
+  private val wireData  = WireDefault(UInt(xlen.W), data)
+  private val wireAddr  = WireDefault(UInt(valen.W), addr)
+  private val wireMask  = WireDefault(UInt((xlen / 8).W), mask)
+  private val wireRetr  = WireDefault(Bool(), io.input.retire)
+  private val wireReql  = WireDefault(UInt(3.W), extType)
+  private val wireTlbrw = WireDefault(0.B)
+  private val wireFsh   = if (ext('S')) WireDefault(Bool(), flush) else null
 
   private val shiftRdata = VecInit((0 until 8).map(i => io.dmmu.pipelineResult.cpuResult.data >> (8 * i)))(offset)
   private val extRdata   = MuxLookup(extType(1, 0), shiftRdata(xlen - 1, 0), if (xlen == 32) Seq(
@@ -83,6 +87,7 @@ class MEM(implicit p: Parameters) extends YQModule {
   io.dmmu.pipelineReq.cpuReq.revoke := DontCare
   io.dmmu.pipelineReq.flush         := (if (ext('S')) wireFsh else 0.B)
   io.dmmu.pipelineReq.offset        := DontCare
+  io.dmmu.pipelineReq.tlbrw         := wireTlbrw
   io.dmmu.pipelineReq.cpuReq.noCache.getOrElse(WireDefault(0.B)) := DontCare
   io.output.retire := retire
   io.output.priv   := priv
@@ -107,24 +112,25 @@ class MEM(implicit p: Parameters) extends YQModule {
     isMem     := 0.B
     wireIsMem := 0.B
   }.elsewhen(io.lastVR.VALID && io.lastVR.READY) {
-    rd       := io.input.rd
-    wireAddr := io.input.addr
-    wireData := io.input.data
-    wireMask := VecInit((0 until xlen / 8).map(i => if (i == 0) rawStrb else rawStrb(xlen / 8 - 1 - i, 0) ## 0.U(i.W)))(wireOff)
-    wireReql := io.input.mask
-    addr     := wireAddr
-    data     := wireData
-    mask     := wireMask
-    isWcsr   := io.input.isWcsr
-    wcsr     := io.input.wcsr
-    retire   := wireRetr
-    csrData  := io.input.csrData
-    extType  := wireReql
-    priv     := io.input.priv
-    isPriv   := io.input.isPriv
-    isSatp   := io.input.isSatp
-    isWfe    := 0.B
-    except   := isWfe
+    rd        := io.input.rd
+    wireAddr  := io.input.addr
+    wireData  := io.input.data
+    wireMask  := VecInit((0 until xlen / 8).map(i => if (i == 0) rawStrb else rawStrb(xlen / 8 - 1 - i, 0) ## 0.U(i.W)))(wireOff)
+    wireReql  := io.input.mask
+    wireTlbrw := io.input.isTlbrw
+    addr      := wireAddr
+    data      := wireData
+    mask      := wireMask
+    isWcsr    := io.input.isWcsr
+    wcsr      := io.input.wcsr
+    retire    := wireRetr
+    csrData   := io.input.csrData
+    extType   := wireReql
+    priv      := io.input.priv
+    isPriv    := io.input.isPriv
+    isSatp    := io.input.isSatp
+    isWfe     := 0.B
+    except    := isWfe
     when(isWfe) {
       if (isLxb) { csrData(3) := pc; csrData(4) := addr }
       else       { csrData(0) := pc; csrData(2) := addr }
@@ -141,6 +147,7 @@ class MEM(implicit p: Parameters) extends YQModule {
       rvc   := io.input.debug.rvc
     }
     if (io.input.diff.isDefined) {
+      val tlbRand = MaximalPeriodGaloisLFSR(log2Ceil(TlbEntries))
       isHold := !io.input.retire
       when(!isHold) {
         instr := io.input.diff.get.instr
@@ -161,11 +168,13 @@ class MEM(implicit p: Parameters) extends YQModule {
           io.input.isMem && !io.input.isLd && io.input.mask(1, 0) === 0.U
         )
         diffStoreData := Mux(io.input.mask(1, 0) === 0.U, io.input.data(7, 0)  << (wireOff ## 0.U(3.W)),
-                        Mux(io.input.mask(1, 0) === 1.U, io.input.data(15, 0) << (wireOff ## 0.U(3.W)),
+                         Mux(io.input.mask(1, 0) === 1.U, io.input.data(15, 0) << (wireOff ## 0.U(3.W)),
                                                           io.input.data(31, 0)))
         allExcept := io.input.diff.get.allExcept
         isEret := io.input.diff.get.eret
         isRdcnt := io.input.diff.get.is_CNTinst
+        isTLBFill := io.input.isTlbrw && io.input.mask(1, 0) === "b11".U
+        tlbFillIndex := tlbRand
         counter := io.input.diff.get.timer_64_value
       }
     }
@@ -200,16 +209,18 @@ class MEM(implicit p: Parameters) extends YQModule {
     _.rvc  := rvc
   )
   if (io.output.diff.isDefined) io.output.diff.get.connect(
-    _.instr      := instr,
-    _.pc         := pc,
-    _.lsPAddr    := diffLSPAddr,
-    _.lsVAddr    := diffLSVAddr,
-    _.loadValid  := diffLoadValid,
-    _.storeValid := diffStoreValid,
-    _.storeData  := diffStoreData,
-    _.allExcept  := allExcept,
-    _.eret       := isEret,
-    _.is_CNTinst := isRdcnt,
-    _.timer_64_value := counter
+    _.instr          := instr,
+    _.pc             := pc,
+    _.lsPAddr        := diffLSPAddr,
+    _.lsVAddr        := diffLSVAddr,
+    _.loadValid      := diffLoadValid,
+    _.storeValid     := diffStoreValid,
+    _.storeData      := diffStoreData,
+    _.allExcept      := allExcept,
+    _.eret           := isEret,
+    _.is_CNTinst     := isRdcnt,
+    _.timer_64_value := counter,
+    _.is_TLBFILL     := isTLBFill,
+    _.TLBFILL_index  := tlbFillIndex
   )
 }

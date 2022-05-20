@@ -58,6 +58,7 @@ class EX(implicit p: Parameters) extends YQModule {
   private val isEret  = RegInit(0.B)
   private val isRdcnt = RegInit(0.B)
   private val counter = RegInit(0.U(64.W))
+  private val isTlbrw = RegInit(0.B)
   private val fshTLB  = if (ext('S')) RegInit(0.B) else null
   private val exit    = if (Debug) RegInit(0.U(3.W)) else null
   private val rcsr    = if (Debug) RegInit(0xfff.U(12.W)) else null
@@ -77,6 +78,7 @@ class EX(implicit p: Parameters) extends YQModule {
   private val wireLrvalid = WireDefault(Bool(), lrvalid)
   private val wireScState = WireDefault(UInt(1.W), scState)
   private val wireTmpRd   = WireDefault(UInt(5.W), tmpRd)
+  private val wireIsTlbrw = WireDefault(Bool(), io.input.isTlbrw.getOrElse(0.B))
   private val wireExit    = if (Debug) WireDefault(UInt(3.W), ExitReasons.non) else null
 
   io.output.rd      := rd
@@ -95,6 +97,7 @@ class EX(implicit p: Parameters) extends YQModule {
   io.output.isSatp  := isSatp
   io.output.except  := except
   io.output.cause   := cause
+  io.output.isTlbrw := isTlbrw
   if (ext('S')) io.output.fshTLB := fshTLB
 
   io.invIch.valid   := invalidateICache
@@ -238,6 +241,7 @@ class EX(implicit p: Parameters) extends YQModule {
     lrvalid := wireLrvalid
     scState := wireScState
     tmpRd   := wireTmpRd
+    isTlbrw := wireIsTlbrw
     priv    := io.input.priv
     isPriv  := io.input.isPriv
     isSatp  := io.input.isSatp

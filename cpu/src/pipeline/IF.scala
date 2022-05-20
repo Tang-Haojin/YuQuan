@@ -51,12 +51,8 @@ class IF(implicit p: Parameters) extends YQModule with cpu.privileged.LACSRsAddr
 
   private val wireInstr = io.immu.pipelineResult.cpuResult.data
   private val wirePause = if (isLxb) {
-    wireInstr(31, 24) === "b00000100".U && wireInstr(9, 5) =/= 0.U && (
-      wireInstr(23, 10) === CRMD ||
-      wireInstr(23, 10) === ASID ||
-      wireInstr(23, 10) === DMW(0) ||
-      wireInstr(23, 10) === DMW(1)
-    ) || wireInstr(31, 10) === "b0000011001001000001110".U
+    wireInstr(31, 24) === "b00000100".U && wireInstr(9, 5) =/= 0.U ||
+    wireInstr(31, 24) === "b00000110".U
   } else {
     wireInstr(6, 0) === "b1110011".U && (
       (ext('S').B && wireInstr(31, 20) === csrsAddr.Satp)    ||
@@ -75,6 +71,7 @@ class IF(implicit p: Parameters) extends YQModule with cpu.privileged.LACSRsAddr
   io.immu.pipelineReq.cpuReq.size   := DontCare
   io.immu.pipelineReq.flush         := DontCare
   io.immu.pipelineReq.offset        := regPC
+  io.immu.pipelineReq.tlbrw         := DontCare
   io.immu.pipelineReq.cpuReq.noCache.getOrElse(WireDefault(0.B)) := DontCare
 
   when(io.immu.pipelineResult.cpuResult.ready && (!io.nextVR.VALID || io.nextVR.READY)) {

@@ -34,6 +34,7 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
   private val jbAddr  = RegInit(0.U(valen.W))
   private val jbPend  = RegInit(0.B)
   private val isIdle  = RegInit(0.B)
+  private val isTlbrw = RegInit(0.B)
   private val num = RegInit(VecInit(Seq.fill(4)(0.U(xlen.W))))
 
   private val stableCounter = RegInit(0.U(64.W))
@@ -62,6 +63,7 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
   private val wireRetire  = WireDefault(Bool(), 1.B)
   private val wireBlocked = WireDefault(Bool(), blocked)
   private val wireIsSatp  = WireDefault(0.B)
+  private val wireIsTlbrw = WireDefault(0.B)
 
   private val lessthan  = io.gprsR.rdata(1).asSInt <   io.gprsR.rdata(0).asSInt
   private val ulessthan = io.gprsR.rdata(1)        <   io.gprsR.rdata(0)
@@ -135,6 +137,7 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
   io.output.cause   := cause
   io.output.pc      := pc
   io.csrsR.rcsr     := VecInit(Seq.fill(RegConf.readCsrsPort)(0xFFF.U(12.W)))
+  io.output.isTlbrw.get := isTlbrw
   if (io.output.diff.isDefined) {
     io.output.diff.get.instr := instr
     io.output.diff.get.allExcept := special === exception
@@ -151,19 +154,27 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
   io.csrsR.rcsr(5) := ERA
   io.csrsR.rcsr(6) := EENTRY
   io.csrsR.rcsr(7) := LLBCTL
-  private val crmd   = io.csrsR.rdata(1).asTypeOf(new CRMDBundle)
-  private val prmd   = io.csrsR.rdata(2).asTypeOf(new PRMDBundle)
-  private val ecfg   = io.csrsR.rdata(3).asTypeOf(new ECFGBundle)
-  private val estat  = io.csrsR.rdata(4).asTypeOf(new ESTATBundle)
-  private val era    = io.csrsR.rdata(5)
-  private val eentry = io.csrsR.rdata(6)
-  private val llbctl = io.csrsR.rdata(7).asTypeOf(new LLBCTLBundle)
+  io.csrsR.rcsr(8) := TLBRENTRY
+  private val crmd      = io.csrsR.rdata(1).asTypeOf(new CRMDBundle)
+  private val prmd      = io.csrsR.rdata(2).asTypeOf(new PRMDBundle)
+  private val ecfg      = io.csrsR.rdata(3).asTypeOf(new ECFGBundle)
+  private val estat     = io.csrsR.rdata(4).asTypeOf(new ESTATBundle)
+  private val era       = io.csrsR.rdata(5)
+  private val eentry    = io.csrsR.rdata(6)
+  private val llbctl    = io.csrsR.rdata(7).asTypeOf(new LLBCTLBundle)
+  private val tlbrentry = io.csrsR.rdata(8)
 
   when(decoded(7) === zicsr) {
     wireIsWcsr := io.input.instr(9, 5) =/= 0.U
     wireCsr(0) := io.input.instr(21, 10)
     wireOp1_3  := io.input.instr(9, 5)
-    when(wireCsr(0) === DMW(0) || wireCsr(0) === DMW(1) || wireCsr(0) === ASID) { wireIsSatp := 1.B }
+    wireIsSatp := 1.B
+  }
+  when(decoded(7) === tlbrw) {
+    wireIsSatp  := 1.B
+    wireIsTlbrw := 1.B
+    wireOp1_3   := io.input.instr(12) ## io.input.instr(10)
+    wireIsWcsr  := wireOp1_3 === "b01".U
   }
   when(decoded(7) === rdcnt) {
     io.csrsR.rcsr(0) := TID
@@ -230,7 +241,7 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
   private val WBADV = VecInit((0x1 to 0x9).map(_.U)).contains(io.input.cause)
   when(io.lastVR.VALID && wireExcept) {
     wireJmpBch := 1.B
-    wireJbAddr := Mux(wireEcode === 0x3F.U, 0.U /*TODO: TLBRENTRY*/, eentry)
+    wireJbAddr := Mux(wireEcode === 0x3F.U, tlbrentry, eentry)
     wireSpecial := exception
     wireIsPriv := crmd.PLV =/= 0.U
     wireCsr := Seq(CRMD, PRMD, ESTAT, ERA, Mux(WBADV, BADV, 0xFFF.U))
@@ -261,6 +272,7 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
       jbAddr     := wireJbAddr
       isIdle     := decoded(7) === exidle
       counter    := stableCounter
+      isTlbrw    := wireIsTlbrw
       when(wireJmpBch && wireJbAddr =/= io.input.pc + 4.U) { jmpBch := 1.B; jbPend := 1.B }
     }.otherwise { NVALID := 0.B }
   }.otherwise {
@@ -273,6 +285,7 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
       op1_2   := 0.U
       op1_3   := 0.U
       special := 0.U
+      isTlbrw := 0.B
     }
     when(io.nextVR.READY && io.nextVR.VALID) {
       NVALID  := 0.B

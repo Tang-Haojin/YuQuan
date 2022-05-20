@@ -22,7 +22,9 @@ abstract trait UtilsParams {
   val usePubRam = p(USEPUBRAM)
   val isAxi3    = p(ISAXI3)
   implicit class UtilsParamsConnect[T <: Bundle](x: T) {
-    def connect(elems: (T => Unit)*): T = { elems.foreach(_(x)); x }
+    def seqmap(elems: Seq[T => Unit]): T = { elems.foreach(_(x)); x }
+    def connect(elems: (T => Unit)*): T = seqmap(elems)
+    def replace(elems: (T => Unit)*): T = WireDefault(x).seqmap(elems)
   }
 }
 
