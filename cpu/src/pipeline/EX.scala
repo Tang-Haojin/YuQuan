@@ -59,7 +59,7 @@ class EX(implicit p: Parameters) extends YQModule {
   private val isRdcnt = RegInit(0.B)
   private val counter = RegInit(0.U(64.W))
   private val isTlbrw = RegInit(0.B)
-  private val fshTLB  = if (ext('S')) RegInit(0.B) else null
+  private val fshTLB  = RegInit(0.B)
   private val exit    = if (Debug) RegInit(0.U(3.W)) else null
   private val rcsr    = if (Debug) RegInit(0xfff.U(12.W)) else null
   private val intr    = if (Debug) RegInit(0.B) else null
@@ -69,7 +69,7 @@ class EX(implicit p: Parameters) extends YQModule {
   private val wireData    = WireDefault(UInt(xlen.W), alu.io.output.bits.asUInt)
   private val wireCsrData = WireDefault(VecInit(Seq.fill(RegConf.writeCsrsPort)(0.U(xlen.W))))
   private val wireIsWcsr  = WireDefault(Bool(), io.input.isWcsr)
-  private val wireIsMem   = WireDefault(Bool(), io.input.special === ld || io.input.special === st || io.input.special === sfence)
+  private val wireIsMem   = WireDefault(Bool(), io.input.special === ld || io.input.special === st || (if (isLxb) 0.B else io.input.special === sfence))
   private val wireIsLd    = WireDefault(Bool(), io.input.special === ld)
   private val wireAddr    = WireDefault(UInt(valen.W), io.input.num(2)(valen - 1, 0) + io.input.num(3)(valen - 1, 0))
   private val wireMask    = WireDefault(UInt(3.W), io.input.op1_3)
@@ -80,6 +80,8 @@ class EX(implicit p: Parameters) extends YQModule {
   private val wireTmpRd   = WireDefault(UInt(5.W), tmpRd)
   private val wireIsTlbrw = WireDefault(Bool(), io.input.isTlbrw.getOrElse(0.B))
   private val wireExit    = if (Debug) WireDefault(UInt(3.W), ExitReasons.non) else null
+
+  wireCsrData zip io.input.num foreach(x => x._1 := x._2)
 
   io.output.rd      := rd
   io.output.pc      := pc
@@ -98,7 +100,7 @@ class EX(implicit p: Parameters) extends YQModule {
   io.output.except  := except
   io.output.cause   := cause
   io.output.isTlbrw := isTlbrw
-  if (ext('S')) io.output.fshTLB := fshTLB
+  io.output.fshTLB  := fshTLB
 
   io.invIch.valid   := invalidateICache
   io.wbDch.valid    := writebackDCache
@@ -181,7 +183,7 @@ class EX(implicit p: Parameters) extends YQModule {
       }
       wireCsrData(3) := newMstatus.asUInt
     } else {
-      wireCsrData := io.input.num :+ io.input.num(3)
+      wireCsrData := io.input.num :+ io.input.num(3) :+ io.input.num(3)
     }
     wireRd := 0.U
     wireIsWcsr := 1.B
@@ -247,7 +249,7 @@ class EX(implicit p: Parameters) extends YQModule {
     isSatp  := io.input.isSatp
     except  := io.input.except
     cause   := io.input.cause
-    if (ext('S')) fshTLB := io.input.special === sfence
+    fshTLB  := io.input.special === sfence
 
     op      := wireOp
     isWord  := wireIsWord

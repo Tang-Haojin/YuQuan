@@ -28,7 +28,7 @@ class MEM(implicit p: Parameters) extends YQModule with cpu.cache.CacheParams {
   private val cause   = Reg(UInt(4.W))
   private val pc      = Reg(UInt(valen.W))
   private val except  = RegInit(0.B)
-  private val flush   = if (ext('S')) RegInit(0.B) else null
+  private val flush   = RegInit(0.B)
   private val exit    = if (Debug) RegInit(0.U(3.W)) else null
   private val rcsr    = if (Debug) RegInit(0xfff.U(12.W)) else null
   private val mmio    = if (Debug) RegInit(0.B) else null
@@ -64,7 +64,7 @@ class MEM(implicit p: Parameters) extends YQModule with cpu.cache.CacheParams {
   private val wireRetr  = WireDefault(Bool(), io.input.retire)
   private val wireReql  = WireDefault(UInt(3.W), extType)
   private val wireTlbrw = WireDefault(0.B)
-  private val wireFsh   = if (ext('S')) WireDefault(Bool(), flush) else null
+  private val wireFsh   = WireDefault(Bool(), !isLxb.B && flush)
 
   private val shiftRdata = VecInit((0 until 8).map(i => io.dmmu.pipelineResult.cpuResult.data >> (8 * i)))(offset)
   private val extRdata   = MuxLookup(extType(1, 0), shiftRdata(xlen - 1, 0), if (xlen == 32) Seq(
@@ -85,9 +85,12 @@ class MEM(implicit p: Parameters) extends YQModule with cpu.cache.CacheParams {
   io.dmmu.pipelineReq.cpuReq.addr   := wireAddr
   io.dmmu.pipelineReq.cpuReq.size   := wireReql(1, 0)
   io.dmmu.pipelineReq.cpuReq.revoke := DontCare
-  io.dmmu.pipelineReq.flush         := (if (ext('S')) wireFsh else 0.B)
+  io.dmmu.pipelineReq.flush         := wireFsh
   io.dmmu.pipelineReq.offset        := DontCare
+  io.dmmu.pipelineReq.tlbOp         := wireReql
   io.dmmu.pipelineReq.tlbrw         := wireTlbrw
+  io.dmmu.pipelineReq.rASID         := io.input.csrData(0)
+  io.dmmu.pipelineReq.rVA           := io.input.csrData(1)
   io.dmmu.pipelineReq.cpuReq.noCache.getOrElse(WireDefault(0.B)) := DontCare
   io.output.retire := retire
   io.output.priv   := priv
@@ -100,7 +103,7 @@ class MEM(implicit p: Parameters) extends YQModule with cpu.cache.CacheParams {
     LREADY    := 1.B
     isMem     := 0.B
     wireIsMem := 0.B
-    if (ext('S')) flush := 0.B
+    flush := 0.B
     when(!rw) { data := extRdata }
     when(io.dmmu.pipelineResult.exception) {
       isWfe := 1.B
@@ -131,14 +134,12 @@ class MEM(implicit p: Parameters) extends YQModule with cpu.cache.CacheParams {
     isSatp    := io.input.isSatp
     isWfe     := 0.B
     except    := isWfe
+    wireFsh   := io.input.fshTLB
+    flush     := wireFsh
     when(isWfe) {
-      if (isLxb) { csrData(3) := pc; csrData(4) := addr }
+      if (isLxb) { csrData(3) := pc; csrData(4) := addr; csrData(5) := addr }
       else       { csrData(0) := pc; csrData(2) := addr }
     }.otherwise { pc := io.input.pc }
-    if (ext('S')) {
-      wireFsh := io.input.fshTLB
-      flush   := wireFsh
-    }
     if (Debug) {
       exit  := io.input.debug.exit
       rcsr  := io.input.debug.rcsr

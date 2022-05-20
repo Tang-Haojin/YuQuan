@@ -63,41 +63,19 @@ class LATLB(implicit val asid: ASIDBundle, implicit val p: Parameters) extends C
       _.plv   := foundLo.plv
     )
   }
-}
 
-class oldLATLB(implicit val p: Parameters) extends CacheParams {
-  private val tlbEntries = RegInit(VecInit(Seq.fill(TlbEntries)(0.U.asTypeOf(new TlbEntryBundle))))
-
-  def flush: Unit = tlbEntries.foreach(_.flush)
-  def getTlbE(vaddr: Vaddr): Vec[TlbEntryBundle] = VecInit(Seq.tabulate(3)(x => tlbEntries(vaddr.vpn(x)(TlbIndex - 1, 0))))
-  def isHitLevel(vaddr: Vaddr): Vec[Bool] = VecInit(Seq.tabulate(3)(x => getTlbE(vaddr)(x).v && (x match {
-    case 0 => vaddr.vpn.asUInt             === getTlbE(vaddr)(0).vpn.asUInt
-    case 1 => vaddr.vpn(2) ## vaddr.vpn(1) === getTlbE(vaddr)(1).vpn(2) ## getTlbE(vaddr)(1).vpn(1)
-    case 2 => vaddr.vpn(2)                 === getTlbE(vaddr)(2).vpn(2)
-  }) && getTlbE(vaddr)(x).i === x.U))
-  def isHit(vaddr: Vaddr): Bool = isHitLevel(vaddr).asUInt.orR
-  def translate(vaddr: Vaddr): UInt = { val tlbEntry = getTlbE(vaddr); Mux1H(Seq(
-    isHitLevel(vaddr)(0) -> tlbEntry(0).PPN(2) ## tlbEntry(0).PPN(1) ## tlbEntry(0).PPN(0) ## vaddr.offset,
-    isHitLevel(vaddr)(1) -> tlbEntry(1).PPN(2) ## tlbEntry(1).PPN(1) ## vaddr      .vpn(0) ## vaddr.offset,
-    isHitLevel(vaddr)(2) -> tlbEntry(2).PPN(2) ## vaddr      .vpn(1) ## vaddr      .vpn(0) ## vaddr.offset
-  ))}
-  def isDirty (vaddr: Vaddr): Bool = VecInit(Seq.tabulate(3)(x => isHitLevel(vaddr)(x) && getTlbE(vaddr)(x).d)).asUInt.orR
-  def isGlobal(vaddr: Vaddr): Bool = VecInit(Seq.tabulate(3)(x => isHitLevel(vaddr)(x) && getTlbE(vaddr)(x).g)).asUInt.orR
-  def isUser  (vaddr: Vaddr): Bool = VecInit(Seq.tabulate(3)(x => isHitLevel(vaddr)(x) && getTlbE(vaddr)(x).u)).asUInt.orR
-  def canRead (vaddr: Vaddr): Bool = VecInit(Seq.tabulate(3)(x => isHitLevel(vaddr)(x) && getTlbE(vaddr)(x).r)).asUInt.orR
-  def canWrite(vaddr: Vaddr): Bool = VecInit(Seq.tabulate(3)(x => isHitLevel(vaddr)(x) && getTlbE(vaddr)(x).w)).asUInt.orR
-  def canExec (vaddr: Vaddr): Bool = VecInit(Seq.tabulate(3)(x => isHitLevel(vaddr)(x) && getTlbE(vaddr)(x).x)).asUInt.orR
-  def update(vaddr: Vaddr, pte: PTE, level: UInt): Unit = {
-    val tlbEntry = tlbEntries(vaddr.vpn(level)(TlbIndex - 1, 0))
-    tlbEntry.vpn := vaddr.vpn
-    tlbEntry.ppn := pte.ppn
-    tlbEntry.v   := 1.B
-    tlbEntry.r   := pte.r
-    tlbEntry.g   := pte.g
-    tlbEntry.u   := pte.u
-    tlbEntry.w   := pte.w
-    tlbEntry.x   := pte.x
-    tlbEntry.d   := pte.d
-    tlbEntry.i   := level
+  def flush(rASID: UInt, rVA: UInt, op: UInt): Unit = {
+    val realRVAVppn = tlbEntries.map(entry => Mux(entry.hi.ps === 12.U, rVA(valen - 1, 13), rVA(valen - 1, 22)))
+    val vaEqualMask = realVppn zip realRVAVppn map (x => x._1 === x._2)
+    val flushMask = tlbEntries zip vaEqualMask map { case (entry, vaEqual) => Mux1H(Seq(
+      (op === 0x0.U) -> 1.B,
+      (op === 0x1.U) -> 1.B,
+      (op === 0x2.U) -> entry.hi.g,
+      (op === 0x3.U) -> !entry.hi.g,
+      (op === 0x4.U) -> (!entry.hi.g && entry.hi.asid === rASID),
+      (op === 0x5.U) -> (!entry.hi.g && entry.hi.asid === rASID && vaEqual),
+      (op === 0x6.U) -> ((entry.hi.g || entry.hi.asid === rASID) && vaEqual)
+    ))}
+    tlbEntries zip flushMask foreach { case (entry, mask) => when(mask) { entry.hi.e := 0.B } }
   }
 }

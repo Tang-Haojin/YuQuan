@@ -174,7 +174,16 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
     wireIsSatp  := 1.B
     wireIsTlbrw := 1.B
     wireOp1_3   := io.input.instr(12) ## io.input.instr(10)
-    wireIsWcsr  := wireOp1_3 === "b01".U
+    wireIsWcsr  := wireOp1_3(1) === 0.B
+  }
+  when(decoded(7) === invtlb) {
+    wireIsSatp := 1.B
+    wireOp1_3  := io.input.instr(2, 0)
+    when(io.input.instr(4, 0) > 0x6.U) { // INV
+      wireExcept := 1.B
+      wireEcode  := 0xD.U
+      wireEsub   := 0.U
+    }
   }
   when(decoded(7) === rdcnt) {
     io.csrsR.rcsr(0) := TID
@@ -204,7 +213,10 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
     wireIsWcsr := 1.B
     wireCsr(0) := CRMD
     wireCsr(2) := LLBCTL
-    wireNum(0) := crmd.asUInt
+    wireNum(0) := crmd.replace(
+      _.DA := Mux(estat.Ecode === 0x3F.U, 0.B, crmd.DA),
+      _.PG := Mux(estat.Ecode === 0x3F.U, 1.B, crmd.PG)
+    ).asUInt
     wireNum(1) := prmd.asUInt
     wireNum(2) := llbctl.asUInt
     wireIsPriv := crmd.PLV =/= prmd.PPLV
@@ -232,6 +244,10 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
   private val newCrmd = WireDefault(crmd)
   newCrmd.PLV := 0.U
   newCrmd.IE  := 0.U
+  when(io.input.cause === 0x6.U) {
+    newCrmd.DA := 1.B
+    newCrmd.PG := 0.B
+  }
   private val newPrmd = WireDefault(prmd)
   newPrmd.PPLV := crmd.PLV
   newPrmd.PIE  := crmd.IE
@@ -239,12 +255,13 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
   newEstat.Ecode    := wireEcode
   newEstat.EsubCode := wireEsub
   private val WBADV = VecInit((0x1 to 0x9).map(_.U)).contains(io.input.cause)
+  private val WTLBEHI = VecInit(Seq(0x1, 0x2, 0x3, 0x4, 0x6, 0x7).map(_.U)).contains(io.input.cause)
   when(io.lastVR.VALID && wireExcept) {
     wireJmpBch := 1.B
     wireJbAddr := Mux(wireEcode === 0x3F.U, tlbrentry, eentry)
     wireSpecial := exception
     wireIsPriv := crmd.PLV =/= 0.U
-    wireCsr := Seq(CRMD, PRMD, ESTAT, ERA, Mux(WBADV, BADV, 0xFFF.U))
+    wireCsr := Seq(CRMD, PRMD, ESTAT, ERA, Mux(WBADV, BADV, 0xFFF.U), Mux(WTLBEHI, TLBEHI, 0xFFF.U))
     wireNum := Seq(newCrmd.asUInt, newPrmd.asUInt, newEstat.asUInt, io.input.pc)
     wireIsSatp := 0.B; wireBlocked := 0.B
   }

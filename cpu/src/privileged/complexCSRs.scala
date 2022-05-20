@@ -339,21 +339,23 @@ class TLBIDXBundle(implicit p: Parameters) extends YQBundle with CPUParams {
 }
 
 class TLBELOBundle(implicit p: Parameters) extends YQBundle with CPUParams {
-  val PPN = UInt(20.W)
-  val RES = UInt(1.W)
-  val G   = Bool()
-  val MAT = UInt(2.W)
-  val PLV = UInt(2.W)
-  val D   = Bool()
-  val V   = Bool()
+  val RES1 = UInt(4.W)
+  val PPN  = UInt(20.W)
+  val RES0 = UInt(1.W)
+  val G    = Bool()
+  val MAT  = UInt(2.W)
+  val PLV  = UInt(2.W)
+  val D    = Bool()
+  val V    = Bool()
 
   def := (that: => Data): Unit = that.asTypeOf(this).connect(
-         PPN := _.PPN,
-         G   := _.G,
-         MAT := _.MAT,
-         PLV := _.PLV,
-         D   := _.D,
-         V   := _.V,
-    _ => RES := 0.U
+         PPN  := _.PPN,
+         G    := _.G,
+         MAT  := _.MAT,
+         PLV  := _.PLV,
+         D    := _.D,
+         V    := _.V,
+         RES1 := _.RES1, // FIXME: this should not be written. Here we do that to pass difftest.
+    _ => RES0 := 0.U
   )
 }

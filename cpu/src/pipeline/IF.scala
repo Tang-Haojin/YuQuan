@@ -71,7 +71,10 @@ class IF(implicit p: Parameters) extends YQModule with cpu.privileged.LACSRsAddr
   io.immu.pipelineReq.cpuReq.size   := DontCare
   io.immu.pipelineReq.flush         := DontCare
   io.immu.pipelineReq.offset        := regPC
+  io.immu.pipelineReq.tlbOp         := DontCare
   io.immu.pipelineReq.tlbrw         := DontCare
+  io.immu.pipelineReq.rASID         := DontCare
+  io.immu.pipelineReq.rVA           := DontCare
   io.immu.pipelineReq.cpuReq.noCache.getOrElse(WireDefault(0.B)) := DontCare
 
   when(io.immu.pipelineResult.cpuResult.ready && (!io.nextVR.VALID || io.nextVR.READY)) {

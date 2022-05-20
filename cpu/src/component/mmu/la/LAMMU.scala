@@ -101,11 +101,7 @@ class LAMMU(implicit p: Parameters) extends AbstractMMU {
     page_d      -> memTranslateResult.paddr
   ))
 
-  when(io.memIO.pipelineReq.cpuReq.valid && io.memIO.pipelineReq.flush && ext('S').B) {
-    // TODO: tlb.flush
-    memDel := !memDel; memReady := 1.B; memCause := 0.U; memExcpt := 0.B
-    io.dcacheIO.cpuReq.valid := 0.B
-  }.elsewhen(handleMisaln.B && io.memIO.pipelineReq.cpuReq.valid && (
+  when(handleMisaln.B && io.memIO.pipelineReq.cpuReq.valid && (
     (io.memIO.pipelineReq.cpuReq.size === 1.U && io.memIO.pipelineReq.cpuReq.addr(0)) ||
     (io.memIO.pipelineReq.cpuReq.size === 2.U && io.memIO.pipelineReq.cpuReq.addr(1, 0) =/= 0.U) ||
     (io.memIO.pipelineReq.cpuReq.size === 3.U && io.memIO.pipelineReq.cpuReq.addr(2, 0) =/= 0.U && (xlen > 32).B)
@@ -115,7 +111,9 @@ class LAMMU(implicit p: Parameters) extends AbstractMMU {
     IfRaiseException(0x8.U) // ADEF
   }.otherwise {
     when(page_i && io.ifIO.pipelineReq.cpuReq.valid) {
-      when(ifTranslateResult.hit) {
+      when(laIO.read.crmd.PLV(0) && ifVaddr(31)) {
+        IfRaiseException(0x8.U) // ADEF
+      }.elsewhen(ifTranslateResult.hit) {
         when(!ifTranslateResult.v) {
           IfRaiseException(0x3.U) // PIF
         }.elsewhen(laIO.read.crmd.PLV(0) && ~ifTranslateResult.plv(0)) {
@@ -126,7 +124,9 @@ class LAMMU(implicit p: Parameters) extends AbstractMMU {
       }
     }
     when(page_d && io.memIO.pipelineReq.cpuReq.valid) {
-      when(memTranslateResult.hit) {
+      when(laIO.read.crmd.PLV(0) && memVaddr(31)) {
+        MemRaiseException(0x5.U) // ADEM
+      }.elsewhen(memTranslateResult.hit) {
         when(!memTranslateResult.v) {
           MemRaiseException(Mux(isWrite, 0x2.U, 0x1.U)) // Mux(isWrite, PIS, PIL)
         }.elsewhen(laIO.read.crmd.PLV(0) && ~memTranslateResult.plv(0)) {
@@ -147,9 +147,9 @@ class LAMMU(implicit p: Parameters) extends AbstractMMU {
   }
 
   when(io.memIO.pipelineReq.tlbrw) {
-    val selectedIndex = Mux(io.memIO.pipelineReq.cpuReq.size(1, 0) === "b11".U, rand, laIO.read.tlbidx.Index)
+    val selectedIndex = Mux(io.memIO.pipelineReq.tlbOp(1, 0) === "b11".U, rand, laIO.read.tlbidx.Index)
     val tlbEntry = tlb.tlbEntries(selectedIndex)
-    when(io.memIO.pipelineReq.cpuReq.size(1, 0) === "b01".U) { // TLBRD
+    when(io.memIO.pipelineReq.tlbOp(1, 0) === "b01".U) { // TLBRD
       val tlbelo = VecInit(WireDefault(0.U.asTypeOf(laIO.write.tlbelo)) zip tlbEntry.lo map {
         case (tlbelo, tlbEntryLo) => tlbelo.connect(
           _.V   := tlbEntryLo.v,
@@ -182,7 +182,7 @@ class LAMMU(implicit p: Parameters) extends AbstractMMU {
         )
       )
     }
-    when(io.memIO.pipelineReq.cpuReq.size(1) === 1.B) { // TLBWR || TLBFILL
+    when(io.memIO.pipelineReq.tlbOp(1) === 1.B) { // TLBWR || TLBFILL
       tlbEntry.hi.connect(
         _.vppn := laIO.read.tlbehi(31, 13),
         _.asid := laIO.read.asid.ASID,
@@ -200,7 +200,7 @@ class LAMMU(implicit p: Parameters) extends AbstractMMU {
         )
       }
     }
-    when(io.memIO.pipelineReq.cpuReq.size(1, 0) === "b00".U) { // TLBSRCH
+    when(io.memIO.pipelineReq.tlbOp(1, 0) === "b00".U) { // TLBSRCH
       val tlbsrchResult = tlb.translate(laIO.read.tlbehi)
       laIO.write.connect(
         _.valid := 1.B,
@@ -217,6 +217,10 @@ class LAMMU(implicit p: Parameters) extends AbstractMMU {
         )
       )
     }
+  }
+
+  when(io.memIO.pipelineReq.flush) {
+    tlb.flush(io.memIO.pipelineReq.rASID, io.memIO.pipelineReq.rVA, io.memIO.pipelineReq.tlbOp)
   }
 
   private def IfRaiseException(cause: UInt): Unit = {

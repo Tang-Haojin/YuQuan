@@ -30,7 +30,7 @@ object YQConfig {
     case USEFLASH         => site(GEN_NAME) match { case "ysyx" => true; case _ => false }
     case SPIFLASH_MMAP    => new PeripheralConfig.SPIFLASH
     case ENABLE_DEBUG     => false
-    case REG_CONF         => site(GEN_NAME) match { case "lxb" => new RegConf(3, 10, 5); case _ => new RegConf(3, 10, 4) }
+    case REG_CONF         => site(GEN_NAME) match { case "lxb" => new RegConf(3, 10, 6); case _ => new RegConf(3, 10, 4) }
     case TLB_ENTRIES      => site(GEN_NAME) match { case "lxb" => 32; case _ => 16 }
     case VALEN            => site(GEN_NAME) match { case "ysyx" => 64; case _ => 32 }
     case USESLAVE         => site(GEN_NAME) match { case "ysyx" => true; case _ => false }

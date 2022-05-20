@@ -10,7 +10,10 @@ class PipelineReq(implicit p: Parameters) extends YQBundle with CacheParams {
   val cpuReq = new cpu.cache.CpuReq()(p.alterPartial({ case utils.ALEN => valen }))
   val flush  = Bool()
   val offset = UInt(Offset.W)
+  val tlbOp  = UInt(3.W)
   val tlbrw  = Bool()
+  val rASID  = UInt(10.W)
+  val rVA    = UInt(valen.W)
 }
 
 class PipelineResult(datalen: Int)(implicit p: Parameters) extends YQBundle {

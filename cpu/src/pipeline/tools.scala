@@ -36,7 +36,7 @@ class EXOutput(implicit p: Parameters) extends YQBundle {
   val isSatp  = Output(Bool())
   val except  = Output(Bool())
   val cause   = Output(UInt(4.W))
-  val fshTLB  = if (ext('S')) Output(Bool()) else null
+  val fshTLB  = Output(Bool())
   val isTlbrw = Output(Bool())
   val pc      = Output(UInt(valen.W))
   val debug   =

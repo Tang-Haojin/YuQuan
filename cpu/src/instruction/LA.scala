@@ -131,7 +131,7 @@ case class LA()(implicit val p: Parameters) extends CPUParams {
     TLBRD   -> List(i12 , non , non , non , non , nop , 0.B, tlbrw ),
     TLBWR   -> List(i12 , non , non , non , non , nop , 0.B, tlbrw ),
     TLBFILL -> List(i12 , non , non , non , non , nop , 0.B, tlbrw ),
-    INVTLB  -> List(i12 , non , non , non , non , nop , 0.B, invtlb)
+    INVTLB  -> List(r3  , rj  , rk  , non , non , nop , 0.B, invtlb)
     // FENCE -> List(i   , non , non , non , non , nop , 0.B, norm  ), // do nothing
     // TRAP  -> List(i   , rs1 , non , non , non , nop , 0.B, trap  )
   )
