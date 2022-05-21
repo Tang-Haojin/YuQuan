@@ -47,10 +47,12 @@ class LAMMU(implicit p: Parameters) extends AbstractMMU {
   io.ifIO.pipelineResult.exception   := 0.B
   io.ifIO.pipelineResult.fromMem     := 0.B
   io.ifIO.pipelineResult.crossCache  := 0.B
+  io.ifIO.pipelineResult.paddr       := DontCare
   io.memIO.pipelineResult.cause      := 0.U
   io.memIO.pipelineResult.exception  := 0.B
   io.memIO.pipelineResult.fromMem    := DontCare
   io.memIO.pipelineResult.crossCache := DontCare
+  io.memIO.pipelineResult.paddr      := io.dcacheIO.cpuReq.addr
 
   io.ifIO.pipelineReq.cpuReq        <> io.icacheIO.cpuReq
   io.ifIO.pipelineResult.cpuResult  <> io.icacheIO.cpuResult

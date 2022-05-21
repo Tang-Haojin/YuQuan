@@ -23,6 +23,7 @@ class PipelineResult(datalen: Int)(implicit p: Parameters) extends YQBundle {
   val fromMem    = Bool()
   val isMMIO     = if (Debug) Bool() else null
   val crossCache = Bool()
+  val paddr      = UInt(alen.W)
 }
 
 class PipelineIO(datalen: Int)(implicit p: Parameters) extends YQBundle {

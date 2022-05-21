@@ -152,7 +152,7 @@ class MEM(implicit p: Parameters) extends YQModule with cpu.cache.CacheParams {
       isHold := !io.input.retire
       when(!isHold) {
         instr := io.input.diff.get.instr
-        diffLSPAddr := io.input.addr
+        diffLSPAddr := io.dmmu.pipelineResult.paddr
         diffLSVAddr := io.input.addr
         diffLoadValid := Cat(
           0.B,
