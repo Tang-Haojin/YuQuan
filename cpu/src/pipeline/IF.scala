@@ -52,7 +52,8 @@ class IF(implicit p: Parameters) extends YQModule with cpu.privileged.LACSRsAddr
   private val wireInstr = io.immu.pipelineResult.cpuResult.data
   private val wirePause = if (isLxb) {
     wireInstr(31, 24) === "b00000100".U && wireInstr(9, 5) =/= 0.U ||
-    wireInstr(31, 24) === "b00000110".U
+    wireInstr(31, 24) === "b00000110".U ||
+    wireInstr(31, 15) === "b00111000011100101".U
   } else {
     wireInstr(6, 0) === "b1110011".U && (
       (ext('S').B && wireInstr(31, 20) === csrsAddr.Satp)    ||

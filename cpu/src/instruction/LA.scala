@@ -69,7 +69,8 @@ case class LA()(implicit val p: Parameters) extends CPUParams {
   private def TLBWR   = BitPat("b0000011001001000001100_00000_00000")
   private def TLBFILL = BitPat("b0000011001001000001101_00000_00000")
   private def INVTLB  = BitPat("b00000110010010011_?????_?????_?????")
-  //private def FENCE  = BitPat("b???????_?????_?????_000_?????_0001111")
+  private def DBAR    = BitPat("b00111000011100100_???????????????")
+  private def IBAR    = BitPat("b00111000011100101_???????????????")
   //private def TRAP   = BitPat("b???????_?????_?????_???_?????_1101011")
 
   val table = List(
@@ -131,8 +132,9 @@ case class LA()(implicit val p: Parameters) extends CPUParams {
     TLBRD   -> List(i12 , non , non , non , non , nop , 0.B, tlbrw ),
     TLBWR   -> List(i12 , non , non , non , non , nop , 0.B, tlbrw ),
     TLBFILL -> List(i12 , non , non , non , non , nop , 0.B, tlbrw ),
-    INVTLB  -> List(r3  , rj  , rk  , non , non , nop , 0.B, invtlb)
-    // FENCE -> List(i   , non , non , non , non , nop , 0.B, norm  ), // do nothing
+    INVTLB  -> List(r3  , rj  , rk  , non , non , nop , 0.B, invtlb),
+    DBAR    -> List(i12 , non , non , non , non , nop , 0.B, norm  ),
+    IBAR    -> List(i12 , non , non , non , non , nop , 0.B, fencei)
     // TRAP  -> List(i   , rs1 , non , non , non , nop , 0.B, trap  )
   )
 }

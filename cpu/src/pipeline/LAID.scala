@@ -185,6 +185,7 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
       wireEsub   := 0.U
     }
   }
+  when(decoded(7) === fencei) { wireBlocked := 1.B }
   when(decoded(7) === rdcnt) {
     io.csrsR.rcsr(0) := TID
     when(io.input.instr(10)) { wireNum(0) := stableCounter(63, 32) }
