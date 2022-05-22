@@ -106,14 +106,16 @@ class MEM(implicit p: Parameters) extends YQModule with cpu.cache.CacheParams {
     flush := 0.B
     when(!rw) { data := extRdata }
     when(io.dmmu.pipelineResult.exception) {
-      isWfe := 1.B
-      cause := io.dmmu.pipelineResult.cause
+      isHold := 0.B
+      isWfe  := 1.B
+      cause  := io.dmmu.pipelineResult.cause
     }.otherwise { if (Debug) mmio := io.dmmu.pipelineResult.isMMIO }
   }.elsewhen(isWfe && (!io.input.except || io.input.cause =/= cause)) {
     LREADY    := 1.B
     NVALID    := 0.B // flush invalid instructions
     isMem     := 0.B
     wireIsMem := 0.B
+    isHold    := 0.B
   }.elsewhen(io.lastVR.VALID && io.lastVR.READY) {
     rd        := io.input.rd
     wireAddr  := io.input.addr
