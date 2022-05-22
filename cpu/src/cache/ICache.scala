@@ -97,7 +97,7 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
     compareHit := VecInit(Seq.tabulate(Associativity)(i => preValid(i) && preTag(i) === addrTag)).reduceTree(_ | _)
     grp := startGrp
     way := MuxLookup(0.B, rand, preValid zip Seq.tabulate(Associativity)(_.U))
-    if (isZmb) needRead := 1.B
+    if (!ext('C')) needRead := 1.B
   }
   when(state === compare) {
     ARVALID := ~compareHit && ~revoke
@@ -105,9 +105,9 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
     hit     := compareHit
     state   := Mux(revoke, idle, Mux(compareHit, Mux(io.cpuIO.cpuReq.valid, Mux(isPeripheral, passing, starting), idle), allocate))
     needRead := 0.B
-    if (isZmb) lastValid := io.cpuIO.cpuReq.valid
-    if (isZmb) when(!needRead) { hit := lastValid }
-    if (isZmb) when(compareHit && addr(alen - 1, Offset) === io.cpuIO.cpuReq.addr(alen - 1, Offset)) {
+    if (!ext('C')) lastValid := io.cpuIO.cpuReq.valid
+    if (!ext('C')) when(!needRead) { hit := lastValid }
+    if (!ext('C')) when(compareHit && addr(alen - 1, Offset) === io.cpuIO.cpuReq.addr(alen - 1, Offset)) {
       state := compare
     }
   }
