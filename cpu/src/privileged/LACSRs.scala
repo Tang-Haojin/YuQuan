@@ -64,6 +64,7 @@ class LACSRMMUBundle(implicit p: Parameters) extends YQBundle {
 class LACSRs(implicit p: Parameters) extends AbstractCSRs with LACSRsAddr {
   val difftestIO = IO(Output(new DifftestCSRRegStateIO))
   val laIO = IO(new LACSRMMUBundle)
+  private val laIOWrite = RegNext(laIO.write, 0.U.asTypeOf(laIO.write)) // make sure it writeback at WB stage
   private val crmd = RegInit((new CRMDBundle).Lit(
     _.PLV  -> 0.U(2.W),
     _.IE   -> 0.B,
@@ -218,12 +219,12 @@ class LACSRs(implicit p: Parameters) extends AbstractCSRs with LACSRsAddr {
     when(io.csrsR.rcsr(i) === TLBRENTRY) { io.csrsR.rdata(i) := tlbrentry ## 0.U(6.W) }
   }
 
-  when(laIO.write.valid) {
-    asid    := laIO.write.asid
-    tlbehi  := laIO.write.tlbehi(31, 13)
-    tlbelo0 := laIO.write.tlbelo(0)
-    tlbelo1 := laIO.write.tlbelo(1)
-    tlbidx  := laIO.write.tlbidx
+  when(laIOWrite.valid) {
+    asid    := laIOWrite.asid
+    tlbehi  := laIOWrite.tlbehi(31, 13)
+    tlbelo0 := laIOWrite.tlbelo(0)
+    tlbelo1 := laIOWrite.tlbelo(1)
+    tlbidx  := laIOWrite.tlbidx
   }
 
   io.bareSEIP := DontCare; io.bareUEIP := DontCare
