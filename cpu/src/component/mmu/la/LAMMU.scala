@@ -103,6 +103,12 @@ class LAMMU(implicit p: Parameters) extends AbstractMMU {
     page_d      -> memTranslateResult.paddr
   ))
 
+  when(ifDel && ifExcpt) { ifDel := 0.B; ifCause := 0.U; ifExcpt := 0.B }
+  when(memDel && memExcpt) {
+    when(!io.jmpBch) { memDel := 0.B; memCause := 0.U; memExcpt := 0.B }
+    .otherwise       { memDel := 1.B }
+  }
+
   when(handleMisaln.B && io.memIO.pipelineReq.cpuReq.valid && (
     (io.memIO.pipelineReq.cpuReq.size === 1.U && io.memIO.pipelineReq.cpuReq.addr(0)) ||
     (io.memIO.pipelineReq.cpuReq.size === 2.U && io.memIO.pipelineReq.cpuReq.addr(1, 0) =/= 0.U) ||
@@ -140,12 +146,6 @@ class LAMMU(implicit p: Parameters) extends AbstractMMU {
         MemRaiseException(0x6.U) // TLBR
       }
     }
-  }
-
-  when(ifDel && ifExcpt) { ifDel := 0.B; ifCause := 0.U; ifExcpt := 0.B }
-  when(memDel && memExcpt) {
-    when(!io.jmpBch) { memDel := 0.B; memCause := 0.U; memExcpt := 0.B }
-    .otherwise       { memDel := 1.B }
   }
 
   when(io.memIO.pipelineReq.tlbrw) {
