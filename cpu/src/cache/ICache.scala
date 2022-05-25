@@ -107,7 +107,7 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
     needRead := 0.B
     if (!ext('C')) lastValid := io.cpuIO.cpuReq.valid
     if (!ext('C')) when(!needRead) { hit := lastValid }
-    if (!ext('C')) when(compareHit && addr(alen - 1, Offset) === io.cpuIO.cpuReq.addr(alen - 1, Offset)) {
+    if (!ext('C')) when(compareHit && !io.inv.valid && addr(alen - 1, Offset) === io.cpuIO.cpuReq.addr(alen - 1, Offset)) {
       state := compare
     }
   }
