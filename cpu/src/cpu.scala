@@ -13,7 +13,7 @@ import tools._
 import cache._
 import utils._
 
-class CPU(implicit p: Parameters) extends YQModule with CacheParams with HasGetName {
+class CPU(implicit p: Parameters) extends YQModule with CacheParams {
   override val desiredName = if (modulePrefix.length() > 1) modulePrefix.dropRight(1) else modulePrefix + this.getClass().getSimpleName()
   val io = IO(new YQBundle {
     val master    = new AXI_BUNDLE
@@ -155,11 +155,6 @@ class CPU(implicit p: Parameters) extends YQModule with CacheParams with HasGetN
     BoringUtils.addSink  (io.sram(id).addr,  s"sram_addr_${id}")
     BoringUtils.addSink  (io.sram(id).wdata, s"sram_wdata_${id}")
     BoringUtils.addSource(io.sram(id).rdata, s"sram_rdata_${id}")
-    io.sram(id).getElements.foreach( x => {
-      val name: String = s"io_sram${id}_${x.getName.drop(3)}"
-      if (x.isInstanceOf[UInt]) forceName(x.asInstanceOf[UInt], name)
-      if (x.isInstanceOf[Bool]) forceName(x.asInstanceOf[Bool], name)
-    })
   })
 
   io.master.r.ready := 1.B
