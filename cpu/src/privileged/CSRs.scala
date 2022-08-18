@@ -104,6 +104,7 @@ abstract class AbstractCSRs(implicit p: Parameters) extends YQModule {
     val msip        = Input (Bool())
     val mprv        = Output(Bool())
     val mpp         = Output(UInt(2.W))
+    val interrupt   = Input (if (isLxb) UInt(8.W) else Bool())
     val debug       = if (Debug) new Bundle {
       val priv     = Output(UInt(2.W))
       val mstatus  = Output(UInt(xlen.W))

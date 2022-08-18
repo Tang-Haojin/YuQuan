@@ -7,6 +7,7 @@ import utils._
 import cpu._
 import cpu.tools._
 import cpu.component.mmu._
+import cpu.privileged.LAIFMMUBundle
 
 class IF(implicit p: Parameters) extends YQModule with cpu.privileged.LACSRsAddr {
   val io = IO(new YQBundle {
@@ -18,6 +19,8 @@ class IF(implicit p: Parameters) extends YQModule with cpu.privileged.LACSRsAddr
     val isPriv = Input(Bool())
     val isSatp = Input(Bool())
   })
+
+  val laIO = if (isLxb) IO(new LAIFMMUBundle(3)) else null
 
   private class csrsAddr(implicit val p: Parameters) extends CPUParams with cpu.privileged.CSRsAddr
   private val csrsAddr = new csrsAddr
@@ -67,7 +70,7 @@ class IF(implicit p: Parameters) extends YQModule with cpu.privileged.LACSRsAddr
   io.immu.pipelineReq.cpuReq.rw     := DontCare
   io.immu.pipelineReq.cpuReq.wmask  := DontCare
   io.immu.pipelineReq.cpuReq.revoke := pause
-  io.immu.pipelineReq.cpuReq.valid  := io.nextVR.READY && !pause && !io.isPriv && !io.isSatp
+  io.immu.pipelineReq.cpuReq.valid  := io.nextVR.READY && !pause && !io.isPriv && !io.isSatp && !(io.nextVR.VALID && memExcept)
   io.immu.pipelineReq.cpuReq.addr   := wirePC
   io.immu.pipelineReq.cpuReq.size   := DontCare
   io.immu.pipelineReq.flush         := DontCare
@@ -76,9 +79,21 @@ class IF(implicit p: Parameters) extends YQModule with cpu.privileged.LACSRsAddr
   io.immu.pipelineReq.tlbrw         := DontCare
   io.immu.pipelineReq.rASID         := DontCare
   io.immu.pipelineReq.rVA           := DontCare
+  io.immu.pipelineReq.cactlb        := DontCare
   io.immu.pipelineReq.cpuReq.noCache.getOrElse(WireDefault(0.B)) := DontCare
 
-  when(io.immu.pipelineResult.cpuResult.ready && (!io.nextVR.VALID || io.nextVR.READY)) {
+  private val reqNext = io.immu.pipelineResult.cpuResult.ready && (!io.nextVR.VALID || io.nextVR.READY)
+
+  if (isLxb) laIO.connect(
+    _.select(0) := io.jmpBch && regPC =/= io.jbAddr,
+    _.select(1) := !laIO.select(0) && reqNext,
+    _.select(2) := !laIO.select(0) && !laIO.select(1),
+    _.addr(0)   := io.jbAddr,
+    _.addr(1)   := regPC + 4.U,
+    _.addr(2)   := regPC
+  )
+
+  when(reqNext) {
     NVALID     := 1.B
     instr      := wireInstr
     instrCode  := wireInstr(6, 0)

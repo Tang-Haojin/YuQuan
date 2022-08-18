@@ -35,6 +35,7 @@ class EXOutput(implicit p: Parameters) extends YQBundle {
   val isPriv  = Output(Bool())
   val isSatp  = Output(Bool())
   val except  = Output(Bool())
+  val memExpt = Output(Bool())
   val cause   = Output(UInt(4.W))
   val fshTLB  = Output(Bool())
   val isTlbrw = Output(Bool())
@@ -64,6 +65,7 @@ object ExecSpecials {
   val exidle = word
   val tlbrw = sret
   val invtlb = sfence
+  val cacop = msu
 }
 
 object InstrTypes {
@@ -146,6 +148,7 @@ class IDOutput(implicit p: Parameters) extends YQBundle {
   val isPriv  = Output(Bool())
   val isSatp  = Output(Bool())
   val except  = Output(Bool())
+  val memExpt = Output(Bool())
   val cause   = Output(UInt(4.W))
   val pc      = Output(UInt(valen.W))
   val isTlbrw = if (isLxb) Some(Output(Bool())) else None

@@ -18,7 +18,7 @@ class CPU(implicit p: Parameters) extends YQModule with CacheParams {
   val io = IO(new YQBundle {
     val master    = new AXI_BUNDLE
     val slave     = if (!isLxb) Flipped(new AXI_BUNDLE) else null
-    val interrupt = Input(Bool())
+    val interrupt = Input(if (isLxb) UInt(8.W) else Bool())
     val sram      =
     if(usePubRam)   Flipped(Vec(2 * Associativity, new PublicSramWrapper.PublicSramIO(BlockSize * 8, IndexSize)))
     else            null
@@ -104,6 +104,8 @@ class CPU(implicit p: Parameters) extends YQModule with CacheParams {
   moduleDCache.io.plicIO  <> (if (usePlic) modulePlic.io.plicIO else DontCare)
   if (usePlic) modulePlic.io.int <> io.interrupt
   if (isLxb) moduleMMU.asInstanceOf[LAMMU].laIO <> moduleCSRs.asInstanceOf[LACSRs].laIO
+  if (isLxb) moduleMMU.asInstanceOf[LAMMU].ifIO <> moduleIF.laIO
+  if (isLxb) moduleMMU.asInstanceOf[LAMMU].icIO <> moduleICache.laIO
 
   moduleBypass.io.rregs  <> moduleGPRs.io.rregs
   moduleBypass.io.idOut.valid  := moduleID.io.nextVR.VALID
@@ -146,6 +148,7 @@ class CPU(implicit p: Parameters) extends YQModule with CacheParams {
   moduleCSRs.io.mtime       <> (if (useClint) moduleClint.io.mtime else DontCare)
   moduleCSRs.io.mtip        <> (if (useClint) moduleClint.io.mtip else 0.B)
   moduleCSRs.io.msip        <> (if (useClint) moduleClint.io.msip else 0.B)
+  moduleCSRs.io.interrupt   <> io.interrupt
 
   if(usePubRam) io.sram.indices.foreach(id => {
     io.sram(id) <> Fill(io.sram(id).getWidth, 1.B).asTypeOf(io.sram(id))
@@ -202,8 +205,8 @@ class CPU(implicit p: Parameters) extends YQModule with CacheParams {
         _.wen            := RegNext(moduleWB.io.lastVR.VALID && moduleWB.io.input.rd =/= 0.U, 0.B),
         _.wdest          := RegNext(moduleWB.io.input.rd),
         _.wdata          := RegNext(moduleWB.io.input.data),
-        _.csr_rstat      := 0.B,
-        _.csr_data       := 0.U
+        _.csr_rstat      := RegNext(moduleWB.io.input.diff.get.instr === BitPat("b00000100_00000000000101_?????_?????")),
+        _.csr_data       := RegNext(moduleWB.io.input.csrData(0))
       )
 
       Module(new DifftestExcpEvent).io.connect(

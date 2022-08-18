@@ -5,18 +5,15 @@ import chisel3.util._
 import chipsalliance.rocketchip.config._
 
 import utils._
-import cpu.privileged._
 import cpu.tools._
 
-class ICache(implicit p: Parameters) extends YQModule with CacheParams {
+class LAICache(implicit p: Parameters) extends YQModule with CacheParams {
   val io = IO(new YQBundle {
     val cpuIO  = new CpuIO(32)
     val memIO  = new AXI_BUNDLE
     val inv    = Flipped(Irrevocable(Bool()))
     val jmpBch = Input (Bool())
   })
-
-  val laIO = if (isLxb) IO(Flipped(new LAIFMMUBundle(6))) else null
 
   private val rand = MaximalPeriodGaloisLFSR(2)
   private val idle::starting::compare::allocate::answering::passing::Nil = Enum(6)
@@ -86,33 +83,44 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   private val revoke = io.jmpBch || io.cpuIO.cpuReq.revoke
 
   private val needRead = RegInit(0.B)
-  private val lastValid = RegInit(0.B)
+  private val lastValid = RegNext(io.cpuIO.cpuReq.valid)
+  private val last2Valid = RegNext(lastValid)
+  private val last2NotPeripheral = RegNext(~RegNext(isPeripheral))
+  private val lastAddr = RegNext(addr)
 
   io.inv.ready := 0.B
   when(state === idle) {
     when(io.cpuIO.cpuReq.valid) { state := Mux(revoke, idle, Mux(isPeripheral, passing, starting)) }
     .elsewhen(io.inv.valid) { ramValid.reset; io.inv.ready := 1.B }
   }
-  when(state === starting) {
+  when(state === starting || state === compare) {
     val startGrp = Mux1H(Seq.tabulate(Associativity)(i => (preValid(i) && preTag(i) === addrTag) -> i.U))
+    when(lastValid) {
+      compareHit := VecInit(Seq.tabulate(Associativity)(i => preValid(i) && preTag(i) === addrTag)).reduceTree(_ | _)
+    }
+    way := MuxLookup(0.B, rand, preValid zip Seq.tabulate(Associativity)(_.U))
+    grp := startGrp
+  }
+  when(state === starting) {
     state := Mux(willDrop || revoke, idle, compare)
     willDrop := 0.B
-    compareHit := VecInit(Seq.tabulate(Associativity)(i => preValid(i) && preTag(i) === addrTag)).reduceTree(_ | _)
-    grp := startGrp
-    way := MuxLookup(0.B, rand, preValid zip Seq.tabulate(Associativity)(_.U))
-    if (!ext('C')) needRead := 1.B
+    needRead := 1.B
   }
   when(state === compare) {
-    ARVALID := ~compareHit && ~revoke
-    hit     := compareHit
-    state   := Mux(revoke, idle, Mux(compareHit, Mux(io.cpuIO.cpuReq.valid, Mux(isPeripheral, passing, starting), idle), allocate))
+    willDrop := revoke
     needRead := 0.B
-    if (!ext('C')) lastValid := io.cpuIO.cpuReq.valid
-    if (!ext('C')) when(!needRead) { hit := lastValid }
-    val offEqual = if (isLxb) Mux1H(laIO.select, laIO.addr.map(addr(alen - 1, Offset) === _(alen - 1, Offset)))
-                   else       addr(alen - 1, Offset) === io.cpuIO.cpuReq.addr(alen - 1, Offset)
-    if (!ext('C')) when(compareHit && !io.inv.valid && offEqual) {
-      state := compare
+    when(last2Valid) {
+      ARVALID := ~compareHit && ~revoke && ~willDrop && last2NotPeripheral
+      hit     := compareHit
+      when(!willDrop) {
+        state := Mux(revoke, idle, Mux(compareHit, Mux(io.cpuIO.cpuReq.valid, Mux(isPeripheral, passing, starting), idle), Mux(last2NotPeripheral, allocate, passing)))
+      }
+      if (!ext('C')) when(!needRead) { hit := compareHit && lastValid && addr(alen - 1, Offset) === lastAddr(alen - 1, Offset) && last2NotPeripheral }
+      if (!ext('C')) when(compareHit && !io.inv.valid && last2NotPeripheral) {
+        state := compare
+      }
+    }.elsewhen(io.inv.valid) {
+      state := idle
     }
   }
   when(state === allocate) {
@@ -160,9 +168,9 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   io.cpuIO.cpuResult.fastReady := DontCare
 }
 
-object ICache {
-  def apply()(implicit p: Parameters): ICache = {
-    val t = Module(new ICache)
+object LAICache {
+  def apply()(implicit p: Parameters): LAICache = {
+    val t = Module(new LAICache)
     t.io.memIO.aw := DontCare
     t.io.memIO.w  := DontCare
     t.io.memIO.b  := DontCare

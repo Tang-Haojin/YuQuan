@@ -257,6 +257,7 @@ class ESTATBundle(implicit p: Parameters) extends YQBundle with CPUParams {
   val SWIS     = Vec(2, Bool())
 
   def IS: Vec[Bool] = VecInit(this.asUInt(12, 0).asBools)
+  def ISUInt: UInt = this.asUInt(12, 0)
   def := (that: => UInt): Unit = that.asTypeOf(this).connect(
     SWIS     := _.SWIS,
     Ecode    := _.Ecode,

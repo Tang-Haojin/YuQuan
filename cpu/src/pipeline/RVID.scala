@@ -118,6 +118,7 @@ class RVID(implicit p: Parameters) extends AbstractID {
   io.output.isPriv  := isPriv
   io.output.isSatp  := isSatp
   io.output.except  := except
+  io.output.memExpt := except
   io.output.cause   := cause
   io.output.pc      := pc
   io.csrsR.rcsr     := VecInit(Seq.fill(RegConf.readCsrsPort)(0xFFF.U(12.W)))
@@ -319,6 +320,7 @@ class RVID(implicit p: Parameters) extends AbstractID {
       NVALID  := 0.B
       blocked := 0.B
       isSatp  := 0.B
+      isPriv  := 0.B
     }
   }
 

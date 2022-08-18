@@ -14,6 +14,7 @@ class PipelineReq(implicit p: Parameters) extends YQBundle with CacheParams {
   val tlbrw  = Bool()
   val rASID  = UInt(10.W)
   val rVA    = UInt(valen.W)
+  val cactlb = Bool()
 }
 
 class PipelineResult(datalen: Int)(implicit p: Parameters) extends YQBundle {

@@ -124,9 +124,13 @@ zmb:
 
 lxb:
 	mill -i __.cpu.runMain Elaborate -td $(BUILD_DIR)/lxb lxb
+
+rv64: verilog
+
+la32r: lxb
 	
 
 $(LIB_DIR)/librv64spike.so:
 	@cd $(pwd)/difftest/difftest && make -j && cd build && ln -sf riscv64-spike-so librv64spike.so
 
-.PHONY: test verilog help compile bsp reformat checkformat ysyxcheck clean clean-all verilate sim simall zmb lxb $(LIB_DIR)/librv64spike.so
+.PHONY: test verilog help compile bsp reformat checkformat ysyxcheck clean clean-all verilate sim simall zmb lxb rv64 la32r $(LIB_DIR)/librv64spike.so

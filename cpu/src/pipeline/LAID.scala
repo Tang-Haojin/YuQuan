@@ -29,6 +29,7 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
   private val retire  = RegInit(0.B)
   private val isSatp  = RegInit(0.B)
   private val except  = RegInit(0.B)
+  private val memExpt = RegInit(0.B)
   private val cause   = RegInit(0.U(4.W))
   private val jmpBch  = RegInit(0.B)
   private val jbAddr  = RegInit(0.U(valen.W))
@@ -63,6 +64,7 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
   private val wireRetire  = WireDefault(Bool(), 1.B)
   private val wireBlocked = WireDefault(Bool(), blocked)
   private val wireIsSatp  = WireDefault(0.B)
+  private val wireCause   = WireDefault(0.U(4.W))
   private val wireIsTlbrw = WireDefault(0.B)
 
   private val lessthan  = io.gprsR.rdata(1).asSInt <   io.gprsR.rdata(0).asSInt
@@ -76,9 +78,7 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
   private def hasNumType(numType: UInt): Bool = VecInit(decoded.slice(1, 5).map(_ === numType)).asUInt.orR
   private val hasRsType = Seq(LANumTypes.rd, LANumTypes.rj, LANumTypes.rk).map(hasNumType(_))
 
-  io.gprsR.raddr := (instRs zip hasRsType).map {
-    case (rs, has) => VecInit(rs.asBools.map(_ & has)).asUInt
-  }
+  io.gprsR.raddr := instRs
 
   private val immMap = Seq(
     i16 -> Fill(xlen - 18, io.input.instr(25)) ## io.input.instr(25, 10) ## 0.U(2.W),
@@ -134,6 +134,7 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
   io.output.isPriv  := isPriv
   io.output.isSatp  := isSatp
   io.output.except  := except
+  io.output.memExpt := memExpt
   io.output.cause   := cause
   io.output.pc      := pc
   io.csrsR.rcsr     := VecInit(Seq.fill(RegConf.readCsrsPort)(0xFFF.U(12.W)))
@@ -146,7 +147,7 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
     io.output.diff.get.timer_64_value := counter
   }
 
-  io.csrsR.rcsr(0) := io.input.instr(21, 10)
+  io.csrsR.rcsr(0) := Cat(io.input.instr(23, 22) | io.input.instr(21, 20), io.input.instr(19, 10))
   io.csrsR.rcsr(1) := CRMD
   io.csrsR.rcsr(2) := PRMD
   io.csrsR.rcsr(3) := ECFG
@@ -166,7 +167,7 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
 
   when(decoded(7) === zicsr) {
     wireIsWcsr := io.input.instr(9, 5) =/= 0.U
-    wireCsr(0) := io.input.instr(21, 10)
+    wireCsr(0) := Cat(io.input.instr(23, 22) | io.input.instr(21, 20), io.input.instr(19, 10))
     wireOp1_3  := io.input.instr(9, 5)
     wireIsSatp := 1.B
   }
@@ -182,6 +183,7 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
     when(io.input.instr(4, 0) > 0x6.U) { // INV
       wireExcept := 1.B
       wireEcode  := 0xD.U
+      wireCause  := 0xD.U
       wireEsub   := 0.U
     }
   }
@@ -192,22 +194,24 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
     .elsewhen(io.input.instr(9, 5).orR) {
       wireRd := instRj
       wireNum(0) := io.csrsR.rdata(0)
-    }
-    .otherwise { wireNum(0) := stableCounter(31, 0) }
+    }.otherwise { wireNum(0) := stableCounter(31, 0) }
   }
   when(decoded(7) === ecall) {
     wireExcept := 1.B
     wireEcode  := 0xB.U
+    wireCause  := 0xB.U
     wireEsub   := 0.U
   }
   when(decoded(7) === ebreak) {
     wireExcept := 1.B
     wireEcode  := 0xC.U
+    wireCause  := 0xC.U
     wireEsub   := 0.U
   }
   when(decoded(7) === inv) {
     wireExcept := 1.B
     wireEcode  := 0xD.U
+    wireCause  := 0xD.U
     wireEsub   := 0.U
   }
   when(decoded(7) === mret) {
@@ -230,22 +234,34 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
     wireNum(1) := llbctl.asUInt
     wireOp1_3 := "b10".U
   }
-  when(io.input.except) {
-    wireExcept := 1.B
-    wireEcode  := MuxLookup(io.input.cause, io.input.cause, Seq(0x5.U -> 0x8.U, 0x6.U -> 0x3F.U))
-    wireEsub   := (io.input.cause === 0x5.U).asUInt
+  when(decoded(7) === cacop) {
+    wireBlocked := 1.B
+    wireOp1_3   := io.input.instr(4, 3)
   }
-  when(crmd.IE && (ecfg.LIE.asUInt & estat.IS.asUInt).orR) {
+  when(io.input.except && io.input.memExcept) {
+    wireExcept := 1.B
+    wireEcode  := MuxLookup(io.input.cause, io.input.cause, Seq(0x6.U -> 0x3F.U))
+    wireCause  := io.input.cause
+    wireEsub   := (io.input.cause === 0x8.U).asUInt
+  }
+  .elsewhen(crmd.IE && (ecfg.LIE.asUInt & estat.ISUInt).orR) {
     wireExcept := 1.B
     wireEcode  := 0x0.U
+    wireCause  := 0x0.U
     wireEsub   := 0x0.U
     isIdle := 0.B
+  }
+  .elsewhen(io.input.except) {
+    wireExcept := 1.B
+    wireEcode  := MuxLookup(io.input.cause, io.input.cause, Seq(0x6.U -> 0x3F.U))
+    wireCause  := io.input.cause
+    wireEsub   := 0x0.U
   }
 
   private val newCrmd = WireDefault(crmd)
   newCrmd.PLV := 0.U
   newCrmd.IE  := 0.U
-  when(io.input.cause === 0x6.U) {
+  when(wireCause === 0x6.U) {
     newCrmd.DA := 1.B
     newCrmd.PG := 0.B
   }
@@ -255,16 +271,17 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
   private val newEstat = WireDefault(estat)
   newEstat.Ecode    := wireEcode
   newEstat.EsubCode := wireEsub
-  private val WBADV = VecInit((0x1 to 0x9).map(_.U)).contains(io.input.cause)
-  private val WTLBEHI = VecInit(Seq(0x1, 0x2, 0x3, 0x4, 0x6, 0x7).map(_.U)).contains(io.input.cause)
+  private val WBADV = VecInit((0x1 to 0x9).map(_.U)).contains(wireCause)
+  private val WTLBEHI = VecInit((0x1 to 0x7).map(_.U)).contains(wireCause)
   when(io.lastVR.VALID && wireExcept) {
     wireJmpBch := 1.B
-    wireJbAddr := Mux(wireEcode === 0x3F.U, tlbrentry, eentry)
+    wireJbAddr := Mux(wireCause === 0x6.U, tlbrentry, eentry)
     wireSpecial := exception
     wireIsPriv := crmd.PLV =/= 0.U
     wireCsr := Seq(CRMD, PRMD, ESTAT, ERA, Mux(WBADV, BADV, 0xFFF.U), Mux(WTLBEHI, TLBEHI, 0xFFF.U))
     wireNum := Seq(newCrmd.asUInt, newPrmd.asUInt, newEstat.asUInt, io.input.pc)
-    wireIsSatp := 0.B; wireBlocked := 0.B
+    wireIsSatp := 1.B; wireBlocked := 0.B
+    wireIsTlbrw := 0.B
   }
 
   when(io.lastVR.VALID && io.lastVR.READY) { // let's start working
@@ -284,7 +301,8 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
       isSatp     := wireIsSatp
       retire     := wireRetire
       except     := io.input.except
-      cause      := io.input.cause
+      memExpt    := io.input.memExcept
+      cause      := wireCause
       pc         := io.input.pc
       jbPend     := 0.B
       jbAddr     := wireJbAddr
@@ -309,6 +327,7 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
       NVALID  := 0.B
       blocked := 0.B
       isSatp  := 0.B
+      isPriv  := 0.B
     }
   }
 

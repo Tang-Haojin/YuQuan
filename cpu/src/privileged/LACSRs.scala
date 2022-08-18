@@ -61,6 +61,11 @@ class LACSRMMUBundle(implicit p: Parameters) extends YQBundle {
   val write = Input (new LAMMU2CSRBundle)
 }
 
+class LAIFMMUBundle(sets: Int)(implicit p: Parameters) extends YQBundle {
+  val select = Output(Vec(sets, Bool()))
+  val addr   = Output(Vec(sets, UInt(valen.W)))
+}
+
 class LACSRs(implicit p: Parameters) extends AbstractCSRs with LACSRsAddr {
   val difftestIO = IO(Output(new DifftestCSRRegStateIO))
   val laIO = IO(new LACSRMMUBundle)
@@ -106,7 +111,7 @@ class LACSRs(implicit p: Parameters) extends AbstractCSRs with LACSRsAddr {
 
   if (useDifftest) {
     difftestIO.connect(
-      _         := 0.U.asTypeOf(difftestIO),
+      _           := 0.U.asTypeOf(difftestIO),
       _.crmd      := crmd.asUInt,
       _.prmd      := prmd.asUInt,
       _.ecfg      := ecfg.asUInt,
@@ -137,14 +142,6 @@ class LACSRs(implicit p: Parameters) extends AbstractCSRs with LACSRsAddr {
       _.tlbrentry := tlbrentry ## 0.U(6.W)
     )
   } else difftestIO := DontCare
-
-  when(cnten) {
-    tval := Mux(tval === 0.U, Mux(tcfg.Periodic, tcfg.InitVal ## 0.U(2.W), 0xffffffffL.U), tval - 1.U)
-    when(tval === 0.U) {
-      estat.TIS := 1.B
-      cnten     := tcfg.Periodic
-    }
-  }
 
   for (i <- 0 until RegConf.writeCsrsPort) {
     when(io.csrsW.wen(i)) {
@@ -218,6 +215,16 @@ class LACSRs(implicit p: Parameters) extends AbstractCSRs with LACSRsAddr {
     when(io.csrsR.rcsr(i) === PGD)       { io.csrsR.rdata(i) := Mux(badv(31), pgdh, pgdl) ## 0.U(12.W) }
     when(io.csrsR.rcsr(i) === TLBRENTRY) { io.csrsR.rdata(i) := tlbrentry ## 0.U(6.W) }
   }
+
+  when(cnten) {
+    tval := Mux(tval === 0.U, Mux(tcfg.Periodic, tcfg.InitVal ## 0.U(2.W), 0xffffffffL.U), tval - 1.U)
+    when(tval === 0.U) {
+      estat.TIS := 1.B
+      cnten     := tcfg.Periodic
+    }
+  }
+
+  estat.HWIS := io.interrupt.asBools
 
   when(laIOWrite.valid) {
     asid    := laIOWrite.asid

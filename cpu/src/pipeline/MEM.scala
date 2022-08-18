@@ -36,6 +36,7 @@ class MEM(implicit p: Parameters) extends YQModule with cpu.cache.CacheParams {
   private val rvc     = if (Debug) RegInit(0.B) else null
   private val instr   = RegInit(0.U(32.W))
   private val diffStoreValid = RegInit(0.U(4.W))
+  private val diffWLSPAddr   = RegInit(0.B); diffWLSPAddr := 0.B
   private val diffLSPAddr    = RegInit(0.U(alen.W))
   private val diffLSVAddr    = RegInit(0.U(valen.W))
   private val diffStoreData  = RegInit(0.U(xlen.W))
@@ -56,10 +57,10 @@ class MEM(implicit p: Parameters) extends YQModule with cpu.cache.CacheParams {
   private val LREADY  = RegInit(1.B); io.lastVR.READY := LREADY && io.nextVR.READY
 
   private val isMem = RegInit(0.B); private val wireIsMem = WireDefault(Bool(), isMem)
-  private val rw    = RegInit(0.B); private val wireRw    = WireDefault(Bool(), rw)
+  private val rw    = RegInit(1.B); private val wireRw    = WireDefault(Bool(), rw)
 
   private val wireData  = WireDefault(UInt(xlen.W), data)
-  private val wireAddr  = WireDefault(UInt(valen.W), addr)
+  private val wireAddr  = Mux(io.lastVR.VALID && io.lastVR.READY, io.input.addr, addr)
   private val wireMask  = WireDefault(UInt((xlen / 8).W), mask)
   private val wireRetr  = WireDefault(Bool(), io.input.retire)
   private val wireReql  = WireDefault(UInt(3.W), extType)
@@ -91,6 +92,7 @@ class MEM(implicit p: Parameters) extends YQModule with cpu.cache.CacheParams {
   io.dmmu.pipelineReq.tlbrw         := wireTlbrw
   io.dmmu.pipelineReq.rASID         := io.input.csrData(0)
   io.dmmu.pipelineReq.rVA           := io.input.csrData(1)
+  io.dmmu.pipelineReq.cactlb        := !wireIsMem && !wireRw
   io.dmmu.pipelineReq.cpuReq.noCache.getOrElse(WireDefault(0.B)) := DontCare
   io.output.retire := retire
   io.output.priv   := priv
@@ -103,6 +105,8 @@ class MEM(implicit p: Parameters) extends YQModule with cpu.cache.CacheParams {
     LREADY    := 1.B
     isMem     := 0.B
     wireIsMem := 0.B
+    rw        := 1.B
+    wireRw    := 1.B
     flush := 0.B
     when(!rw) { data := extRdata }
     when(io.dmmu.pipelineResult.exception) {
@@ -110,20 +114,21 @@ class MEM(implicit p: Parameters) extends YQModule with cpu.cache.CacheParams {
       isWfe  := 1.B
       cause  := io.dmmu.pipelineResult.cause
     }.otherwise { if (Debug) mmio := io.dmmu.pipelineResult.isMMIO }
-  }.elsewhen(isWfe && (!io.input.except || io.input.cause =/= cause)) {
+  }.elsewhen(isWfe && (!io.input.memExpt || io.input.cause =/= cause)) {
     LREADY    := 1.B
     NVALID    := 0.B // flush invalid instructions
     isMem     := 0.B
     wireIsMem := 0.B
+    rw        := 1.B
+    wireRw    := 1.B
     isHold    := 0.B
   }.elsewhen(io.lastVR.VALID && io.lastVR.READY) {
     rd        := io.input.rd
-    wireAddr  := io.input.addr
     wireData  := io.input.data
     wireMask  := VecInit((0 until xlen / 8).map(i => if (i == 0) rawStrb else rawStrb(xlen / 8 - 1 - i, 0) ## 0.U(i.W)))(wireOff)
     wireReql  := io.input.mask
     wireTlbrw := io.input.isTlbrw
-    addr      := wireAddr
+    addr      := io.input.addr
     data      := wireData
     mask      := wireMask
     isWcsr    := io.input.isWcsr
@@ -150,11 +155,11 @@ class MEM(implicit p: Parameters) extends YQModule with cpu.cache.CacheParams {
       rvc   := io.input.debug.rvc
     }
     if (io.input.diff.isDefined) {
-      val tlbRand = MaximalPeriodGaloisLFSR(log2Ceil(TlbEntries))
+      val tlbRand = RegInit(0.U(log2Ceil(TlbEntries).W)); tlbRand := Mux(tlbRand === (TlbEntries - 1).U, 0.U, tlbRand + 1.U)
       isHold := !io.input.retire
       when(!isHold) {
         instr := io.input.diff.get.instr
-        diffLSPAddr := io.dmmu.pipelineResult.paddr
+        diffWLSPAddr := 1.B
         diffLSVAddr := io.input.addr
         diffLoadValid := Cat(
           0.B,
@@ -181,11 +186,11 @@ class MEM(implicit p: Parameters) extends YQModule with cpu.cache.CacheParams {
         counter := io.input.diff.get.timer_64_value
       }
     }
-    when(io.input.isMem) {
+    when(io.input.isMem || io.input.isLd) {
       NVALID    := 0.B
       LREADY    := 0.B
-      wireIsMem := 1.B
-      isMem     := 1.B
+      wireIsMem := io.input.isMem
+      isMem     := io.input.isMem
       rw        := wireRw
       wireData  := VecInit((0 until xlen / 8).map(i => if (i == 0) io.input.data else io.input.data(xlen - 1 - (8 * i), 0) ## 0.U((8 * i).W)))(wireOff)
       wireRw    := !io.input.isLd
@@ -193,6 +198,7 @@ class MEM(implicit p: Parameters) extends YQModule with cpu.cache.CacheParams {
         NVALID := 1.B
         LREADY := 1.B
         isMem  := 0.B
+        rw     := 1.B
       }
     }.otherwise {
       NVALID := 1.B
@@ -201,7 +207,10 @@ class MEM(implicit p: Parameters) extends YQModule with cpu.cache.CacheParams {
   }.otherwise {
     NVALID := 0.B
     isSatp := 0.B
+    isPriv := 0.B
   }
+
+  when(diffWLSPAddr) { diffLSPAddr := io.dmmu.pipelineResult.paddr }
 
   if (Debug) io.output.debug.connect(
     _.exit := exit,

@@ -71,6 +71,8 @@ case class LA()(implicit val p: Parameters) extends CPUParams {
   private def INVTLB  = BitPat("b00000110010010011_?????_?????_?????")
   private def DBAR    = BitPat("b00111000011100100_???????????????")
   private def IBAR    = BitPat("b00111000011100101_???????????????")
+  private def CACOP   = BitPat("b0000011000_????????????_?????_?????")
+  private def PRELD   = BitPat("b0010101011_????????????_?????_?????")
   //private def TRAP   = BitPat("b???????_?????_?????_???_?????_1101011")
 
   val table = List(
@@ -134,7 +136,9 @@ case class LA()(implicit val p: Parameters) extends CPUParams {
     TLBFILL -> List(i12 , non , non , non , non , nop , 0.B, tlbrw ),
     INVTLB  -> List(r3  , rj  , rk  , non , non , nop , 0.B, invtlb),
     DBAR    -> List(i12 , non , non , non , non , nop , 0.B, norm  ),
-    IBAR    -> List(i12 , non , non , non , non , nop , 0.B, fencei)
+    IBAR    -> List(i12 , non , non , non , non , nop , 0.B, fencei),
+    CACOP   -> List(i12 , non , non , rj  , imm , nop , 0.B, cacop ),
+    PRELD   -> List(i12 , non , non , non , non , nop , 0.B, norm  )
     // TRAP  -> List(i   , rs1 , non , non , non , nop , 0.B, trap  )
   )
 }

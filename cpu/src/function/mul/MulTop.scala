@@ -85,7 +85,9 @@ class MulTop(implicit p: Parameters) extends YQModule {
       out_valid := 1.B
     }
   } else if (xlen == 32) {
-    io.output.bits := part_sum(0) + part_sum(1)
+    val result = Reg(UInt(64.W))
+    val wireResult = part_sum(0) + part_sum(1)
+    io.output.bits := Mux(stage === 0.U, result, wireResult)
     when(stage === 0.U) {
       part_sum := walTree.io.output
       when(io.input.fire) {
@@ -95,6 +97,7 @@ class MulTop(implicit p: Parameters) extends YQModule {
     }
     when(stage === 1.U) {
       stage := 0.U
+      result := wireResult
       io.output.valid := 1.B
       out_valid := 1.B
     }

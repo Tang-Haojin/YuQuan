@@ -5,7 +5,6 @@ import chisel3.util._
 import chipsalliance.rocketchip.config._
 
 import utils._
-import cpu.privileged._
 import cpu.tools._
 
 class ICache(implicit p: Parameters) extends YQModule with CacheParams {
@@ -15,8 +14,6 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
     val inv    = Flipped(Irrevocable(Bool()))
     val jmpBch = Input (Bool())
   })
-
-  val laIO = if (isLxb) IO(Flipped(new LAIFMMUBundle(6))) else null
 
   private val rand = MaximalPeriodGaloisLFSR(2)
   private val idle::starting::compare::allocate::answering::passing::Nil = Enum(6)
@@ -104,14 +101,13 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
   }
   when(state === compare) {
     ARVALID := ~compareHit && ~revoke
+    state   := allocate
     hit     := compareHit
     state   := Mux(revoke, idle, Mux(compareHit, Mux(io.cpuIO.cpuReq.valid, Mux(isPeripheral, passing, starting), idle), allocate))
     needRead := 0.B
     if (!ext('C')) lastValid := io.cpuIO.cpuReq.valid
     if (!ext('C')) when(!needRead) { hit := lastValid }
-    val offEqual = if (isLxb) Mux1H(laIO.select, laIO.addr.map(addr(alen - 1, Offset) === _(alen - 1, Offset)))
-                   else       addr(alen - 1, Offset) === io.cpuIO.cpuReq.addr(alen - 1, Offset)
-    if (!ext('C')) when(compareHit && !io.inv.valid && offEqual) {
+    if (!ext('C')) when(compareHit && !io.inv.valid && addr(alen - 1, Offset) === io.cpuIO.cpuReq.addr(alen - 1, Offset)) {
       state := compare
     }
   }

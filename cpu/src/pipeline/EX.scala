@@ -24,7 +24,7 @@ class EX(implicit p: Parameters) extends YQModule {
   alu.io.input.bits.b    := io.input.num(1).asSInt
   alu.io.input.bits.op   := wireOp
   alu.io.input.bits.word := wireIsWord
-  alu.io.input.bits.sign := ((io.input.special =/= mu) && (io.input.special =/= msu)) ## (io.input.special =/= mu)
+  alu.io.input.bits.sign := ((io.input.special =/= mu) && (if (!isLxb) io.input.special =/= msu else 1.B)) ## (io.input.special =/= mu)
   alu.io.input.valid     := io.lastVR.VALID
   alu.io.output.ready    := io.nextVR.READY
 
@@ -52,6 +52,7 @@ class EX(implicit p: Parameters) extends YQModule {
   private val isPriv  = RegInit(0.B)
   private val isSatp  = RegInit(0.B)
   private val except  = RegInit(0.B)
+  private val memExpt = RegInit(0.B)
   private val cause   = RegInit(0.U(4.W))
   private val instr   = RegInit(0.U(32.W))
   private val allExpt = RegInit(0.B)
@@ -70,7 +71,7 @@ class EX(implicit p: Parameters) extends YQModule {
   private val wireCsrData = WireDefault(VecInit(Seq.fill(RegConf.writeCsrsPort)(0.U(xlen.W))))
   private val wireIsWcsr  = WireDefault(Bool(), io.input.isWcsr)
   private val wireIsMem   = WireDefault(Bool(), io.input.special === ld || io.input.special === st || (if (isLxb) 0.B else io.input.special === sfence))
-  private val wireIsLd    = WireDefault(Bool(), io.input.special === ld)
+  private val wireIsLd    = WireDefault(Bool(), io.input.special === ld || (if (isLxb) io.input.special === cacop && io.input.op1_3 === 2.U else 0.B))
   private val wireAddr    = WireDefault(UInt(valen.W), io.input.num(2)(valen - 1, 0) + io.input.num(3)(valen - 1, 0))
   private val wireMask    = WireDefault(UInt(3.W), io.input.op1_3)
   private val wireRetire  = WireDefault(Bool(), io.input.retire)
@@ -98,6 +99,7 @@ class EX(implicit p: Parameters) extends YQModule {
   io.output.isPriv  := isPriv
   io.output.isSatp  := isSatp
   io.output.except  := except
+  io.output.memExpt := memExpt
   io.output.cause   := cause
   io.output.isTlbrw := isTlbrw
   io.output.fshTLB  := fshTLB
@@ -248,14 +250,15 @@ class EX(implicit p: Parameters) extends YQModule {
     isPriv  := io.input.isPriv
     isSatp  := io.input.isSatp
     except  := io.input.except
+    memExpt := io.input.memExpt
     cause   := io.input.cause
     fshTLB  := io.input.special === sfence
 
     op      := wireOp
     isWord  := wireIsWord
 
-    if (!isZmb) invalidateICache := io.input.special === fencei
-    if (!isZmb) writebackDCache  := io.input.special === fencei
+    if (!isZmb) invalidateICache := io.input.special === fencei || (if (isLxb) io.input.special === cacop else 0.B)
+    if (!isZmb) writebackDCache  := io.input.special === fencei || (if (isLxb) io.input.special === cacop else 0.B)
 
     wireOp     := io.input.op1_2
     wireIsWord := (io.input.special === word)
@@ -275,6 +278,7 @@ class EX(implicit p: Parameters) extends YQModule {
   }.elsewhen(io.nextVR.READY && io.nextVR.VALID) {
     NVALID := 0.B
     isSatp := 0.B
+    isPriv := 0.B
   }
 
   if (ext('A') || isLxb) when(scState === storing) {
