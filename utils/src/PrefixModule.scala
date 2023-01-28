@@ -13,9 +13,9 @@ abstract class PrefixModule(implicit val p: Parameters) extends Module with Pref
 
   implicit class a3c809f7[T <: Data](in: T) {
     def countHigh: UInt =
-      if (in.getWidth == 1) in.asUInt() else VecInit(in.asUInt().asBools().map(_.asUInt)).reduceTree(_ +& _)
+      if (in.getWidth == 1) in.asUInt else VecInit(in.asUInt.asBools.map(_.asUInt)).reduceTree(_ +& _)
     def countLow: UInt =
-      if (in.getWidth == 1) ~in.asUInt() else VecInit(in.asUInt().asBools().map(~_.asUInt)).reduceTree(_ +& _)
+      if (in.getWidth == 1) ~in.asUInt else VecInit(in.asUInt.asBools.map(~_.asUInt)).reduceTree(_ +& _)
   }
 
   def IndexofMax(in: Seq[(UInt, UInt)]): UInt =

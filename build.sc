@@ -7,7 +7,7 @@ import mill.scalalib.TestModule.Utest
 import mill.bsp._
 
 trait BaseScalaModule extends ScalaModule with ScalafmtModule {
-  override def scalaVersion = "2.13.8"
+  override def scalaVersion = "2.13.10"
   override def scalacOptions = Seq(
     "-language:reflectiveCalls",
     "-deprecation",
@@ -15,10 +15,10 @@ trait BaseScalaModule extends ScalaModule with ScalafmtModule {
     "-Xcheckinit"
   )
   override def ivyDeps = Agg(
-    ivy"edu.berkeley.cs::chisel3:3.5.4"
+    ivy"edu.berkeley.cs::chisel3:3.6.0-M2"
   )
   override def scalacPluginIvyDeps = Agg(
-    ivy"edu.berkeley.cs:::chisel3-plugin:3.5.4"
+    ivy"edu.berkeley.cs:::chisel3-plugin:3.6.0-M2"
   )
 }
 

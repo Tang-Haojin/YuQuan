@@ -3,7 +3,6 @@ package sim.peripheral.uart
 import chisel3._
 import chisel3.util._
 import chipsalliance.rocketchip.config._
-import freechips.rocketchip.diplomacy.ValName
 
 import utils._
 import sim.SimParams
@@ -82,7 +81,7 @@ class UartInt(implicit val p: Parameters) extends BlackBox with HasBlackBoxInlin
   """.stripMargin)
 }
 
-class UartWrapperIO(implicit p: Parameters, valName: ValName) extends AxiSlaveIO {
+class UartWrapperIO(implicit p: Parameters) extends AxiSlaveIO {
   val interrupt = Output(Bool())    // interrupt request (active-high)
 }
 

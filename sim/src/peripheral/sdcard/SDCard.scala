@@ -3,7 +3,6 @@ package sim.peripheral.sdcard
 import chisel3._
 import chisel3.util._
 import chipsalliance.rocketchip.config._
-import freechips.rocketchip.diplomacy.ValName
 
 import utils._
 import sim.SimParams

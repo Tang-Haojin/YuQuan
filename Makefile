@@ -65,11 +65,13 @@ ifneq ($(mainargs),)
 CFLAGS += '-Dmainargs=$(mainargs)'
 endif
 
+PRETTY = --emission-options=disableMemRandomization,disableRegisterRandomization
+
 test:
 	mill -i __.test
 
 verilog:
-	mill -i __.cpu.runMain Elaborate -td $(BUILD_DIR)/cpu --emission-options=disableMemRandomization,disableRegisterRandomization
+	mill -i __.cpu.runMain Elaborate -td $(BUILD_DIR)/cpu $(PRETTY)
 
 help:
 	mill -i __.sim.runMain Elaborate --help
@@ -120,10 +122,10 @@ simall: $(LIB_SPIKE) verilate
 	done
 
 zmb:
-	mill -i __.cpu.runMain Elaborate -td $(BUILD_DIR)/zmb zmb --emission-options=disableMemRandomization,disableRegisterRandomization
+	mill -i __.cpu.runMain Elaborate -td $(BUILD_DIR)/zmb zmb $(PRETTY)
 
 lxb:
-	mill -i __.cpu.runMain Elaborate -td $(BUILD_DIR)/lxb lxb
+	mill -i __.cpu.runMain Elaborate -td $(BUILD_DIR)/lxb lxb $(PRETTY)
 
 rv64: verilog
 

@@ -106,7 +106,7 @@ class Axi2Apb(implicit val p: Parameters) extends RawModule with UtilsParams {
     val read_counter  = RegInit(0.U(Seq(1, log2Ceil(xlen / 8) - 2).max.W))
 
     val inner_Axi2Apb = Module(new inner_axi2apb)
-    inner_Axi2Apb.io.ACLK := io.axi_s.basic.ACLK.asBool()
+    inner_Axi2Apb.io.ACLK := io.axi_s.basic.ACLK.asBool
     inner_Axi2Apb.io.ARESETn := io.axi_s.basic.ARESETn
 
     inner_Axi2Apb.io.ARID    := inner_ARID
@@ -130,7 +130,7 @@ class Axi2Apb(implicit val p: Parameters) extends RawModule with UtilsParams {
 
     inner_Axi2Apb.io.BREADY := inner_BREADY
 
-    io.apb_m.pclk    := inner_Axi2Apb.io.pclk.asClock()
+    io.apb_m.pclk    := inner_Axi2Apb.io.pclk.asClock
     io.apb_m.presetn := inner_Axi2Apb.io.presetn
     io.apb_m.psel    := inner_Axi2Apb.io.psel
     io.apb_m.penable := inner_Axi2Apb.io.penable
@@ -147,7 +147,7 @@ class Axi2Apb(implicit val p: Parameters) extends RawModule with UtilsParams {
     io.axi_s.channel.r.bits.last := 1.B
     io.axi_s.channel.r.bits.resp := 0.U
     io.axi_s.channel.r.bits.user := DontCare
-    io.axi_s.channel.r.bits.data := inner_RDATA.asUInt()
+    io.axi_s.channel.r.bits.data := inner_RDATA.asUInt
 
     io.axi_s.channel.b.bits.id   := inner_AWID
     io.axi_s.channel.b.bits.resp := 0.U

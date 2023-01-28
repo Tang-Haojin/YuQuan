@@ -171,7 +171,7 @@ private[utils] class S011HD1P_BW_SramWrapper(clock: Clock, bits: Int = 128, word
   def write(idx: UInt, data: UInt, wen: Bool, bytewrite: UInt): Unit = {
     wAddr        := idx
     sram.io.WEN  := !wen
-    sram.io.BWEN := Cat((~bytewrite).asBools().map(Fill(8, _)).reverse)
+    sram.io.BWEN := Cat((~bytewrite).asBools.map(Fill(8, _)).reverse)
     sram.io.D    := data
     when(wen) { sram.io.A := wAddr }
   }
@@ -229,7 +229,7 @@ private[utils] class PublicSramWrapper(bits: Int = 128, wordDepth: Int = 64) ext
   def write(idx: UInt, data: UInt, wen: Bool, bytewrite: UInt): Unit = {
     wAddr      := idx
     sram.wen   := !wen
-    sram.wmask := Cat((~bytewrite).asBools().map(Fill(8, _)).reverse)
+    sram.wmask := Cat((~bytewrite).asBools.map(Fill(8, _)).reverse)
     sram.wdata := data
     when(wen) { sram.addr := wAddr }
   }
