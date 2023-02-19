@@ -101,7 +101,7 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
     /* imm  */ wireImm,
     /* four */ 4.U,
     /* pc   */ io.input.pc,
-    /* csr  */ io.csrsR.rdata(0)
+    /* csr  */ io.csrsR(0).rdata
   ))
 
   private val wireJmpBch = WireDefault(
@@ -137,7 +137,7 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
   io.output.memExpt := memExpt
   io.output.cause   := cause
   io.output.pc      := pc
-  io.csrsR.rcsr     := VecInit(Seq.fill(RegConf.readCsrsPort)(0xFFF.U(12.W)))
+  io.csrsR.foreach(_.rcsr := 0xFFF.U)
   io.output.isTlbrw.get := isTlbrw
   if (io.output.diff.isDefined) {
     io.output.diff.get.instr := instr
@@ -147,23 +147,23 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
     io.output.diff.get.timer_64_value := counter
   }
 
-  io.csrsR.rcsr(0) := Cat(io.input.instr(23, 22) | io.input.instr(21, 20), io.input.instr(19, 10))
-  io.csrsR.rcsr(1) := CRMD
-  io.csrsR.rcsr(2) := PRMD
-  io.csrsR.rcsr(3) := ECFG
-  io.csrsR.rcsr(4) := ESTAT
-  io.csrsR.rcsr(5) := ERA
-  io.csrsR.rcsr(6) := EENTRY
-  io.csrsR.rcsr(7) := LLBCTL
-  io.csrsR.rcsr(8) := TLBRENTRY
-  private val crmd      = io.csrsR.rdata(1).asTypeOf(new CRMDBundle)
-  private val prmd      = io.csrsR.rdata(2).asTypeOf(new PRMDBundle)
-  private val ecfg      = io.csrsR.rdata(3).asTypeOf(new ECFGBundle)
-  private val estat     = io.csrsR.rdata(4).asTypeOf(new ESTATBundle)
-  private val era       = io.csrsR.rdata(5)
-  private val eentry    = io.csrsR.rdata(6)
-  private val llbctl    = io.csrsR.rdata(7).asTypeOf(new LLBCTLBundle)
-  private val tlbrentry = io.csrsR.rdata(8)
+  io.csrsR(0).rcsr := Cat(io.input.instr(23, 22) | io.input.instr(21, 20), io.input.instr(19, 10))
+  io.csrsR(1).rcsr := CRMD
+  io.csrsR(2).rcsr := PRMD
+  io.csrsR(3).rcsr := ECFG
+  io.csrsR(4).rcsr := ESTAT
+  io.csrsR(5).rcsr := ERA
+  io.csrsR(6).rcsr := EENTRY
+  io.csrsR(7).rcsr := LLBCTL
+  io.csrsR(8).rcsr := TLBRENTRY
+  private val crmd      = io.csrsR(1).rdata.asTypeOf(new CRMDBundle)
+  private val prmd      = io.csrsR(2).rdata.asTypeOf(new PRMDBundle)
+  private val ecfg      = io.csrsR(3).rdata.asTypeOf(new ECFGBundle)
+  private val estat     = io.csrsR(4).rdata.asTypeOf(new ESTATBundle)
+  private val era       = io.csrsR(5).rdata
+  private val eentry    = io.csrsR(6).rdata
+  private val llbctl    = io.csrsR(7).rdata.asTypeOf(new LLBCTLBundle)
+  private val tlbrentry = io.csrsR(8).rdata
 
   when(decoded(7) === zicsr) {
     wireIsWcsr := io.input.instr(9, 5) =/= 0.U
@@ -189,11 +189,11 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
   }
   when(decoded(7) === fencei) { wireBlocked := 1.B }
   when(decoded(7) === rdcnt) {
-    io.csrsR.rcsr(0) := TID
+    io.csrsR(0).rcsr := TID
     when(io.input.instr(10)) { wireNum(0) := stableCounter(63, 32) }
     .elsewhen(io.input.instr(9, 5).orR) {
       wireRd := instRj
-      wireNum(0) := io.csrsR.rdata(0)
+      wireNum(0) := io.csrsR(0).rdata
     }.otherwise { wireNum(0) := stableCounter(31, 0) }
   }
   when(decoded(7) === ecall) {

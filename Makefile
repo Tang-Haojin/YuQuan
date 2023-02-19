@@ -104,7 +104,7 @@ clean-all: clean
 	-rm -rf ./out ./difftest/build ./difftest/difftest/build
 
 verilate:
-	mill -i __.sim.runMain Elaborate -td build/sim $(GENNAME) $(param)
+	mill -i __.sim.runMain Elaborate -td $(BUILD_DIR)/sim $(GENNAME) $(param)
 	@cd $(BUILD_DIR)/sim && \
 	verilator $(VFLAGS) --build $(CSRCS) -CFLAGS "$(CFLAGS)" -LDFLAGS "$(LDFLAGS)" >/dev/null
 

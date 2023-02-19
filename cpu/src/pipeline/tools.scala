@@ -172,7 +172,7 @@ class IDOutput(implicit p: Parameters) extends YQBundle {
 class IDIO(implicit p: Parameters) extends YQBundle {
   val output      = new IDOutput
   val gprsR       = Flipped(new GPRsR)
-  val csrsR       = Flipped(new cpu.privileged.CSRsR)
+  val csrsR       = Flipped(Vec(RegConf.readCsrsPort, new cpu.privileged.CSRsR))
   val lastVR      = new LastVR
   val nextVR      = Flipped(new LastVR)
   val input       = Flipped(new IFOutput)

@@ -56,11 +56,6 @@ class LAMMU2CSRBundle(implicit p: Parameters) extends YQBundle {
   val tlbidx = new TLBIDXBundle
 }
 
-class LACSRMMUBundle(implicit p: Parameters) extends YQBundle {
-  val read  = Output(new LACSR2MMUBundle)
-  val write = Input (new LAMMU2CSRBundle)
-}
-
 class LAIFMMUBundle(sets: Int)(implicit p: Parameters) extends YQBundle {
   val select = Output(Vec(sets, Bool()))
   val addr   = Output(Vec(sets, UInt(valen.W)))
@@ -68,8 +63,8 @@ class LAIFMMUBundle(sets: Int)(implicit p: Parameters) extends YQBundle {
 
 class LACSRs(implicit p: Parameters) extends AbstractCSRs with LACSRsAddr {
   val difftestIO = IO(Output(new DifftestCSRRegStateIO))
-  val laIO = IO(new LACSRMMUBundle)
-  private val laIOWrite = RegNext(laIO.write, 0.U.asTypeOf(laIO.write)) // make sure it writeback at WB stage
+  val laIO = IO(Input(new LAMMU2CSRBundle))
+  private val laIOWrite = RegNext(laIO, 0.U.asTypeOf(laIO)) // make sure it writeback at WB stage
   private val crmd = RegInit((new CRMDBundle).Lit(
     _.PLV  -> 0.U(2.W),
     _.IE   -> 0.B,
@@ -100,14 +95,6 @@ class LACSRs(implicit p: Parameters) extends AbstractCSRs with LACSRsAddr {
   private val pgdl      = Reg(UInt((32 - 12).W))
   private val pgdh      = Reg(UInt((32 - 12).W))
   private val tlbrentry = Reg(UInt((32 - 6).W))
-
-  laIO.read.crmd   := crmd
-  laIO.read.dmw    := dmw
-  laIO.read.asid   := asid
-  laIO.read.tlbehi := tlbehi ## 0.U(13.W)
-  laIO.read.tlbelo := VecInit(tlbelo0, tlbelo1)
-  laIO.read.tlbidx := tlbidx
-  laIO.read.estat  := estat
 
   if (useDifftest) {
     difftestIO.connect(
@@ -183,38 +170,39 @@ class LACSRs(implicit p: Parameters) extends AbstractCSRs with LACSRsAddr {
     }
   }
 
-  for (i <- 0 until RegConf.readCsrsPort) {
-    io.csrsR.rdata(i) := 0.U
-    when(io.csrsR.rcsr(i) === CRMD)      { io.csrsR.rdata(i) := crmd.asUInt }
-    when(io.csrsR.rcsr(i) === PRMD)      { io.csrsR.rdata(i) := prmd.asUInt }
-    when(io.csrsR.rcsr(i) === EUEN)      { io.csrsR.rdata(i) := 0.U }
-    when(io.csrsR.rcsr(i) === ECFG)      { io.csrsR.rdata(i) := ecfg.asUInt }
-    when(io.csrsR.rcsr(i) === ESTAT)     { io.csrsR.rdata(i) := estat.asUInt }
-    when(io.csrsR.rcsr(i) === ERA)       { io.csrsR.rdata(i) := era }
-    when(io.csrsR.rcsr(i) === BADV)      { io.csrsR.rdata(i) := badv }
-    when(io.csrsR.rcsr(i) === EENTRY)    { io.csrsR.rdata(i) := eentry ## 0.U(6.W) }
-    when(io.csrsR.rcsr(i) === CPUID)     { io.csrsR.rdata(i) := 0.U }
+  private val readPorts = io.csrsR ++ io.mmuRead
+  readPorts.foreach(r => (r.rcsr, r.rdata) match { case (rcsr, rdata) => {
+    rdata := 0.U
+    when(rcsr === CRMD)      { rdata := crmd.asUInt }
+    when(rcsr === PRMD)      { rdata := prmd.asUInt }
+    when(rcsr === EUEN)      { rdata := 0.U }
+    when(rcsr === ECFG)      { rdata := ecfg.asUInt }
+    when(rcsr === ESTAT)     { rdata := estat.asUInt }
+    when(rcsr === ERA)       { rdata := era }
+    when(rcsr === BADV)      { rdata := badv }
+    when(rcsr === EENTRY)    { rdata := eentry ## 0.U(6.W) }
+    when(rcsr === CPUID)     { rdata := 0.U }
     SAVE zip save foreach { case (addr, save) =>
-      when(io.csrsR.rcsr(i) === addr)    { io.csrsR.rdata(i) := save }
+      when(rcsr === addr)    { rdata := save }
     }
-    when(io.csrsR.rcsr(i) === LLBCTL)    { io.csrsR.rdata(i) := llbctl.asUInt }
+    when(rcsr === LLBCTL)    { rdata := llbctl.asUInt }
     DMW zip dmw foreach { case (addr, dmw) =>
-      when(io.csrsR.rcsr(i) === addr)    { io.csrsR.rdata(i) := dmw.asUInt }
+      when(rcsr === addr)    { rdata := dmw.asUInt }
     }
-    when(io.csrsR.rcsr(i) === TID)       { io.csrsR.rdata(i) := tid }
-    when(io.csrsR.rcsr(i) === TVAL)      { io.csrsR.rdata(i) := tval }
-    when(io.csrsR.rcsr(i) === TCFG)      { io.csrsR.rdata(i) := tcfg.asUInt }
-    when(io.csrsR.rcsr(i) === TICLR)     { io.csrsR.rdata(i) := 0.U }
-    when(io.csrsR.rcsr(i) === ASID)      { io.csrsR.rdata(i) := asid.asUInt }
-    when(io.csrsR.rcsr(i) === TLBIDX)    { io.csrsR.rdata(i) := tlbidx.asUInt }
-    when(io.csrsR.rcsr(i) === TLBEHI)    { io.csrsR.rdata(i) := tlbehi ## 0.U(13.W) }
-    when(io.csrsR.rcsr(i) === TLBELO0)   { io.csrsR.rdata(i) := tlbelo0.asUInt }
-    when(io.csrsR.rcsr(i) === TLBELO1)   { io.csrsR.rdata(i) := tlbelo1.asUInt }
-    when(io.csrsR.rcsr(i) === PGDL)      { io.csrsR.rdata(i) := pgdl ## 0.U(12.W) }
-    when(io.csrsR.rcsr(i) === PGDH)      { io.csrsR.rdata(i) := pgdh ## 0.U(12.W) }
-    when(io.csrsR.rcsr(i) === PGD)       { io.csrsR.rdata(i) := Mux(badv(31), pgdh, pgdl) ## 0.U(12.W) }
-    when(io.csrsR.rcsr(i) === TLBRENTRY) { io.csrsR.rdata(i) := tlbrentry ## 0.U(6.W) }
-  }
+    when(rcsr === TID)       { rdata := tid }
+    when(rcsr === TVAL)      { rdata := tval }
+    when(rcsr === TCFG)      { rdata := tcfg.asUInt }
+    when(rcsr === TICLR)     { rdata := 0.U }
+    when(rcsr === ASID)      { rdata := asid.asUInt }
+    when(rcsr === TLBIDX)    { rdata := tlbidx.asUInt }
+    when(rcsr === TLBEHI)    { rdata := tlbehi ## 0.U(13.W) }
+    when(rcsr === TLBELO0)   { rdata := tlbelo0.asUInt }
+    when(rcsr === TLBELO1)   { rdata := tlbelo1.asUInt }
+    when(rcsr === PGDL)      { rdata := pgdl ## 0.U(12.W) }
+    when(rcsr === PGDH)      { rdata := pgdh ## 0.U(12.W) }
+    when(rcsr === PGD)       { rdata := Mux(badv(31), pgdh, pgdl) ## 0.U(12.W) }
+    when(rcsr === TLBRENTRY) { rdata := tlbrentry ## 0.U(6.W) }
+  }})
 
   when(cnten) {
     tval := Mux(tval === 0.U, Mux(tcfg.Periodic, tcfg.InitVal ## 0.U(2.W), 0xffffffffL.U), tval - 1.U)
@@ -235,8 +223,4 @@ class LACSRs(implicit p: Parameters) extends AbstractCSRs with LACSRsAddr {
   }
 
   io.bareSEIP := DontCare; io.bareUEIP := DontCare
-  io.satp := DontCare
-  io.sum  := DontCare
-  io.mprv := DontCare
-  io.mpp  := DontCare
 }

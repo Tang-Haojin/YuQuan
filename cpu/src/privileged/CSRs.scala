@@ -13,8 +13,8 @@ class CSRsW(implicit p: Parameters) extends YQBundle {
   val wdata = Input(Vec(RegConf.writeCsrsPort, UInt(xlen.W)))
 }
 class CSRsR(implicit p: Parameters) extends YQBundle {
-  val rcsr  = Input (Vec(RegConf.readCsrsPort, UInt(12.W)))
-  val rdata = Output(Vec(RegConf.readCsrsPort, UInt(xlen.W)))
+  val rcsr  = Input (UInt(12.W))
+  val rdata = Output(UInt(xlen.W))
 }
 
 trait CSRsAddr extends CPUParams {
@@ -88,22 +88,19 @@ trait CSRsAddr extends CPUParams {
 abstract class AbstractCSRs(implicit p: Parameters) extends YQModule {
   val io = IO(new YQBundle {
     val csrsW       = new CSRsW
-    val csrsR       = new CSRsR
+    val csrsR       = Vec(RegConf.readCsrsPort, new CSRsR)
+    val mmuRead     = Vec(10, new CSRsR)
     val meip        = Input (Bool())
     val seip        = Input (Bool())
     val retire      = Input (Bool())
-    val currentPriv = Output(UInt(2.W))
-    val bareSEIP    = Output(Bool())
-    val bareUEIP    = Output(Bool())
     val changePriv  = Input (Bool())
     val newPriv     = Input (UInt(2.W))
-    val satp        = Output(UInt(xlen.W))
-    val sum         = Output(Bool())
     val mtime       = Input (UInt(64.W))
     val mtip        = Input (Bool())
     val msip        = Input (Bool())
-    val mprv        = Output(Bool())
-    val mpp         = Output(UInt(2.W))
+    val currentPriv = Output(UInt(2.W))
+    val bareSEIP    = Output(Bool())
+    val bareUEIP    = Output(Bool())
     val interrupt   = Input (if (isLxb) UInt(8.W) else Bool())
     val debug       = if (Debug) new Bundle {
       val priv     = Output(UInt(2.W))
@@ -227,58 +224,55 @@ class CSRs(implicit p: Parameters) extends AbstractCSRs with CSRsAddr {
     }
   }
 
-  for (i <- 0 until RegConf.readCsrsPort) {
-    io.csrsR.rdata(i) := 0.U
-    if (!isZmb) when(io.csrsR.rcsr(i) === Misa) { io.csrsR.rdata(i) := misa }
-    when(io.csrsR.rcsr(i) === Mvendorid) { io.csrsR.rdata(i) := mvendorid }
-    when(io.csrsR.rcsr(i) === Marchid) { io.csrsR.rdata(i) := marchid }
-    when(io.csrsR.rcsr(i) === Mimpid) { io.csrsR.rdata(i) := mimpid }
-    when(io.csrsR.rcsr(i) === Mhartid) { io.csrsR.rdata(i) := mhartid }
-    if (!isZmb) when(io.csrsR.rcsr(i) === Mstatus) { io.csrsR.rdata(i) := mstatus.asUInt }
-    if (!isZmb) when(io.csrsR.rcsr(i) === Mtvec) { io.csrsR.rdata(i) := mtvec }
-    if (!isZmb) when(io.csrsR.rcsr(i) === Mip) { io.csrsR.rdata(i) := { val data = WireDefault(new MipBundle, mip)
+  private val readPorts = io.csrsR ++ io.mmuRead
+  readPorts.foreach(r => (r.rcsr, r.rdata) match { case (rcsr, rdata) => {
+    rdata := 0.U
+    if (!isZmb) when(rcsr === Misa) { rdata := misa }
+    when(rcsr === Mvendorid) { rdata := mvendorid }
+    when(rcsr === Marchid) { rdata := marchid }
+    when(rcsr === Mimpid) { rdata := mimpid }
+    when(rcsr === Mhartid) { rdata := mhartid }
+    if (!isZmb) when(rcsr === Mstatus) { rdata := mstatus.asUInt }
+    if (!isZmb) when(rcsr === Mtvec) { rdata := mtvec }
+    if (!isZmb) when(rcsr === Mip) { rdata := { val data = WireDefault(new MipBundle, mip)
       data.WPRI_0 := 0.U; data.WPRI_1 := 0.B; data.WPRI_2 := 0.B; data.WPRI_3 := 0.B
       data.MEIP := io.meip; data.MTIP := io.mtip; data.SEIP := mip.SEIP || io.seip
       data.MSIP := io.msip; data.asUInt
     }}
-    if (!isZmb) when(io.csrsR.rcsr(i) === Mie) { io.csrsR.rdata(i) := mie.asUInt }
-    if (!isZmb) when(io.csrsR.rcsr(i) === Mcycle || io.csrsR.rcsr(i) === Cycle) { io.csrsR.rdata(i) := mcycle }
-    if (!isZmb) when(io.csrsR.rcsr(i) === Minstret || io.csrsR.rcsr(i) === Instret) { io.csrsR.rdata(i) := minstret }
-    when(io.csrsR.rcsr(i) >= Mhpmcounter(3.U) && io.csrsR.rcsr(i) <= Mhpmcounter(31.U)) { io.csrsR.rdata(i) := 0.U }
-    when(io.csrsR.rcsr(i) >= Mhpmevent(3.U) && io.csrsR.rcsr(i) <= Mhpmevent(31.U)) { io.csrsR.rdata(i) := 0.U }
-    when(io.csrsR.rcsr(i) === Mcounteren) { io.csrsR.rdata(i) := mcounteren }
-    when(io.csrsR.rcsr(i) === Mcountinhibit) { io.csrsR.rdata(i) := mcountinhibit }
-    if (!isZmb) when(io.csrsR.rcsr(i) === Mscratch) { io.csrsR.rdata(i) := mscratch }
-    if (!isZmb) when(io.csrsR.rcsr(i) === Mepc) { io.csrsR.rdata(i) := (if (ext('C')) mepc(xlen - 1, 1) ## 0.B else mepc(xlen - 1, 2) ## 0.U(2.W)) }
-    if (!isZmb) when(io.csrsR.rcsr(i) === Mcause) { io.csrsR.rdata(i) := mcause(4) ## 0.U((xlen - 5).W) ## mcause(3, 0) }
-    if (!isZmb) when(io.csrsR.rcsr(i) === Mtval) { io.csrsR.rdata(i) := mtval }
-    if (ext('S')) when(io.csrsR.rcsr(i) === Sstatus) { io.csrsR.rdata(i) := sstatus}
-    if (ext('S')) when(io.csrsR.rcsr(i) === Sie) { io.csrsR.rdata(i) := sie }
-    if (ext('S')) when(io.csrsR.rcsr(i) === Stvec) { io.csrsR.rdata(i) := stvec }
-    if (ext('S')) when(io.csrsR.rcsr(i) === Scounteren) { io.csrsR.rdata(i) := scounteren }
-    if (ext('S')) when(io.csrsR.rcsr(i) === Sscratch) { io.csrsR.rdata(i) := sscratch }
-    if (ext('S')) when(io.csrsR.rcsr(i) === Sepc) { io.csrsR.rdata(i) := (if (ext('C')) sepc(xlen - 1, 1) ## 0.B else sepc(xlen - 1, 2) ## 0.U(2.W)) }
-    if (ext('S')) when(io.csrsR.rcsr(i) === Scause) { io.csrsR.rdata(i) := scause(4) ## 0.U((xlen - 5).W) ## scause(3, 0) }
-    if (ext('S')) when(io.csrsR.rcsr(i) === Stval) { io.csrsR.rdata(i) := stval }
-    if (ext('S')) when(io.csrsR.rcsr(i) === Sip) { io.csrsR.rdata(i) := sip }
-    if (ext('S')) when(io.csrsR.rcsr(i) === Satp) { io.csrsR.rdata(i) := satp }
-    if (!isZmb) when(io.csrsR.rcsr(i) === Mideleg) { if (ext('S')) io.csrsR.rdata(i) := mideleg.asUInt }
-    if (!isZmb) when(io.csrsR.rcsr(i) === Medeleg) { if (ext('S')) io.csrsR.rdata(i) := medeleg }
-    if (useClint) when(io.csrsR.rcsr(i) === Time) { io.csrsR.rdata(i) := io.mtime }
+    if (!isZmb) when(rcsr === Mie) { rdata := mie.asUInt }
+    if (!isZmb) when(rcsr === Mcycle || rcsr === Cycle) { rdata := mcycle }
+    if (!isZmb) when(rcsr === Minstret || rcsr === Instret) { rdata := minstret }
+    when(rcsr >= Mhpmcounter(3.U) && rcsr <= Mhpmcounter(31.U)) { rdata := 0.U }
+    when(rcsr >= Mhpmevent(3.U) && rcsr <= Mhpmevent(31.U)) { rdata := 0.U }
+    when(rcsr === Mcounteren) { rdata := mcounteren }
+    when(rcsr === Mcountinhibit) { rdata := mcountinhibit }
+    if (!isZmb) when(rcsr === Mscratch) { rdata := mscratch }
+    if (!isZmb) when(rcsr === Mepc) { rdata := (if (ext('C')) mepc(xlen - 1, 1) ## 0.B else mepc(xlen - 1, 2) ## 0.U(2.W)) }
+    if (!isZmb) when(rcsr === Mcause) { rdata := mcause(4) ## 0.U((xlen - 5).W) ## mcause(3, 0) }
+    if (!isZmb) when(rcsr === Mtval) { rdata := mtval }
+    if (ext('S')) when(rcsr === Sstatus) { rdata := sstatus}
+    if (ext('S')) when(rcsr === Sie) { rdata := sie }
+    if (ext('S')) when(rcsr === Stvec) { rdata := stvec }
+    if (ext('S')) when(rcsr === Scounteren) { rdata := scounteren }
+    if (ext('S')) when(rcsr === Sscratch) { rdata := sscratch }
+    if (ext('S')) when(rcsr === Sepc) { rdata := (if (ext('C')) sepc(xlen - 1, 1) ## 0.B else sepc(xlen - 1, 2) ## 0.U(2.W)) }
+    if (ext('S')) when(rcsr === Scause) { rdata := scause(4) ## 0.U((xlen - 5).W) ## scause(3, 0) }
+    if (ext('S')) when(rcsr === Stval) { rdata := stval }
+    if (ext('S')) when(rcsr === Sip) { rdata := sip }
+    if (ext('S')) when(rcsr === Satp) { rdata := satp }
+    if (!isZmb) when(rcsr === Mideleg) { if (ext('S')) rdata := mideleg.asUInt }
+    if (!isZmb) when(rcsr === Medeleg) { if (ext('S')) rdata := medeleg }
+    if (useClint) when(rcsr === Time) { rdata := io.mtime }
 
     if (xlen == 32) {
-      if (!isZmb) when(io.csrsR.rcsr(i) === Mcycleh || io.csrsR.rcsr(i) === Cycleh) { io.csrsR.rdata(i) := mcycle(63, 32) }
-      if (!isZmb) when(io.csrsR.rcsr(i) === Minstreth || io.csrsR.rcsr(i) === Instreth) { io.csrsR.rdata(i) := minstret(63, 32) }
-      when(io.csrsR.rcsr(i) >= Mhpmcounterh(3.U) && io.csrsR.rcsr(i) <= Mhpmcounterh(31.U)) { io.csrsR.rdata(i) := 0.U }
-      if (useClint) when(io.csrsR.rcsr(i) === Timeh) { io.csrsR.rdata(i) := io.mtime(63, 32) }
+      if (!isZmb) when(rcsr === Mcycleh || rcsr === Cycleh) { rdata := mcycle(63, 32) }
+      if (!isZmb) when(rcsr === Minstreth || rcsr === Instreth) { rdata := minstret(63, 32) }
+      when(rcsr >= Mhpmcounterh(3.U) && rcsr <= Mhpmcounterh(31.U)) { rdata := 0.U }
+      if (useClint) when(rcsr === Timeh) { rdata := io.mtime(63, 32) }
     }
-  }
+  }})
 
   io.bareSEIP := mip.SEIP; io.bareUEIP := mip.UEIP
-  io.satp := (if (ext('S')) satp else DontCare)
-  io.sum  := mstatus.SUM
-  io.mprv := mstatus.MPRV
-  io.mpp  := mstatus.MPP
 
   if (Debug) {
     io.debug.priv     := currentPriv

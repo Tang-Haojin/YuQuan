@@ -14,36 +14,37 @@ abstract class AbstractMMU(implicit p: Parameters) extends YQModule with CachePa
     val memIO    = new PipelineIO(xlen)
     val icacheIO = Flipped(new CpuIO(32))
     val dcacheIO = Flipped(new CpuIO(xlen))
-    val satp     = Input (UInt(xlen.W))
+    val csrIO    = Flipped(Vec(10, new CSRsR))
     val priv     = Input (UInt(2.W))
     val jmpBch   = Input (Bool())
-    val sum      = Input (Bool())
-    val mprv     = Input (Bool())
-    val mpp      = Input (UInt(2.W))
     val revAmo   = Output(Bool()) // revoke in-flight amo instruction
   })
 }
 
-class RVMMU(implicit p: Parameters) extends AbstractMMU {
+class RVMMU(implicit p: Parameters) extends AbstractMMU with CSRsAddr {
+  io.csrIO.foreach(_.rcsr := DontCare)
+  io.csrIO(0).rcsr := Mstatus
+  io.csrIO(1).rcsr := Satp
   private val idle::walking::writing::Nil = Enum(3)
   private val ifWalking::memWalking::Nil = Enum(2)
   private val stage = RegInit(0.U(2.W))
   private val level = RegInit(0.U(2.W))
   private val tlb = new TLB
+  private val mstatus  = io.csrIO(0).rdata.asTypeOf(new MstatusBundle)
   private val crossCache = RegInit(0.B)
   private val crossAddrP = RegInit(0.U((39 - Offset).W))
   private val crossAddr  = if (ext('C')) Fill(valen - 39, crossAddrP(39 - Offset - 1)) ## crossAddrP ## 0.U(Offset.W) else 0.U
   private val ifVaddr  = if (ext('S')) Mux(crossCache, crossAddr, io.ifIO.pipelineReq.cpuReq.addr).asTypeOf(new Vaddr) else null
   private val memVaddr = if (ext('S')) io.memIO.pipelineReq.cpuReq.addr.asTypeOf(new Vaddr) else null
   private val vaddr    = if (ext('S')) RegInit(new Vaddr, 0.U.asTypeOf(new Vaddr)) else null
-  private val satp     = if (ext('S')) UseSatp(io.satp) else UseSatp()
+  private val satp     = if (ext('S')) UseSatp(io.csrIO(1).rdata) else UseSatp()
   private val pte      = RegInit(new PTE, 0.U.asTypeOf(new PTE))
   private val newPte   = io.dcacheIO.cpuResult.data.asTypeOf(new PTE)
   private val current  = RegInit(0.U(1.W))
   private val isWrite  = io.memIO.pipelineReq.cpuReq.rw
   private val ptePpn   = RegInit(0.U(44.W))
   private val isSv39_i = if (ext('S')) io.priv <= "b01".U && satp.mode === 8.U else 0.B
-  private val isSv39_d = if (ext('S')) Mux(io.mprv, io.mpp, io.priv) <= "b01".U && satp.mode === 8.U else 0.B
+  private val isSv39_d = if (ext('S')) Mux(mstatus.MPRV, mstatus.MPP, io.priv) <= "b01".U && satp.mode === 8.U else 0.B
   private val (ifDel  , memDel  ) = (RegInit(0.B), RegInit(0.B))
   private val (ifReady, memReady) = (RegInit(0.B), RegInit(0.B))
   private val (ifExcpt, memExcpt) = (RegInit(0.B), RegInit(0.B))
@@ -51,9 +52,9 @@ class RVMMU(implicit p: Parameters) extends AbstractMMU {
   private val ifCrossCache = RegInit(0.B)
   private val (isU_i, isS_i, isM_i) = (io.priv === "b00".U, io.priv === "b01".U, io.priv === "b11".U)
   private val (isU_d, isS_d, isM_d) = (
-    Mux(io.mprv, io.mpp, io.priv) === "b00".U,
-    Mux(io.mprv, io.mpp, io.priv) === "b01".U,
-    Mux(io.mprv, io.mpp, io.priv) === "b11".U
+    Mux(mstatus.MPRV, mstatus.MPP, io.priv) === "b00".U,
+    Mux(mstatus.MPRV, mstatus.MPP, io.priv) === "b01".U,
+    Mux(mstatus.MPRV, mstatus.MPP, io.priv) === "b11".U
   )
   private val icacheValid = WireDefault(Bool(), io.ifIO.pipelineReq.cpuReq.valid)
   private val dcacheValid = WireDefault(Bool(), io.memIO.pipelineReq.cpuReq.valid)
@@ -129,7 +130,7 @@ class RVMMU(implicit p: Parameters) extends AbstractMMU {
               when(current === ifWalking) { IfRaiseException(12.U) } // Instruction page fault
               .otherwise { MemRaiseException(Mux(isWrite, 15.U, 13.U)) } // load/store/amo page fault
             }.elsewhen(current === ifWalking && (isU_i && !newPte.u || isS_i && newPte.u)) { IfRaiseException(12.U) } // Instruction page fault
-            .elsewhen(current === memWalking && (isU_d && !newPte.u || isS_d && newPte.u && !io.sum)) { MemRaiseException(Mux(isWrite, 15.U, 13.U)) } // load/store/amo page fault
+            .elsewhen(current === memWalking && (isU_d && !newPte.u || isS_d && newPte.u && !mstatus.SUM)) { MemRaiseException(Mux(isWrite, 15.U, 13.U)) } // load/store/amo page fault
             .elsewhen(current === ifWalking && !newPte.x) { IfRaiseException(12.U) } // Instruction page fault
             .elsewhen(current === memWalking && !isWrite && !newPte.r) { MemRaiseException(13.U) } // load page fault
             .elsewhen(current === memWalking && isWrite && !newPte.w) { MemRaiseException(15.U) } // store/amo page fault
@@ -196,7 +197,7 @@ class RVMMU(implicit p: Parameters) extends AbstractMMU {
       val willWalk = WireDefault(0.B)
       when(memVaddr.getHigher.andR =/= memVaddr.getHigher.orR) { MemRaiseException(Mux(isWrite, 15.U, 13.U), false); io.dcacheIO.cpuReq.valid := 0.B } // load/store/amo page fault
       .elsewhen(tlb.isHit(memVaddr)) {
-        when(isU_d && !tlb.isUser(memVaddr) || isS_d && tlb.isUser(memVaddr) && !io.sum) { MemRaiseException(Mux(isWrite, 15.U, 13.U), false); io.dcacheIO.cpuReq.valid := 0.B } // load/store/amo page fault
+        when(isU_d && !tlb.isUser(memVaddr) || isS_d && tlb.isUser(memVaddr) && !mstatus.SUM) { MemRaiseException(Mux(isWrite, 15.U, 13.U), false); io.dcacheIO.cpuReq.valid := 0.B } // load/store/amo page fault
         .elsewhen(!isWrite && !tlb.canRead(memVaddr)) { MemRaiseException(13.U, false); io.dcacheIO.cpuReq.valid := 0.B } // load page fault
         .elsewhen(isWrite && !tlb.canWrite(memVaddr)) { MemRaiseException(15.U, false); io.dcacheIO.cpuReq.valid := 0.B } // store/amo page fault
         .elsewhen(isWrite && !tlb.isDirty(memVaddr)) { willWalk := 1.B }

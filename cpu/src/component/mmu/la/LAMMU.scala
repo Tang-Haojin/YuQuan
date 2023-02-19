@@ -9,12 +9,23 @@ import cpu.cache._
 import cpu.privileged._
 import utils._
 
-class LAMMU(implicit p: Parameters) extends AbstractMMU {
+class LAMMU(implicit p: Parameters) extends AbstractMMU with LACSRsAddr {
+  io.csrIO.foreach(_.rcsr := DontCare)
+  private          val crmd    = io.csrIO(0).rdata.asTypeOf(new CRMDBundle);   io.csrIO(0).rcsr := CRMD
+  private          val dmw0    = io.csrIO(1).rdata;                            io.csrIO(1).rcsr := DMW(0)
+  private          val dmw1    = io.csrIO(2).rdata;                            io.csrIO(2).rcsr := DMW(1)
+  private implicit val asid    = io.csrIO(3).rdata.asTypeOf(new ASIDBundle);   io.csrIO(3).rcsr := ASID
+  private          val tlbehi  = io.csrIO(4).rdata;                            io.csrIO(4).rcsr := TLBEHI
+  private          val tlbelo0 = io.csrIO(5).rdata;                            io.csrIO(5).rcsr := TLBELO0
+  private          val tlbelo1 = io.csrIO(6).rdata;                            io.csrIO(6).rcsr := TLBELO1
+  private          val tlbidx  = io.csrIO(7).rdata.asTypeOf(new TLBIDXBundle); io.csrIO(7).rcsr := TLBIDX
+  private          val estat   = io.csrIO(8).rdata.asTypeOf(new ESTATBundle);  io.csrIO(8).rcsr := ESTAT
+  private val dmw    = Seq(dmw0, dmw1).map(_.asTypeOf(new DMWBundle))
+  private val tlbelo = Seq(tlbelo0,tlbelo1).map(_.asTypeOf(new TLBELOBundle))
   val idle::refilled::Nil = Enum(2)
-  val laIO = IO(Flipped(new LACSRMMUBundle))
+  val laIO = IO(Output(new LAMMU2CSRBundle))
   val ifIO = IO(Flipped(new LAIFMMUBundle(3)))
   val icIO = IO(new LAIFMMUBundle(6))
-  private implicit val asid = laIO.read.asid
   private val rand = RegInit(0.U(log2Ceil(TlbEntries).W)); rand := Mux(rand === (TlbEntries - 1).U, 0.U, rand + 1.U)
   private val tlb = new LATLB(TlbEntries)
   private val l0itlb = new LATLB(1)
@@ -25,16 +36,16 @@ class LAMMU(implicit p: Parameters) extends AbstractMMU {
   private val memVaddr = io.memIO.pipelineReq.cpuReq.addr
   private val isWrite  = io.memIO.pipelineReq.cpuReq.rw
   private val Seq(windowHit_i, windowHit_d) = Seq(io.ifIO.pipelineReq.cpuReq.addr, io.memIO.pipelineReq.cpuReq.addr).map(vaddr =>
-    laIO.read.dmw.map(dmw =>
+    dmw.map(dmw =>
       vaddr(31, 29) === dmw.VSEG &&
-      (laIO.read.crmd.PLV(0) === 0.U & dmw.PLV0 | laIO.read.crmd.PLV(0) === 1.U & dmw.PLV3)
+      (crmd.PLV(0) === 0.U & dmw.PLV0 | crmd.PLV(0) === 1.U & dmw.PLV3)
     )
   )
   private val (direct_i, window_i, page_i) = (
-    laIO.read.crmd.DA, windowHit_i.map(~laIO.read.crmd.DA && _), ~laIO.read.crmd.DA && ~windowHit_i.reduce(_ || _)
+    crmd.DA, windowHit_i.map(~crmd.DA && _), ~crmd.DA && ~windowHit_i.reduce(_ || _)
   )
   private val (direct_d, window_d, page_d) = (
-    laIO.read.crmd.DA, windowHit_d.map(~laIO.read.crmd.DA && _), ~laIO.read.crmd.DA && ~windowHit_d.reduce(_ || _)
+    crmd.DA, windowHit_d.map(~crmd.DA && _), ~crmd.DA && ~windowHit_d.reduce(_ || _)
   )
   private val (ifDel  , memDel  ) = (RegInit(0.B), RegInit(0.B))
   private val (ifReady, memReady) = (RegInit(0.B), RegInit(0.B))
@@ -73,18 +84,18 @@ class LAMMU(implicit p: Parameters) extends AbstractMMU {
   io.dcacheIO.cpuReq.revoke := 0.B
   io.ifIO.pipelineResult.cpuResult.ready := icacheReady
 
-  laIO.write := 0.U.asTypeOf(laIO.write)
+  laIO := 0.U.asTypeOf(laIO)
 
   io.icacheIO.cpuReq.noCache.get := ~Mux1H(Seq(
-    direct_i    -> laIO.read.crmd.DATF(0),
-    window_i(0) -> laIO.read.dmw(0).MAT(0),
-    window_i(1) -> laIO.read.dmw(1).MAT(0),
+    direct_i    -> crmd.DATF(0),
+    window_i(0) -> dmw(0).MAT(0),
+    window_i(1) -> dmw(1).MAT(0),
     page_i      -> ifTranslateResult.mat(0)
   ))
   io.dcacheIO.cpuReq.noCache.get := ~Mux1H(Seq(
-    direct_d    -> laIO.read.crmd.DATM(0),
-    window_d(0) -> laIO.read.dmw(0).MAT(0),
-    window_d(1) -> laIO.read.dmw(1).MAT(0),
+    direct_d    -> crmd.DATM(0),
+    window_d(0) -> dmw(0).MAT(0),
+    window_d(1) -> dmw(1).MAT(0),
     page_d      -> memTranslateResult.mat(0)
   ))
 
@@ -102,14 +113,14 @@ class LAMMU(implicit p: Parameters) extends AbstractMMU {
 
   io.icacheIO.cpuReq.addr := Mux1H(Seq(
     direct_i    -> io.ifIO.pipelineReq.cpuReq.addr,
-    window_i(0) -> laIO.read.dmw(0).PSEG ## io.ifIO.pipelineReq.cpuReq.addr(28, 0),
-    window_i(1) -> laIO.read.dmw(1).PSEG ## io.ifIO.pipelineReq.cpuReq.addr(28, 0),
+    window_i(0) -> dmw(0).PSEG ## io.ifIO.pipelineReq.cpuReq.addr(28, 0),
+    window_i(1) -> dmw(1).PSEG ## io.ifIO.pipelineReq.cpuReq.addr(28, 0),
     page_i      -> ifTranslateResult.paddr
   ))
   io.dcacheIO.cpuReq.addr := Mux1H(Seq(
     direct_d    -> io.memIO.pipelineReq.cpuReq.addr,
-    window_d(0) -> laIO.read.dmw(0).PSEG ## io.memIO.pipelineReq.cpuReq.addr(28, 0),
-    window_d(1) -> laIO.read.dmw(1).PSEG ## io.memIO.pipelineReq.cpuReq.addr(28, 0),
+    window_d(0) -> dmw(0).PSEG ## io.memIO.pipelineReq.cpuReq.addr(28, 0),
+    window_d(1) -> dmw(1).PSEG ## io.memIO.pipelineReq.cpuReq.addr(28, 0),
     page_d      -> memTranslateResult.paddr
   ))
 
@@ -117,8 +128,8 @@ class LAMMU(implicit p: Parameters) extends AbstractMMU {
     _.select := (direct_i +: window_i) ++ ifIO.select.map(_ && page_i),
     _.addr   := Seq(
       io.ifIO.pipelineReq.cpuReq.addr,
-      laIO.read.dmw(0).PSEG ## io.ifIO.pipelineReq.cpuReq.addr(28, 0),
-      laIO.read.dmw(1).PSEG ## io.ifIO.pipelineReq.cpuReq.addr(28, 0)
+      dmw(0).PSEG ## io.ifIO.pipelineReq.cpuReq.addr(28, 0),
+      dmw(1).PSEG ## io.ifIO.pipelineReq.cpuReq.addr(28, 0)
     ) ++ ifTranslateResults.map(_.paddr)
   )
 
@@ -138,12 +149,12 @@ class LAMMU(implicit p: Parameters) extends AbstractMMU {
     IfRaiseException(0x8.U) // ADEF
   }.otherwise {
     when(page_i && io.ifIO.pipelineReq.cpuReq.valid) {
-      when(laIO.read.crmd.PLV(0) && ifVaddr(31)) {
+      when(crmd.PLV(0) && ifVaddr(31)) {
         IfRaiseException(0x8.U) // ADEF
       }.elsewhen(ifTranslateResult.hit) {
         when(!ifTranslateResult.v) {
           IfRaiseException(0x3.U) // PIF
-        }.elsewhen(laIO.read.crmd.PLV(0) && ~ifTranslateResult.plv(0)) {
+        }.elsewhen(crmd.PLV(0) && ~ifTranslateResult.plv(0)) {
           IfRaiseException(0x7.U) // PPI
         }
       }.otherwise {
@@ -158,12 +169,12 @@ class LAMMU(implicit p: Parameters) extends AbstractMMU {
       }
     }
     when(page_d && io.memIO.pipelineReq.cpuReq.valid) {
-      when(laIO.read.crmd.PLV(0) && memVaddr(31)) {
+      when(crmd.PLV(0) && memVaddr(31)) {
         MemRaiseException(0x8.U) // ADEM
       }.elsewhen(memTranslateResult.hit) {
         when(!memTranslateResult.v) {
           MemRaiseException(Mux(isWrite, 0x2.U, 0x1.U)) // Mux(isWrite, PIS, PIL)
-        }.elsewhen(laIO.read.crmd.PLV(0) && ~memTranslateResult.plv(0)) {
+        }.elsewhen(crmd.PLV(0) && ~memTranslateResult.plv(0)) {
           MemRaiseException(0x7.U) // PPI
         }.elsewhen(isWrite && !memTranslateResult.d) {
           MemRaiseException(0x4.U) // PME
@@ -185,7 +196,7 @@ class LAMMU(implicit p: Parameters) extends AbstractMMU {
       when(memTranslateResult.hit) {
         when(!memTranslateResult.v) {
           MemRaiseException(0x1.U) // PIL
-        }.elsewhen(laIO.read.crmd.PLV(0) && ~memTranslateResult.plv(0)) {
+        }.elsewhen(crmd.PLV(0) && ~memTranslateResult.plv(0)) {
           MemRaiseException(0x7.U) // PPI
         }.otherwise {
           MemForceHit()
@@ -206,10 +217,10 @@ class LAMMU(implicit p: Parameters) extends AbstractMMU {
   }
 
   when(io.memIO.pipelineReq.tlbrw) {
-    val selectedIndex = Mux(io.memIO.pipelineReq.tlbOp(1, 0) === "b11".U, rand, laIO.read.tlbidx.Index)
+    val selectedIndex = Mux(io.memIO.pipelineReq.tlbOp(1, 0) === "b11".U, rand, tlbidx.Index)
     val tlbEntry = tlb.tlbEntries(selectedIndex)
     when(io.memIO.pipelineReq.tlbOp(1, 0) === "b01".U) { // TLBRD
-      val tlbelo = VecInit(WireDefault(0.U.asTypeOf(laIO.write.tlbelo)) zip tlbEntry.lo map {
+      val tlbelo = VecInit(WireDefault(0.U.asTypeOf(laIO.tlbelo)) zip tlbEntry.lo map {
         case (tlbelo, tlbEntryLo) => tlbelo.connect(
           _.V   := tlbEntryLo.v,
           _.D   := tlbEntryLo.d,
@@ -219,37 +230,37 @@ class LAMMU(implicit p: Parameters) extends AbstractMMU {
           _.PPN := tlbEntryLo.ppn
         )
       })
-      laIO.write.connect(
+      laIO.connect(
         _.valid := 1.B,
         _.tlbehi := Mux(tlbEntry.hi.e, tlbEntry.hi.vppn ## 0.U(13.W), 0.U),
-        _.tlbelo := Mux(tlbEntry.hi.e, tlbelo, 0.U.asTypeOf(laIO.write.tlbelo)),
+        _.tlbelo := Mux(tlbEntry.hi.e, tlbelo, 0.U.asTypeOf(laIO.tlbelo)),
         _.tlbidx := Mux(
           tlbEntry.hi.e,
-          laIO.read.tlbidx.replace(
+          tlbidx.replace(
             _.NE := 0.B,
             _.PS := tlbEntry.hi.ps
           ),
-          laIO.read.tlbidx.replace(
+          tlbidx.replace(
             _.NE := 1.B,
             _.PS := 0.U
           )
         ),
         _.asid := Mux(
           tlbEntry.hi.e,
-          laIO.read.asid.replace(_.ASID := tlbEntry.hi.asid),
-          0.U.asTypeOf(laIO.write.asid)
+          asid.replace(_.ASID := tlbEntry.hi.asid),
+          0.U.asTypeOf(laIO.asid)
         )
       )
     }
     when(io.memIO.pipelineReq.tlbOp(1) === 1.B) { // TLBWR || TLBFILL
       tlbEntry.hi.connect(
-        _.vppn := laIO.read.tlbehi(31, 13),
-        _.asid := laIO.read.asid.ASID,
-        _.ps   := laIO.read.tlbidx.PS,
-        _.g    := laIO.read.tlbelo.map(_.G).reduce(_ & _),
-        _.e    := Mux(laIO.read.estat.Ecode === 0x3f.U, 1.B, ~laIO.read.tlbidx.NE)
+        _.vppn := tlbehi(31, 13),
+        _.asid := asid.ASID,
+        _.ps   := tlbidx.PS,
+        _.g    := tlbelo.map(_.G).reduce(_ & _),
+        _.e    := Mux(estat.Ecode === 0x3f.U, 1.B, ~tlbidx.NE)
       )
-      tlbEntry.lo zip laIO.read.tlbelo foreach {
+      tlbEntry.lo zip tlbelo foreach {
         case (tlbEntryLo, tlbelo) => tlbEntryLo.connect(
           _.v   := tlbelo.V,
           _.d   := tlbelo.D,
@@ -262,19 +273,19 @@ class LAMMU(implicit p: Parameters) extends AbstractMMU {
       l0dtlb.tlbEntries(0).hi.e := 0.B
     }
     when(io.memIO.pipelineReq.tlbOp(1, 0) === "b00".U) { // TLBSRCH
-      val tlbsrchResult = tlb.translate(laIO.read.tlbehi)
-      laIO.write.connect(
+      val tlbsrchResult = tlb.translate(tlbehi)
+      laIO.connect(
         _.valid := 1.B,
-        _.asid := laIO.read.asid,
-        _.tlbehi := laIO.read.tlbehi,
-        _.tlbelo := laIO.read.tlbelo,
+        _.asid := asid,
+        _.tlbehi := tlbehi,
+        _.tlbelo := tlbelo,
         _.tlbidx := Mux(
           tlbsrchResult.hit,
-          laIO.read.tlbidx.replace(
+          tlbidx.replace(
             _.Index := OHToUInt(tlbsrchResult.hitOH),
             _.NE    := 0.B
           ),
-          laIO.read.tlbidx.replace(_.NE := 1.B)
+          tlbidx.replace(_.NE := 1.B)
         )
       )
     }

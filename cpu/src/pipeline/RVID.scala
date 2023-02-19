@@ -24,17 +24,17 @@ class RVID(implicit p: Parameters) extends AbstractID {
   private val idle::loading::Nil = Enum(2)
   private val memExcept = Seq(/*5,7,*/13,15,4,6)
 
-  private val csrr    = io.csrsR.rdata(0)
-  private val mstatus = io.csrsR.rdata(1).asTypeOf(new MstatusBundle)
-  private val mie     = io.csrsR.rdata(2).asTypeOf(new MieBundle)
-  private val mideleg = io.csrsR.rdata(3).asTypeOf(new MidelegBundle)
-  private val medeleg = io.csrsR.rdata(4).asTypeOf(new MedelegBundle)
-  private val mtvec   = io.csrsR.rdata(5)
-  private val stvec   = io.csrsR.rdata(6)
-  private val mip     = WireDefault(new MipBundle, io.csrsR.rdata(7).asTypeOf(new MipBundle))
+  private val csrr    = io.csrsR(0).rdata
+  private val mstatus = io.csrsR(1).rdata.asTypeOf(new MstatusBundle)
+  private val mie     = io.csrsR(2).rdata.asTypeOf(new MieBundle)
+  private val mideleg = io.csrsR(3).rdata.asTypeOf(new MidelegBundle)
+  private val medeleg = io.csrsR(4).rdata.asTypeOf(new MedelegBundle)
+  private val mtvec   = io.csrsR(5).rdata
+  private val stvec   = io.csrsR(6).rdata
+  private val mip     = WireDefault(new MipBundle, io.csrsR(7).rdata.asTypeOf(new MipBundle))
   mip.MTIP := io.mtip; mip.MSIP := io.msip
-  private val mepc    = io.csrsR.rdata(8)
-  private val sepc    = io.csrsR.rdata(9)
+  private val mepc    = io.csrsR(8).rdata
+  private val sepc    = io.csrsR(9).rdata
 
   private val NVALID  = RegInit(0.B)
   private val rd      = RegInit(0.U(5.W))
@@ -121,18 +121,18 @@ class RVID(implicit p: Parameters) extends AbstractID {
   io.output.memExpt := except
   io.output.cause   := cause
   io.output.pc      := pc
-  io.csrsR.rcsr     := VecInit(Seq.fill(RegConf.readCsrsPort)(0xFFF.U(12.W)))
+  io.csrsR.foreach(_.rcsr := 0xFFF.U)
 
-  io.csrsR.rcsr(0) := wireInstr(31, 20)
-  io.csrsR.rcsr(1) := csrsAddr.Mstatus
-  io.csrsR.rcsr(2) := csrsAddr.Mie
-  io.csrsR.rcsr(3) := csrsAddr.Mideleg
-  io.csrsR.rcsr(4) := csrsAddr.Medeleg
-  io.csrsR.rcsr(5) := csrsAddr.Mtvec
-  if (ext('S')) io.csrsR.rcsr(6) := csrsAddr.Stvec
-  io.csrsR.rcsr(7) := csrsAddr.Mip
-  io.csrsR.rcsr(8) := csrsAddr.Mepc
-  if (ext('S')) io.csrsR.rcsr(9) := csrsAddr.Sepc
+  io.csrsR(0).rcsr := wireInstr(31, 20)
+  io.csrsR(1).rcsr := csrsAddr.Mstatus
+  io.csrsR(2).rcsr := csrsAddr.Mie
+  io.csrsR(3).rcsr := csrsAddr.Mideleg
+  io.csrsR(4).rcsr := csrsAddr.Medeleg
+  io.csrsR(5).rcsr := csrsAddr.Mtvec
+  if (ext('S')) io.csrsR(6).rcsr := csrsAddr.Stvec
+  io.csrsR(7).rcsr := csrsAddr.Mip
+  io.csrsR(8).rcsr := csrsAddr.Mepc
+  if (ext('S')) io.csrsR(9).rcsr := csrsAddr.Sepc
 
   private def hasNumType(numType: UInt): Bool = VecInit(decoded.slice(1, 5).map(_ === numType)).asUInt.orR
   private val hasRsType = Seq(NumTypes.rs1, NumTypes.rs2, NumTypes.rs1c, NumTypes.rs2c, NumTypes.rs1p, NumTypes.rs2p, NumTypes.rd1c, NumTypes.rd1p, NumTypes.x2).map(x => x -> hasNumType(x)).toMap
@@ -160,7 +160,7 @@ class RVID(implicit p: Parameters) extends AbstractID {
     /* imm  */ wireImm,
     /* four */ 4.U,
     /* pc   */ io.input.pc) ++ (if (!isZmb) Seq(
-    /* csr  */ io.csrsR.rdata(0)) else Nil) ++ (if (ext('C')) Seq(
+    /* csr  */ io.csrsR(0).rdata) else Nil) ++ (if (ext('C')) Seq(
     /* rs1c */ io.gprsR.rdata(0),
     /* rs2c */ Mux(isCJR, 2.U, io.gprsR.rdata(1)),
     /* rs1p */ io.gprsR.rdata(0),
@@ -232,7 +232,7 @@ class RVID(implicit p: Parameters) extends AbstractID {
     .otherwise {
       wireIsWcsr := 1.B
       wireCsr(0) := csrsAddr.Mstatus
-      wireNum(0) := io.csrsR.rdata(1)
+      wireNum(0) := io.csrsR(1).rdata
       if (ext('S') || ext('U')) wirePriv := mstatus.MPP
       wireJmpBch := 1.B
       wireJbAddr := mepc
@@ -243,7 +243,7 @@ class RVID(implicit p: Parameters) extends AbstractID {
     .otherwise {
       wireIsWcsr := 1.B
       wireCsr(0) := csrsAddr.Mstatus
-      wireNum(0) := io.csrsR.rdata(1)
+      wireNum(0) := io.csrsR(1).rdata
       wirePriv   := mstatus.SPP
       wireJmpBch := 1.B
       wireJbAddr := sepc
@@ -370,7 +370,7 @@ class RVID(implicit p: Parameters) extends AbstractID {
         when(!io.currentPriv(1)) { tmpNewPriv := Mux(medeleg(code), "b01".U, "b11".U) } // TODO: user interrupt
       }
       when(io.lastVR.VALID && fire) {
-        val mstat   = io.csrsR.rdata(1)(xlen - 1) ## io.currentPriv ## wirePriv ## io.csrsR.rdata(1)(xlen - 6, 0)
+        val mstat   = io.csrsR(1).rdata(xlen - 1) ## io.currentPriv ## wirePriv ## io.csrsR(1).rdata(xlen - 6, 0)
         val bad     = (if (ext('C')) 0.B else code === 0.U) | code === 1.U | code === 2.U | code === 3.U | code === 12.U
         val badAddr = Mux(code === 2.U, Mux(wireInstr(1, 0).andR, wireInstr, wireInstr(15, 0)), Mux(io.input.crossCache && ext('C').B, io.input.pc + 2.U, io.input.pc))
         val Xepc    = Mux1H((Seq("b11".U -> csrsAddr.Mepc) ++ (if (ext('S')) Seq("b01".U -> csrsAddr.Sepc) else Nil) ++ (if (ext('U')) Seq("b00".U -> csrsAddr.Uepc) else Nil)).map(x => (wirePriv === x._1, x._2)))

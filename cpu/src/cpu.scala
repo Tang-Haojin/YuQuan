@@ -89,11 +89,8 @@ class CPU(implicit p: Parameters) extends YQModule with CacheParams {
   moduleMMU.io.icacheIO   <> moduleICache.io.cpuIO
   moduleMMU.io.ifIO       <> moduleIF.io.immu
   moduleMMU.io.memIO      <> moduleMEM.io.dmmu
-  moduleMMU.io.satp       <> moduleCSRs.io.satp
   moduleMMU.io.priv       <> moduleCSRs.io.currentPriv
-  moduleMMU.io.sum        <> moduleCSRs.io.sum
-  moduleMMU.io.mprv       <> moduleCSRs.io.mprv
-  moduleMMU.io.mpp        <> moduleCSRs.io.mpp
+  moduleMMU.io.csrIO      <> moduleCSRs.io.mmuRead
   moduleMMU.io.jmpBch     <> moduleID.io.jmpBch
   moduleEX.io.invIch      <> moduleICache.io.inv
   moduleEX.io.wbDch       <> moduleDCache.io.wb
