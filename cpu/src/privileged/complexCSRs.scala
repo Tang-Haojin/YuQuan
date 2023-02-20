@@ -177,21 +177,20 @@ object Sie {
 }
 
 class SatpBundle extends Bundle {
-  val mode = UInt(2.W)
+  val mode = Bool() // Bare -> 0, Sv39 -> 1
   val PPN  = UInt(44.W)
 }
 
 class UseSatp(val satp: SatpBundle = null) {
   def asUInt: UInt = mode ## 0.U(16.W) ## satp.PPN
   def :=[T <: Data](that: T): Unit = {
-    satp.mode := MuxLookup(that.asUInt(63, 60), 0.U, Seq(
-      8.U -> "b10".U,
-      9.U -> "b11".U
-    ))
-    satp.PPN := that.asUInt(43, 0)
+    when(!that.asUInt(62, 60).orR) {
+      satp.mode := that.asUInt(63)
+      satp.PPN  := that.asUInt(43, 0)
+    }
   }
   def asTypeOf[T <: Data](that: T) = satp.asTypeOf(that)
-  def mode: UInt = satp.mode(1) ## 0.U(2.W) ## satp.mode(0)
+  def mode: UInt = satp.mode ## 0.U(3.W)
   def ppn: UInt = satp.PPN
 }
 
@@ -200,7 +199,7 @@ object UseSatp {
   def apply(satp: UInt): UseSatp = {
     val wireSatp = WireDefault(0.U.asTypeOf(new SatpBundle))
     wireSatp.PPN  := satp(43, 0)
-    wireSatp.mode := satp(63) ## satp(60)
+    wireSatp.mode := satp(63)
     new UseSatp(wireSatp)
   }
   def apply(): UseSatp = new UseSatp(0.U.asTypeOf(new SatpBundle))
