@@ -63,7 +63,7 @@ class S011HD1P_BW_SRAM(bits: Int = 128, wordDepth: Int = 64) extends BlackBox wi
       |    Q <= !CEN ? (WEN ? ram[A] : (D & ~BWEN) | (ram[A] & BWEN)) : {${bits / 32}{32'hdead_feed}};
       |  end
       |endmodule
-      |""".stripMargin)
+    """.stripMargin)
 }
 
 class bytewrite_ram_1b(bits: Int = 128, wordDepth: Int = 64) extends BlackBox(Map(
@@ -119,7 +119,7 @@ class bytewrite_ram_1b(bits: Int = 128, wordDepth: Int = 64) extends BlackBox(Ma
       |endgenerate
       |
       |endmodule
-      |""".stripMargin)
+    """.stripMargin)
 }
 
 private[utils] class S011HD1P_SramWrapper(clock: Clock, bits: Int = 128, wordDepth: Int = 64) extends SramWrapperInterface {

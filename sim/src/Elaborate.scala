@@ -3,5 +3,8 @@ object Elaborate extends App {
 
   if (args.contains("FLASH")) p = p.alterPartial({ case cpu.USEFLASH => true })
 
-  (new chisel3.stage.ChiselStage).execute(args.take(2), Seq(chisel3.stage.ChiselGeneratorAnnotation(() => new sim.cpu.TestTop)))
+  (new circt.stage.ChiselStage).execute(
+    Array("--target", "verilog") ++ args.take(2),
+    Seq(chisel3.stage.ChiselGeneratorAnnotation(() => new sim.cpu.TestTop))
+  )
 }

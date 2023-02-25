@@ -7,6 +7,11 @@ srcDir    = $(pwd)/cpu/src
 cpuNum    = $(shell echo $$((`lscpu -p=CORE | tail -n 1` + 1)))
 nobin     = $(shell echo "\e[31mNo BIN file specified\e[0m")
 
+FIRTOOL := $(shell firtool --version 2>/dev/null)
+ifndef FIRTOOL
+$(error firtool is not available. Please install firtool at https://github.com/llvm/circt/releases)
+endif
+
 ISA := riscv64
 
 ifeq ($(FLASH),1)
@@ -65,13 +70,15 @@ ifneq ($(mainargs),)
 CFLAGS += '-Dmainargs=$(mainargs)'
 endif
 
-PRETTY = --emission-options=disableMemRandomization,disableRegisterRandomization
+PRETTY =
 
 test:
 	mill -i __.test
 
 verilog:
 	mill -i __.cpu.runMain Elaborate -td $(BUILD_DIR)/cpu $(PRETTY)
+	@$(pwd)/tools/split_blackbox.sh $(BUILD_DIR)/cpu ysyx_210153.v
+	@sed -i -e 's/_\(aw\|ar\|w\|r\|b\)_\(\|bits_\)/_\1/g' $(BUILD_DIR)/cpu/ysyx_210153.v
 
 help:
 	mill -i __.sim.runMain Elaborate --help
@@ -105,6 +112,7 @@ clean-all: clean
 
 verilate:
 	mill -i __.sim.runMain Elaborate -td $(BUILD_DIR)/sim $(GENNAME) $(param)
+	@$(pwd)/tools/split_blackbox.sh $(BUILD_DIR)/sim TestTop.v
 	@cd $(BUILD_DIR)/sim && \
 	verilator $(VFLAGS) --build $(CSRCS) -CFLAGS "$(CFLAGS)" -LDFLAGS "$(LDFLAGS)" >/dev/null
 
@@ -123,9 +131,11 @@ simall: $(LIB_SPIKE) verilate
 
 zmb:
 	mill -i __.cpu.runMain Elaborate -td $(BUILD_DIR)/zmb zmb $(PRETTY)
+	@$(pwd)/tools/split_blackbox.sh $(BUILD_DIR)/zmb zmb.v
 
 lxb:
 	mill -i __.cpu.runMain Elaborate -td $(BUILD_DIR)/lxb lxb $(PRETTY)
+	@$(pwd)/tools/split_blackbox.sh $(BUILD_DIR)/lxb lxb.v
 
 rv64: verilog
 

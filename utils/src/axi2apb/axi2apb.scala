@@ -63,7 +63,6 @@ class InnerAxi2ApbIO(implicit val p: Parameters) extends Bundle with UtilsParams
 
 class inner_axi2apb(implicit val p: Parameters) extends BlackBox with HasBlackBoxPath with UtilsParams {
   val io = IO(new InnerAxi2ApbIO)
-  addPath(new File("utils/src/axi2apb/inner/inner_axi2apb.v").getCanonicalPath)
 }
 
 class Axi2Apb(implicit val p: Parameters) extends RawModule with UtilsParams {
