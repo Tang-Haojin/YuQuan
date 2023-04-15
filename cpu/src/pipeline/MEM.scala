@@ -68,7 +68,7 @@ class MEM(implicit p: Parameters) extends YQModule with cpu.cache.CacheParams {
   private val wireFsh   = WireDefault(Bool(), !isLxb.B && flush)
 
   private val shiftRdata = VecInit((0 until 8).map(i => io.dmmu.pipelineResult.cpuResult.data >> (8 * i)))(offset)
-  private val extRdata   = MuxLookup(extType(1, 0), shiftRdata(xlen - 1, 0), if (xlen == 32) Seq(
+  private val extRdata   = MuxLookup(extType(1, 0), shiftRdata(xlen - 1, 0))(if (xlen == 32) Seq(
     0.U -> Fill(xlen - 8 , ~extType(2) & shiftRdata(7 )) ## shiftRdata(7 , 0),
     1.U -> Fill(xlen - 16, ~extType(2) & shiftRdata(15)) ## shiftRdata(15, 0)
   ) else Seq(

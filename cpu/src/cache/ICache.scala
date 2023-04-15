@@ -99,7 +99,7 @@ class ICache(implicit p: Parameters) extends YQModule with CacheParams {
     willDrop := 0.B
     compareHit := VecInit(Seq.tabulate(Associativity)(i => preValid(i) && preTag(i) === addrTag)).reduceTree(_ | _)
     grp := startGrp
-    way := MuxLookup(0.B, rand, preValid zip Seq.tabulate(Associativity)(_.U))
+    way := MuxLookup(0.B, rand)(preValid zip Seq.tabulate(Associativity)(_.U))
     if (!ext('C')) needRead := 1.B
   }
   when(state === compare) {

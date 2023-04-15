@@ -10,7 +10,7 @@ class BoothSext(entries: Int, size: Int)(implicit p: Parameters) extends YQRawMo
   private val op_sign = io.op_0(size - 1) & io.sign
   for (i <- io.output.indices) {
     val last = if (i == 0) 0.B else io.input(i - 1)(2)
-    val main_num = MuxLookup(io.input(i), 0.U((size + 1).W), Seq(
+    val main_num = MuxLookup(io.input(i), 0.U((size + 1).W))(Seq(
       "b001".U ->   op_sign ## io.op_0,
       "b010".U ->   op_sign ## io.op_0,
       "b011".U ->   io.op_0 ## 0.B,

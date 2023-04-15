@@ -208,7 +208,7 @@ object ICacheMemIODefault {
 class IsClint(addr: UInt)(implicit p: Parameters) {
   private val Clint = p(CLINT_MMAP)
   val isClint = addr === Clint.MTIME.U || addr === Clint.MTIMECMP(0).U || addr === Clint.MSIP(0).U
-  val address = RegEnable(MuxLookup(addr, 0.U, Seq(Clint.MTIMECMP(0).U -> 1.U, Clint.MSIP(0).U -> 2.U)), 0.U(2.W), isClint)
+  val address = RegEnable(MuxLookup(addr, 0.U)(Seq(Clint.MTIMECMP(0).U -> 1.U, Clint.MSIP(0).U -> 2.U)), 0.U(2.W), isClint)
 }
 
 object IsClint {

@@ -149,7 +149,7 @@ class RVMMU(implicit p: Parameters) extends AbstractMMU with CSRsAddr {
       writingPte.a := 1.B
       writingPte.d := (current === memWalking && isWrite) | pte.d
       dcacheValid := 1.B
-      io.dcacheIO.cpuReq.addr  := MuxLookup(level, ptePpn ## vaddr.vpn(0), Seq(
+      io.dcacheIO.cpuReq.addr  := MuxLookup(level, ptePpn ## vaddr.vpn(0))(Seq(
         1.U -> ptePpn(43, 9 ) ## vaddr.vpn(1) ## vaddr.vpn(0),
         2.U -> ptePpn(43, 18) ## vaddr.vpn.asUInt
       )) ## 0.U(3.W)

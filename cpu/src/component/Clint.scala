@@ -31,5 +31,5 @@ class Clint(implicit p: Parameters) extends YQModule {
     when(io.clintIO.addr === 2.U) { msip := io.clintIO.wdata } // TODO: if there are more than one hart, it can be `wdata(32)`
   }
 
-  io.clintIO.rdata := MuxLookup(io.clintIO.addr, mtime, Seq(1.U -> mtimecmp, 2.U -> msip))
+  io.clintIO.rdata := MuxLookup(io.clintIO.addr, mtime)(Seq(1.U -> mtimecmp, 2.U -> msip))
 }

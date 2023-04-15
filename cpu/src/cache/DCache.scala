@@ -169,7 +169,7 @@ class DCache(implicit p: Parameters) extends YQModule with CacheParams {
     state := compare
     grp := Mux1H(Seq.tabulate(Associativity)(i => (preValid(i) && preTag(i) === addrTag) -> i.U))
     compareHit := VecInit(Seq.tabulate(Associativity)(i => preValid(i) && preTag(i) === addrTag)).reduceTree(_ | _)
-    way := MuxLookup(0.B, rand, preValid zip Seq.tabulate(Associativity)(_.U))
+    way := MuxLookup(0.B, rand)(preValid zip Seq.tabulate(Associativity)(_.U))
     compDirty := preDirty
     useEmpty := !preValid.asUInt.andR
     wbBufferGo := wbBuffer.used && (io.memIO.ar.bits.addr === wbBuffer.wbAddr)

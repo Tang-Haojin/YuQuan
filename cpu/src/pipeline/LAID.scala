@@ -106,7 +106,7 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
 
   private val wireJmpBch = WireDefault(
     io.input.instr(31, 30) === "b01".U &&
-    MuxLookup(io.input.instr(29, 26), 1.B, Seq(
+    MuxLookup(io.input.instr(29, 26), 1.B)(Seq(
       "b0110".U -> equal,
       "b0111".U -> !equal,
       "b1000".U -> lessthan,
@@ -240,7 +240,7 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
   }
   when(io.input.except && io.input.memExcept) {
     wireExcept := 1.B
-    wireEcode  := MuxLookup(io.input.cause, io.input.cause, Seq(0x6.U -> 0x3F.U))
+    wireEcode  := MuxLookup(io.input.cause, io.input.cause)(Seq(0x6.U -> 0x3F.U))
     wireCause  := io.input.cause
     wireEsub   := (io.input.cause === 0x8.U).asUInt
   }
@@ -253,7 +253,7 @@ class LAID(implicit p: Parameters) extends AbstractID with cpu.privileged.LACSRs
   }
   .elsewhen(io.input.except) {
     wireExcept := 1.B
-    wireEcode  := MuxLookup(io.input.cause, io.input.cause, Seq(0x6.U -> 0x3F.U))
+    wireEcode  := MuxLookup(io.input.cause, io.input.cause)(Seq(0x6.U -> 0x3F.U))
     wireCause  := io.input.cause
     wireEsub   := 0x0.U
   }

@@ -96,7 +96,7 @@ class RVID(implicit p: Parameters) extends AbstractID {
   private val lessthan  = io.gprsR.rdata(0).asSInt <   io.gprsR.rdata(1).asSInt
   private val ulessthan = io.gprsR.rdata(0)        <   io.gprsR.rdata(1)
   private val equal     = io.gprsR.rdata(0)        === io.gprsR.rdata(1)
-  private val willBranch = Mux(!ext('C').B || wireInstr(1, 0).andR, MuxLookup(wireInstr(14, 12), equal, Seq(
+  private val willBranch = Mux(!ext('C').B || wireInstr(1, 0).andR, MuxLookup(wireInstr(14, 12), equal)(Seq(
     "b001".U -> !equal,
     "b100".U -> lessthan,
     "b101".U -> !lessthan,
@@ -199,8 +199,8 @@ class RVID(implicit p: Parameters) extends AbstractID {
   wireRd := Fill(5, decoded(6)(0)) & Mux(wireInstr(1, 0).andR || !ext('C').B, io.input.rd, wireCRd)
 
   io.jmpBch := jmpBch; io.jbAddr := jbAddr
-  private val jbCOffset = if (ext('C')) MuxLookup(wireFunct3c(1, 0), immMap(cb), Seq("b01".U -> immMap(cj), "b00".U -> 0.U)) else 0.U
-  private val jbOffset  = Mux(wireInstr(1, 0).andR || !ext('C').B, MuxLookup(io.input.instrCode(3, 2), immMap(j), Seq("b01".U -> immMap(i), "b00".U -> immMap(b))), jbCOffset)
+  private val jbCOffset = if (ext('C')) MuxLookup(wireFunct3c(1, 0), immMap(cb))(Seq("b01".U -> immMap(cj), "b00".U -> 0.U)) else 0.U
+  private val jbOffset  = Mux(wireInstr(1, 0).andR || !ext('C').B, MuxLookup(io.input.instrCode(3, 2), immMap(j))(Seq("b01".U -> immMap(i), "b00".U -> immMap(b))), jbCOffset)
   private val tmpJbaddr = Mux(useRaddr2, io.gprsR.rdata(2)(valen - 1, 1), io.input.pc(valen - 1, 1)) + jbOffset(valen - 1, 1)
   private val wireJbAddr = WireDefault(UInt(valen.W), tmpJbaddr ## 0.B)
 
