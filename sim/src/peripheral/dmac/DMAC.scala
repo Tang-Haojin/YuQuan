@@ -1,7 +1,7 @@
 package sim.peripheral.dmac
 
 import chisel3._
-import chisel3.util._
+import chisel3.util.{Queue => _, _}
 import chipsalliance.rocketchip.config._
 
 import utils._
@@ -23,7 +23,7 @@ class DMAC(implicit val p: Parameters) extends RawModule with SimParams {
     val regTransLen = RegInit(0.U(xlen.W))
     val regFree     = RegInit(1.B)
 
-    val fifo = Module(new YQueue(UInt(xlen.W), 8))
+    val fifo = Module(new Queue(UInt(xlen.W), 8))
     fifo.io.enq.valid := io.toCPU.r.fire
     fifo.io.enq.bits  := io.toCPU.r.bits.data
     fifo.io.deq.ready := io.toCPU.w.fire

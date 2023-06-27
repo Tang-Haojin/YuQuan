@@ -14,13 +14,13 @@ $(error firtool is not available. Please install firtool at https://github.com/l
 endif
 FIRTOOL_HAS_VER := $(shell firtool --version | tail -1 | grep -o 'CIRCT')
 ifndef FIRTOOL_HAS_VER
-$(error firtool < 1.20.0. Please upgrade firtool at https://github.com/llvm/circt/releases)
+$(error firtool < 1.43.0. Please upgrade firtool at https://github.com/llvm/circt/releases)
 endif
 FIRTOOL_VER_MAJOR := $(shell firtool --version | tail -1 | grep -o '[0-9]*' | head -1)
 FIRTOOL_VER_MINOR := $(shell firtool --version | tail -1 | grep -o '[0-9]*' | tail -2 | head -1)
-FIRTOOL_SUCCESS := $(shell ([ $(FIRTOOL_VER_MINOR) -ge 20 ] 2>/dev/null || [ $(FIRTOOL_VER_MAJOR) -gt 1 ] 2>/dev/null) && echo success)
+FIRTOOL_SUCCESS := $(shell ([ $(FIRTOOL_VER_MINOR) -ge 43 ] 2>/dev/null || [ $(FIRTOOL_VER_MAJOR) -gt 1 ] 2>/dev/null) && echo success)
 ifneq ($(FIRTOOL_SUCCESS),success)
-$(error firtool < 1.20.0. Please upgrade firtool at https://github.com/llvm/circt/releases)
+$(error firtool < 1.43.0. Please upgrade firtool at https://github.com/llvm/circt/releases)
 endif
 
 ISA := riscv64

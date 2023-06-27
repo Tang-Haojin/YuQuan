@@ -270,7 +270,7 @@ class RVID(implicit p: Parameters) extends AbstractID {
     when(io.revAmo) { amoStat := idle }
   }
 
-  when(io.input.except) { wireExcept(io.input.cause) := 1.B }
+  when(io.input.except) { wireExcept(0.U(1.W) ## io.input.cause) := 1.B }
   if (!isZmb) HandleException()
 
   io.lastVR.READY := io.nextVR.READY && !io.isWait && !blocked && amoStat === idle

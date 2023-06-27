@@ -67,7 +67,7 @@ class MEM(implicit p: Parameters) extends YQModule with cpu.cache.CacheParams {
   private val wireTlbrw = WireDefault(0.B)
   private val wireFsh   = WireDefault(Bool(), !isLxb.B && flush)
 
-  private val shiftRdata = VecInit((0 until 8).map(i => io.dmmu.pipelineResult.cpuResult.data >> (8 * i)))(offset)
+  private val shiftRdata = VecInit((0 until xlen / 8).map(i => io.dmmu.pipelineResult.cpuResult.data >> (8 * i)))(offset)
   private val extRdata   = MuxLookup(extType(1, 0), shiftRdata(xlen - 1, 0))(if (xlen == 32) Seq(
     0.U -> Fill(xlen - 8 , ~extType(2) & shiftRdata(7 )) ## shiftRdata(7 , 0),
     1.U -> Fill(xlen - 16, ~extType(2) & shiftRdata(15)) ## shiftRdata(15, 0)
@@ -77,7 +77,7 @@ class MEM(implicit p: Parameters) extends YQModule with cpu.cache.CacheParams {
     2.U -> Fill(xlen - 32, ~extType(2) & shiftRdata(31)) ## shiftRdata(31, 0)
   ))
 
-  private val rawStrb = VecInit((0 until log2Ceil(xlen) - 2).map { i => Fill(pow(2, i).round.toInt, 1.B) })(io.input.mask)
+  private val rawStrb = VecInit((0 until log2Ceil(xlen) - 2).map { i => Fill(pow(2, i).round.toInt, 1.B) })(io.input.mask(1, 0))
 
   io.dmmu.pipelineReq.cpuReq.data   := wireData
   io.dmmu.pipelineReq.cpuReq.rw     := wireRw

@@ -126,7 +126,7 @@ class MedelegBundle(implicit val p: Parameters) extends Bundle with CPUParams {
   val medeleg = UInt(xlen.W)
   def apply(x: Int): Bool = asUInt(x)
   def apply(x: Int, y: Int): UInt = asUInt(x, y)
-  def apply(x: UInt): Bool = VecInit(Seq.tabulate(16)(asUInt(_)))(x)
+  def apply(x: UInt): Bool = VecInit(Seq.tabulate(16)(asUInt(_)))(x(3, 0))
 }
 
 class Sstatus(val mstatus: MstatusBundle)(implicit val p: Parameters) extends CPUParams {
