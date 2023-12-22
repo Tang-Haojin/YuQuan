@@ -5,7 +5,7 @@ import chisel3.util._
 import chipsalliance.rocketchip.config._
 
 abstract class PrefixModule(implicit val p: Parameters) extends Module with PrefixParams {
-  implicit val implReset = reset.asBool
+  implicit val implReset: Bool = reset.asBool
 
   implicit class b39ca268[S <: Data, T <: Data](x: (S, T)) {
     def :=(that: (S, T)): Unit = { x._1 := that._1; x._2 := that._2 }

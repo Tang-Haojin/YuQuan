@@ -1,5 +1,9 @@
+package cpu.top
+
+import chipsalliance.rocketchip.config.Parameters
+
 object Elaborate extends App {
-  implicit private val p = chipsalliance.rocketchip.config.Parameters.empty.alterPartial({ case cpu.GEN_NAME =>
+  implicit private val p: Parameters = Parameters.empty.alterPartial({ case cpu.GEN_NAME =>
     if (args.contains("zmb")) "zmb"
     else if (args.contains("lxb")) "lxb"
     else "ysyx"

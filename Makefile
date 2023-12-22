@@ -7,21 +7,15 @@ srcDir    = $(pwd)/cpu/src
 cpuNum    = $(shell echo $$((`lscpu -p=CORE | tail -n 1` + 1)))
 nobin     = $(shell echo "\e[31mNo BIN file specified\e[0m")
 
-# firtool sanity checks
-FIRTOOL := $(shell firtool --version 2>/dev/null)
-ifndef FIRTOOL
-$(error firtool is not available. Please install firtool at https://github.com/llvm/circt/releases)
+# firtool check and download
+FIRTOOL_VERSION = 1.61.0
+FIRTOOL_URL = https://github.com/llvm/circt/releases/download/firtool-$(FIRTOOL_VERSION)/firrtl-bin-linux-x64.tar.gz
+CACHE_FIRTOOL_PATH = $(HOME)/.cache/yuquan/firtool-$(FIRTOOL_VERSION)/bin/firtool
+ifeq ($(wildcard $(CACHE_FIRTOOL_PATH)),)
+$(info [INFO] Downloading from $(FIRTOOL_URL))
+$(shell mkdir -p $(HOME)/.cache/yuquan && curl -L $(FIRTOOL_URL) | tar -xzC $(HOME)/.cache/yuquan)
 endif
-FIRTOOL_HAS_VER := $(shell firtool --version | tail -1 | grep -o 'CIRCT')
-ifndef FIRTOOL_HAS_VER
-$(error firtool < 1.43.0. Please upgrade firtool at https://github.com/llvm/circt/releases)
-endif
-FIRTOOL_VER_MAJOR := $(shell firtool --version | tail -1 | grep -o '[0-9]*' | head -1)
-FIRTOOL_VER_MINOR := $(shell firtool --version | tail -1 | grep -o '[0-9]*' | tail -2 | head -1)
-FIRTOOL_SUCCESS := $(shell ([ $(FIRTOOL_VER_MINOR) -ge 43 ] 2>/dev/null || [ $(FIRTOOL_VER_MAJOR) -gt 1 ] 2>/dev/null) && echo success)
-ifneq ($(FIRTOOL_SUCCESS),success)
-$(error firtool < 1.43.0. Please upgrade firtool at https://github.com/llvm/circt/releases)
-endif
+FIRTOOL_ARGS = --firtool-binary-path $(CACHE_FIRTOOL_PATH)
 
 ISA := riscv64
 
@@ -87,12 +81,12 @@ test:
 	mill -i __.test
 
 verilog:
-	mill -i __.cpu.runMain Elaborate -td $(BUILD_DIR)/cpu $(PRETTY)
+	mill -i cpu.runMain cpu.top.Elaborate -td $(BUILD_DIR)/cpu $(PRETTY) $(FIRTOOL_ARGS)
 	@$(pwd)/tools/split_blackbox.sh $(BUILD_DIR)/cpu ysyx_210153.v
 	@sed -i -e 's/_\(aw\|ar\|w\|r\|b\)_\(\|bits_\)/_\1/g' $(BUILD_DIR)/cpu/ysyx_210153.v
 
 help:
-	mill -i __.sim.runMain Elaborate --help
+	mill -i sim.runMain sim.top.Elaborate --help
 
 compile:
 	mill -i __.compile
@@ -122,7 +116,7 @@ clean-all: clean
 	-rm -rf ./out ./difftest/build ./difftest/difftest/build
 
 verilate:
-	mill -i __.sim.runMain Elaborate -td $(BUILD_DIR)/sim $(GENNAME) $(param)
+	mill -i sim.runMain sim.top.Elaborate -td $(BUILD_DIR)/sim $(GENNAME) $(param) $(FIRTOOL_ARGS)
 	@$(pwd)/tools/split_blackbox.sh $(BUILD_DIR)/sim TestTop.v
 	@cd $(BUILD_DIR)/sim && \
 	verilator $(VFLAGS) --build $(CSRCS) -CFLAGS "$(CFLAGS)" -LDFLAGS "$(LDFLAGS)" >/dev/null
@@ -141,11 +135,11 @@ simall: $(LIB_SPIKE) verilate
 	done
 
 zmb:
-	mill -i __.cpu.runMain Elaborate -td $(BUILD_DIR)/zmb zmb $(PRETTY)
+	mill -i cpu.runMain cpu.top.Elaborate -td $(BUILD_DIR)/zmb zmb $(PRETTY) $(FIRTOOL_ARGS)
 	@$(pwd)/tools/split_blackbox.sh $(BUILD_DIR)/zmb zmb.v
 
 lxb:
-	mill -i __.cpu.runMain Elaborate -td $(BUILD_DIR)/lxb lxb $(PRETTY)
+	mill -i cpu.runMain cpu.top.Elaborate -td $(BUILD_DIR)/lxb lxb $(PRETTY) $(FIRTOOL_ARGS)
 	@$(pwd)/tools/split_blackbox.sh $(BUILD_DIR)/lxb lxb.v
 
 rv64: verilog

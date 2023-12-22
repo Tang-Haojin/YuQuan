@@ -11,15 +11,16 @@ import utils._
 
 class LAMMU(implicit p: Parameters) extends AbstractMMU with LACSRsAddr {
   io.csrIO.foreach(_.rcsr := DontCare)
-  private          val crmd    = io.csrIO(0).rdata.asTypeOf(new CRMDBundle);   io.csrIO(0).rcsr := CRMD
-  private          val dmw0    = io.csrIO(1).rdata;                            io.csrIO(1).rcsr := DMW(0)
-  private          val dmw1    = io.csrIO(2).rdata;                            io.csrIO(2).rcsr := DMW(1)
-  private implicit val asid    = io.csrIO(3).rdata.asTypeOf(new ASIDBundle);   io.csrIO(3).rcsr := ASID
-  private          val tlbehi  = io.csrIO(4).rdata;                            io.csrIO(4).rcsr := TLBEHI
-  private          val tlbelo0 = io.csrIO(5).rdata;                            io.csrIO(5).rcsr := TLBELO0
-  private          val tlbelo1 = io.csrIO(6).rdata;                            io.csrIO(6).rcsr := TLBELO1
-  private          val tlbidx  = io.csrIO(7).rdata.asTypeOf(new TLBIDXBundle); io.csrIO(7).rcsr := TLBIDX
-  private          val estat   = io.csrIO(8).rdata.asTypeOf(new ESTATBundle);  io.csrIO(8).rcsr := ESTAT
+  private val crmd    = io.csrIO(0).rdata.asTypeOf(new CRMDBundle);   io.csrIO(0).rcsr := CRMD
+  private val dmw0    = io.csrIO(1).rdata;                            io.csrIO(1).rcsr := DMW(0)
+  private val dmw1    = io.csrIO(2).rdata;                            io.csrIO(2).rcsr := DMW(1)
+  private val asid    = io.csrIO(3).rdata.asTypeOf(new ASIDBundle);   io.csrIO(3).rcsr := ASID
+  private val tlbehi  = io.csrIO(4).rdata;                            io.csrIO(4).rcsr := TLBEHI
+  private val tlbelo0 = io.csrIO(5).rdata;                            io.csrIO(5).rcsr := TLBELO0
+  private val tlbelo1 = io.csrIO(6).rdata;                            io.csrIO(6).rcsr := TLBELO1
+  private val tlbidx  = io.csrIO(7).rdata.asTypeOf(new TLBIDXBundle); io.csrIO(7).rcsr := TLBIDX
+  private val estat   = io.csrIO(8).rdata.asTypeOf(new ESTATBundle);  io.csrIO(8).rcsr := ESTAT
+  private implicit val asidParam: cpu.privileged.ASIDBundle = asid
   private val dmw    = Seq(dmw0, dmw1).map(_.asTypeOf(new DMWBundle))
   private val tlbelo = Seq(tlbelo0,tlbelo1).map(_.asTypeOf(new TLBELOBundle))
   val idle::refilled::Nil = Enum(2)
