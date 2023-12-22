@@ -1,13 +1,91 @@
-on: [pull_request]
+name: CI
+
+# Controls when the action will run. 
+on:
+  # Triggers the workflow on push or pull request events but only for the master branch
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  checks:
+  generate-verilog:
+    # The type of runner that the job will run on
     runs-on: ubuntu-latest
-    container: archlinux/archlinux:latest
+    continue-on-error: false
+    timeout-minutes: 10
+    name: Generate Verilog
+    strategy:
+      matrix:
+        platform: ["rv64", "zmb", "lxb"]
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      - name: Install dependencies
-        run: pacman -Syu --noconfirm make mill z3
-      - uses: actions/checkout@v2
-      - name: Check Format
-        run: make checkformat
-      - name: Test
-        run: make test
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Setup Scala
+        uses: olafurpg/setup-scala@v14
+
+      - name: Cache
+        id: cache
+        uses: coursier/cache-action@v6
+
+      - name: Verilator
+        run: sudo apt install verilator
+
+      - name: Setup Mill
+        uses: jodersky/setup-mill@v0.3.0
+        with:
+          mill-version: 0.11.6
+        
+      - name: Compile ${{ matrix.platform }}
+        run: make ${{ matrix.platform }}
+
+  sim-all:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+    continue-on-error: false
+    timeout-minutes: 20
+    name: Simulate all tests
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Setup Scala
+        uses: olafurpg/setup-scala@v14
+
+      - name: Cache
+        id: cache
+        uses: coursier/cache-action@v6
+
+      - name: Verilator
+        run: |
+          sudo apt install help2man libfl2 libfl-dev
+          git clone https://github.com/verilator/verilator
+          cd verilator
+          autoconf
+          ./configure CC=clang CXX=clang++
+          make -j `nproc`
+          sudo make install
+
+      - name: Device Tree Compiler
+        run: sudo apt install device-tree-compiler
+
+      - name: Setup Mill
+        uses: jodersky/setup-mill@v0.3.0
+        with:
+          mill-version: 0.11.6
+        
+      - name: Simulate all
+        run: make simall
