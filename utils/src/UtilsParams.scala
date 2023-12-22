@@ -19,7 +19,6 @@ abstract trait UtilsParams {
   val useregion = p(USEREGION)
   val axirename = p(AXIRENAME)
   val useXilinx = p(USEXILINX)
-  val usePubRam = p(USEPUBRAM)
   val isAxi3    = p(ISAXI3)
   implicit class UtilsParamsConnect[T <: Bundle](x: T) {
     def seqmap(elems: Seq[T => Unit]): T = { elems.foreach(_(x)); x }
@@ -39,7 +38,6 @@ case object USELOCK   extends Field[Int]
 case object USEREGION extends Field[Int]
 case object AXIRENAME extends Field[Boolean]
 case object USEXILINX extends Field[Boolean]
-case object USEPUBRAM extends Field[Boolean]
 case object ISAXI3    extends Field[Boolean]
 
 abstract trait PrefixParams extends BaseModule {

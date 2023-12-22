@@ -38,7 +38,6 @@ object YQConfig {
     case USECLINT         => site(GEN_NAME) match { case "ysyx" => true; case _ => false }
     case HANDLEMISALIGN   => site(GEN_NAME) match { case "ysyx" => true; case "zmb" => false; case "lxb" => true }
     case USEXILINX        => site(GEN_NAME) match { case "ysyx" => false; case "zmb" => true; case "lxb" => true }
-    case USEPUBRAM        => site(GEN_NAME) match { case "ysyx" => false; case _ => false }
     case USEDIFFTEST      => site(GEN_NAME) match { case "lxb" => true; case _ => false }
   }
 

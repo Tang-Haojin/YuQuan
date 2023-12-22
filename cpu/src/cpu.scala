@@ -19,9 +19,6 @@ class CPU(implicit p: Parameters) extends YQModule with CacheParams {
     val master    = new AXI_BUNDLE
     val slave     = if (!isLxb) Flipped(new AXI_BUNDLE) else null
     val interrupt = Input(if (isLxb) UInt(8.W) else Bool())
-    val sram      =
-    if(usePubRam)   Flipped(Vec(2 * Associativity, new PublicSramWrapper.PublicSramIO(BlockSize * 8, IndexSize)))
-    else            null
     val debug     =
     if(Debug)       new DEBUG
     else            null
@@ -146,16 +143,6 @@ class CPU(implicit p: Parameters) extends YQModule with CacheParams {
   moduleCSRs.io.mtip        <> (if (useClint) moduleClint.io.mtip else 0.B)
   moduleCSRs.io.msip        <> (if (useClint) moduleClint.io.msip else 0.B)
   moduleCSRs.io.interrupt   <> io.interrupt
-
-  if(usePubRam) io.sram.indices.foreach(id => {
-    io.sram(id) <> Fill(io.sram(id).getWidth, 1.B).asTypeOf(io.sram(id))
-    BoringUtils.addSink  (io.sram(id).cen,   s"sram_cen_${id}")
-    BoringUtils.addSink  (io.sram(id).wen,   s"sram_wen_${id}")
-    BoringUtils.addSink  (io.sram(id).wmask, s"sram_wmask_${id}")
-    BoringUtils.addSink  (io.sram(id).addr,  s"sram_addr_${id}")
-    BoringUtils.addSink  (io.sram(id).wdata, s"sram_wdata_${id}")
-    BoringUtils.addSource(io.sram(id).rdata, s"sram_rdata_${id}")
-  })
 
   io.master.r.ready := 1.B
   io.master.b.ready := 1.B
