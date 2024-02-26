@@ -267,7 +267,7 @@ class RdVal(implicit p: Parameters) extends YQBundle {
 object ExceptionCode extends Enumeration {
   val usi,ssi,hsi,msi,uti,sti,hti,mti,uei,sei,hei,mei = Value
   implicit class ExceptionCodeImplicit(x: Value) {
-    def U(width: chisel3.internal.firrtl.Width): UInt = x.id.U(width)
+    def U(width: chisel3.Width): UInt = x.id.U(width)
   }
   import scala.language.implicitConversions
   implicit def ExceptionCodeToInt(x: Value): Int = x.id

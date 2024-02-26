@@ -7,16 +7,6 @@ srcDir    = $(pwd)/cpu/src
 cpuNum    = $(shell echo $$((`lscpu -p=CORE | tail -n 1` + 1)))
 nobin     = $(shell echo "\e[31mNo BIN file specified\e[0m")
 
-# firtool check and download
-FIRTOOL_VERSION = 1.61.0
-FIRTOOL_URL = https://github.com/llvm/circt/releases/download/firtool-$(FIRTOOL_VERSION)/firrtl-bin-linux-x64.tar.gz
-CACHE_FIRTOOL_PATH = $(HOME)/.cache/yuquan/firtool-$(FIRTOOL_VERSION)/bin/firtool
-ifeq ($(wildcard $(CACHE_FIRTOOL_PATH)),)
-$(info [INFO] Downloading from $(FIRTOOL_URL))
-$(shell mkdir -p $(HOME)/.cache/yuquan && curl -L $(FIRTOOL_URL) | tar -xzC $(HOME)/.cache/yuquan)
-endif
-FIRTOOL_ARGS = --firtool-binary-path $(CACHE_FIRTOOL_PATH)
-
 ISA := riscv64
 
 ifeq ($(FLASH),1)
@@ -81,7 +71,7 @@ test:
 	mill -i __.test
 
 verilog:
-	mill -i cpu.runMain cpu.top.Elaborate -td $(BUILD_DIR)/cpu $(PRETTY) $(FIRTOOL_ARGS)
+	mill -i cpu.runMain cpu.top.Elaborate args -td $(BUILD_DIR)/cpu $(PRETTY)
 	@$(pwd)/tools/split_blackbox.sh $(BUILD_DIR)/cpu ysyx_210153.v
 	@sed -i -e 's/_\(aw\|ar\|w\|r\|b\)_\(\|bits_\)/_\1/g' $(BUILD_DIR)/cpu/ysyx_210153.v
 
@@ -116,7 +106,7 @@ clean-all: clean
 	-rm -rf ./out ./difftest/build ./difftest/difftest/build
 
 verilate:
-	mill -i sim.runMain sim.top.Elaborate -td $(BUILD_DIR)/sim $(GENNAME) $(param) $(FIRTOOL_ARGS)
+	mill -i sim.runMain sim.top.Elaborate args -td $(BUILD_DIR)/sim $(GENNAME) $(param)
 	@$(pwd)/tools/split_blackbox.sh $(BUILD_DIR)/sim TestTop.v
 	@cd $(BUILD_DIR)/sim && \
 	verilator $(VFLAGS) --build $(CSRCS) -CFLAGS "$(CFLAGS)" -LDFLAGS "$(LDFLAGS)" >/dev/null
@@ -135,11 +125,11 @@ simall: $(LIB_SPIKE) verilate
 	done
 
 zmb:
-	mill -i cpu.runMain cpu.top.Elaborate -td $(BUILD_DIR)/zmb zmb $(PRETTY) $(FIRTOOL_ARGS)
+	mill -i cpu.runMain cpu.top.Elaborate args -td $(BUILD_DIR)/zmb zmb $(PRETTY)
 	@$(pwd)/tools/split_blackbox.sh $(BUILD_DIR)/zmb zmb.v
 
 lxb:
-	mill -i cpu.runMain cpu.top.Elaborate -td $(BUILD_DIR)/lxb lxb $(PRETTY) $(FIRTOOL_ARGS)
+	mill -i cpu.runMain cpu.top.Elaborate args -td $(BUILD_DIR)/lxb lxb $(PRETTY)
 	@$(pwd)/tools/split_blackbox.sh $(BUILD_DIR)/lxb lxb.v
 
 rv64: verilog
