@@ -15,10 +15,10 @@ trait BaseScalaModule extends ScalaModule with ScalafmtModule {
     "-Xcheckinit"
   )
   override def ivyDeps = Agg(
-    ivy"org.chipsalliance::chisel:6.1.0"
+    ivy"org.chipsalliance::chisel:7.0.0-M1"
   )
   override def scalacPluginIvyDeps = Agg(
-    ivy"org.chipsalliance:::chisel-plugin:6.1.0"
+    ivy"org.chipsalliance:::chisel-plugin:7.0.0-M1"
   )
 }
 
