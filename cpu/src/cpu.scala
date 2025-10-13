@@ -14,7 +14,7 @@ import cache._
 import utils._
 
 class CPU(implicit p: Parameters) extends YQModule with CacheParams {
-  override val desiredName = if (modulePrefix.length() > 1) modulePrefix.dropRight(1) else modulePrefix + this.getClass().getSimpleName()
+  override val desiredName = if (YQModulePrefix.length() > 1) YQModulePrefix.dropRight(1) else YQModulePrefix + this.getClass().getSimpleName()
   val io = IO(new YQBundle {
     val master    = new AXI_BUNDLE
     val slave     = if (!isLxb) Flipped(new AXI_BUNDLE) else null

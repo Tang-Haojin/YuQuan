@@ -13,7 +13,7 @@ private class SyncReadReg[T <: Data](bits: T = UInt(128.W), wordDepth: Int = 64)
     val RST = Input (Bool()) // reset
     val PQ  = Output(bits.cloneType) // pre-Q, which means no delay
   })
-  override val desiredName = modulePrefix + this.getClass().getSimpleName()
+  override val desiredName = YQModulePrefix + this.getClass().getSimpleName()
 
   private val sreg = if (bits.isLit) RegInit(VecInit(Seq.fill(wordDepth)(bits))) else Reg(Vec(wordDepth, bits))
   when(io.WEN) { sreg(io.A) := io.D }

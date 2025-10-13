@@ -9,6 +9,7 @@ object Elaborate extends App {
 
   (new circt.stage.ChiselStage).execute(
     Array("--target", "verilog") ++ args,
-    Seq(chisel3.stage.ChiselGeneratorAnnotation(() => new sim.cpu.TestTop))
+    Seq(chisel3.stage.ChiselGeneratorAnnotation(() => new sim.cpu.TestTop)) :+
+    circt.stage.FirtoolOption("--default-layer-specialization=enable")
   )
 }

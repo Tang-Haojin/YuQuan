@@ -12,6 +12,7 @@ object Elaborate extends App {
   (new circt.stage.ChiselStage).execute(
     Array("--target", "verilog") ++ args,
     Seq(chisel3.stage.ChiselGeneratorAnnotation(() => new cpu.CPU)) :+
-    circt.stage.FirtoolOption("--disable-all-randomization")
+    circt.stage.FirtoolOption("--disable-all-randomization") :+
+    circt.stage.FirtoolOption("--default-layer-specialization=enable")
   )
 }

@@ -42,8 +42,8 @@ case object ISAXI3    extends Field[Boolean]
 
 abstract trait PrefixParams extends BaseModule {
   implicit val p: Parameters
-  val modulePrefix = p(MODULE_PREFIX)
-  override val desiredName = modulePrefix + this.getClass().getSimpleName()
+  val YQModulePrefix = p(MODULE_PREFIX)
+  override val desiredName = YQModulePrefix + this.getClass().getSimpleName()
 }
 
 case object MODULE_PREFIX extends Field[String]

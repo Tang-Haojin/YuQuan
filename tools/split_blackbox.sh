@@ -11,7 +11,7 @@ while :; do
 	res=$(grep -noPm 1 '(?<=// ----- 8< ----- FILE ").*(?=" ----- 8< -----)' $path/$origin)
 	if [ -z "$res" ]; then break; fi
 	lastline=$(echo $res | grep -o '[0-9]*' | head -1)
-	head -n $(($lastline - 3)) $path/$origin >$path/tmp/$current
+	head -n $(($lastline - 2)) $path/$origin >$path/tmp/$current
 	sed -i "1,$(($lastline + 1))d" $path/$origin
 	current=$(echo $res | grep -oP "(?<=$lastline:).*")
 done
