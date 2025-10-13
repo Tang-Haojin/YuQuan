@@ -8,7 +8,7 @@ object Elaborate extends App {
   if (args.contains("FLASH")) p = p.alterPartial({ case cpu.USEFLASH => true })
 
   (new circt.stage.ChiselStage).execute(
-    Array("--target", "verilog") ++ args,
+    Array("--target", "systemverilog", "--split-verilog") ++ args,
     Seq(chisel3.stage.ChiselGeneratorAnnotation(() => new sim.cpu.TestTop)) :+
     circt.stage.FirtoolOption("--default-layer-specialization=enable")
   )

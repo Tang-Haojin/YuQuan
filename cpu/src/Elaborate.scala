@@ -10,7 +10,7 @@ object Elaborate extends App {
   }).alter(cpu.YQConfig()).alter(cpu.cache.CacheConfig.f)
 
   (new circt.stage.ChiselStage).execute(
-    Array("--target", "verilog") ++ args,
+    Array("--target", "systemverilog", "--split-verilog") ++ args,
     Seq(chisel3.stage.ChiselGeneratorAnnotation(() => new cpu.CPU)) :+
     circt.stage.FirtoolOption("--disable-all-randomization") :+
     circt.stage.FirtoolOption("--default-layer-specialization=enable")

@@ -29,7 +29,7 @@ VFLAGS  += -I$(pwd)/utils/src/axi2apb/inner
 VFLAGS  += -I$(pwd)/peripheral/src/spi/rtl -j $(cpuNum) -O3
 VFLAGS  += -I$(simSrcDir)/peripheral/spiFlash
 VFLAGS  += -I$(simSrcDir)/peripheral/sdcard
-VFLAGS  += -cc TestTop.v
+VFLAGS  += -cc TestTop.sv
 
 ifeq ($(TRACE),1)
 VFLAGS += --trace-fst --trace-threads 2
@@ -72,8 +72,7 @@ test:
 
 verilog:
 	mill -i cpu.runMain cpu.top.Elaborate args -td $(BUILD_DIR)/cpu $(PRETTY)
-	@$(pwd)/tools/split_blackbox.sh $(BUILD_DIR)/cpu ysyx_210153.v
-	@sed -i -e 's/_\(aw\|ar\|w\|r\|b\)_\(\|bits_\)/_\1/g' $(BUILD_DIR)/cpu/ysyx_210153.v
+	@sed -i -e 's/_\(aw\|ar\|w\|r\|b\)_\(\|bits_\)/_\1/g' $(BUILD_DIR)/cpu/*
 
 help:
 	mill -i sim.runMain sim.top.Elaborate --help
@@ -107,7 +106,6 @@ clean-all: clean
 
 verilate:
 	mill -i sim.runMain sim.top.Elaborate args -td $(BUILD_DIR)/sim $(GENNAME) $(param)
-	@$(pwd)/tools/split_blackbox.sh $(BUILD_DIR)/sim TestTop.v
 	@cd $(BUILD_DIR)/sim && \
 	verilator $(VFLAGS) --build $(CSRCS) -CFLAGS "$(CFLAGS)" -LDFLAGS "$(LDFLAGS)" >/dev/null
 
@@ -126,11 +124,9 @@ simall: $(LIB_SPIKE) verilate
 
 zmb:
 	mill -i cpu.runMain cpu.top.Elaborate args -td $(BUILD_DIR)/zmb zmb $(PRETTY)
-	@$(pwd)/tools/split_blackbox.sh $(BUILD_DIR)/zmb zmb.v
 
 lxb:
 	mill -i cpu.runMain cpu.top.Elaborate args -td $(BUILD_DIR)/lxb lxb $(PRETTY)
-	@$(pwd)/tools/split_blackbox.sh $(BUILD_DIR)/lxb lxb.v
 
 rv64: verilog
 
