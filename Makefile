@@ -32,7 +32,7 @@ VFLAGS  += -I$(simSrcDir)/peripheral/sdcard
 VFLAGS  += -cc TestTop.sv
 
 ifeq ($(TRACE),1)
-VFLAGS += --trace-fst --trace-threads 2
+VFLAGS += --trace-fst --trace-threads 2 --trace-underscore
 CFLAGS += -DTRACE
 endif
 
