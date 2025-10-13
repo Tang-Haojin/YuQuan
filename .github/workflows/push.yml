@@ -70,14 +70,7 @@ jobs:
         uses: coursier/cache-action@v6
 
       - name: Verilator
-        run: |
-          sudo apt install help2man libfl2 libfl-dev
-          git clone https://github.com/verilator/verilator
-          cd verilator
-          autoconf
-          ./configure CC=clang CXX=clang++
-          make -j `nproc`
-          sudo make install
+        run: sudo apt install verilator
 
       - name: Device Tree Compiler
         run: sudo apt install device-tree-compiler
