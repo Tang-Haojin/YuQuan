@@ -36,6 +36,16 @@ VFLAGS += --trace-fst --trace-threads 2 --trace-underscore
 CFLAGS += -DTRACE
 endif
 
+ifeq ($(CORVUS),1)
+param += HW
+endif
+
+ifneq ($(CORVUS_PATH),)
+CORVUS_REAL_PATH = $(CORVUS_PATH)
+else
+CORVUS_REAL_PATH = corvus-compiler
+endif
+
 ZMB ?= 0
 ifeq ($(ZMB),0)
 DIFF ?= 1
@@ -106,6 +116,9 @@ clean-all: clean
 
 verilate:
 	mill -i sim.runMain sim.top.Elaborate args -td $(BUILD_DIR)/sim $(GENNAME) $(param)
+ifeq ($(CORVUS),1)
+	@$(CORVUS_REAL_PATH) $(BUILD_DIR)/sim/TestTop.hw.mlir --split-verilog -o $(BUILD_DIR)/sim
+endif
 	@cd $(BUILD_DIR)/sim && \
 	verilator $(VFLAGS) --build $(CSRCS) -CFLAGS "$(CFLAGS)" -LDFLAGS "$(LDFLAGS)" >/dev/null
 
