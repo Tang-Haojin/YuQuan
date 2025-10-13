@@ -16,3 +16,5 @@ build/
 .config
 obj_dir/
 *.log
+.cache/
+compile_commands.json
