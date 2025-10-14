@@ -177,7 +177,7 @@ private[utils] class S011HD1P_BW_SramWrapper(clock: Clock, bits: Int = 128, word
   }
 }
 
-private[utils] class bytewrite_ram_1b_SramWrapper(clock: Clock, bits: Int = 128, wordDepth: Int = 64)(implicit val p: Parameters) extends SramWrapperInterface {
+private[utils] class bytewrite_ram_1b_SramWrapper(clock: Clock, bits: Int = 128, wordDepth: Int = 64) extends SramWrapperInterface {
   private val sram = Module(new bytewrite_ram_1b(bits, wordDepth))
   private val rAddr = WireDefault(0.U(log2Ceil(wordDepth).W))
   private val wAddr = WireDefault(0.U(log2Ceil(wordDepth).W))
@@ -201,6 +201,32 @@ private[utils] class bytewrite_ram_1b_SramWrapper(clock: Clock, bits: Int = 128,
     sram.io.we  := Fill(bits / 8, wen) & bytewrite
     sram.io.din := data
     when(wen) { sram.io.addr := wAddr }
+  }
+}
+
+private[utils] class SyncReadMemWrapper(clock: Clock, bits: Int = 128, wordDepth: Int = 64) extends SramWrapperInterface {
+  private val sram = SyncReadMem(wordDepth, Vec(bits / 8, UInt(8.W)))
+
+  def read(x: UInt, en: Bool = 1.B): UInt = sram.read(x, en).asUInt
+
+  def write(idx: UInt, data: UInt, wen: Bool): Unit = {
+    when(wen) {
+      sram.write(
+        idx,
+        VecInit(Seq.tabulate(bits / 8)(i => data((i + 1) * 8 - 1, i * 8))),
+        Seq.fill(bits / 8)(1.B)
+      )
+    }
+  }
+
+  def write(idx: UInt, data: UInt, wen: Bool, bytewrite: UInt): Unit = {
+    when(wen) {
+      sram.write(
+        idx,
+        VecInit(Seq.tabulate(bits / 8)(i => data((i + 1) * 8 - 1, i * 8))),
+        bytewrite.asBools
+      )
+    }
   }
 }
 
