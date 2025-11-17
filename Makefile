@@ -1,6 +1,7 @@
 pwd := $(shell pwd)
 NO_ERR = >>/dev/null 2>&1 | echo >>/dev/null 2>&1
 BUILD_DIR = $(pwd)/build
+OBJ_DIR  ?= $(BUILD_DIR)/sim/obj_dir
 LIB_DIR   = $(pwd)/difftest/difftest/build
 simSrcDir = $(pwd)/sim/src
 srcDir    = $(pwd)/cpu/src
@@ -14,22 +15,32 @@ param += FLASH
 CFLAGS += -DFLASH
 endif
 
+ifeq ($(ARCHIVE),)
 CSRCS   += $(simSrcDir)/sim_main.cpp $(simSrcDir)/peripheral/ram/ram.cpp
 CSRCS   += $(simSrcDir)/peripheral/spiFlash/spiFlash.cpp
 CSRCS   += $(simSrcDir)/peripheral/uart/scanKbd.cpp
 CSRCS   += $(simSrcDir)/peripheral/uart/uart.cpp
 CSRCS   += $(simSrcDir)/peripheral/sdcard/sdcard.cpp
+endif
 
 CFLAGS  += -D$(ISA) -pthread -I$(pwd)/sim/include
 LDFLAGS += -pthread
 
-VFLAGS  += --top TestTop --exe --timescale "1ns/1ns" -Wno-WIDTH
+TOP ?= TestTop
+TOP_FILE_PATH = $(BUILD_DIR)/sim/$(TOP).sv
+VERILATOR_TARGET = $(OBJ_DIR)/V$(TOP)
+
+ifeq ($(ARCHIVE),)
+VFLAGS  += --exe
+endif
+VFLAGS  += --top $(TOP) --timescale "1ns/1ns" -Wno-WIDTH
 VFLAGS  += -I$(pwd)/peripheral/src/uart16550
 VFLAGS  += -I$(pwd)/utils/src/axi2apb/inner
 VFLAGS  += -I$(pwd)/peripheral/src/spi/rtl -j $(cpuNum) -O3
 VFLAGS  += -I$(simSrcDir)/peripheral/spiFlash
 VFLAGS  += -I$(simSrcDir)/peripheral/sdcard
-VFLAGS  += -cc TestTop.sv
+VFLAGS  += -Mdir $(OBJ_DIR)
+VFLAGS  += -cc $(TOP).sv
 
 ifeq ($(TRACE),1)
 VFLAGS += --trace-fst --trace-threads 2 --trace-underscore
@@ -38,6 +49,14 @@ endif
 
 ifeq ($(CORVUS),1)
 param += HW
+REPCUT_NUM ?= 8
+CORVUS_ARGS += --repcut-num-partitions=$(REPCUT_NUM)
+endif
+
+ifneq ($(CORVUSITOR_PATH),)
+CORVUSITOR_REAL_PATH = $(CORVUSITOR_PATH)
+else
+CORVUSITOR_REAL_PATH = corvusitor
 endif
 
 ifneq ($(CORVUS_PATH),)
@@ -114,23 +133,35 @@ clean:
 clean-all: clean
 	-rm -rf ./out ./difftest/build ./difftest/difftest/build
 
-verilate:
+$(TOP_FILE_PATH):
 	mill -i sim.runMain sim.top.Elaborate args -td $(BUILD_DIR)/sim $(GENNAME) $(param)
 ifeq ($(CORVUS),1)
-	@$(CORVUS_REAL_PATH) $(BUILD_DIR)/sim/TestTop.hw.mlir --split-verilog -o $(BUILD_DIR)/sim
+	@$(CORVUS_REAL_PATH) $(BUILD_DIR)/sim/$(TOP).hw.mlir --split-verilog $(CORVUS_ARGS) -o $(BUILD_DIR)/sim
 endif
-	@cd $(BUILD_DIR)/sim && \
+
+verilate: $(TOP_FILE_PATH)
+	cd $(BUILD_DIR)/sim && \
 	verilator $(VFLAGS) --build $(CSRCS) -CFLAGS "$(CFLAGS)" -LDFLAGS "$(LDFLAGS)" >/dev/null
 
-sim: $(LIB_SPIKE) verilate
+ifeq ($(CORVUSITOR),1)
+SIMULATE = corvusitor
+else
+SIMULATE = verilate
+endif
+
+sim: $(LIB_SPIKE) $(SIMULATE)
+ifeq ($(CORVUSITOR),1)
+	$(MAKE) -C $(BUILD_DIR)/sim/corvusitor-compile sim BIN=$(BIN)
+else
 ifeq ($(BIN),)
 	$(error $(nobin))
 endif
-	@$(BUILD_DIR)/sim/obj_dir/VTestTop $(binFile) $(flashBinFile)
+	@$(VERILATOR_TARGET) $(binFile) $(flashBinFile)
+endif
 
-simall: $(LIB_SPIKE) verilate
+simall: $(LIB_SPIKE) $(SIMULATE)
 	@for x in $(SIMBIN); do \
-		$(BUILD_DIR)/sim/obj_dir/VTestTop $(pwd)/sim/bin/$$x-$(ISA)-nemu.bin >/dev/null 2>&1; \
+		$(VERILATOR_TARGET) $(pwd)/sim/bin/$$x-$(ISA)-nemu.bin >/dev/null 2>&1; \
 		if [ $$? -eq 0 ]; then printf "[$$x] \33[1;32mpass\33[0m\n"; \
 		else                   printf "[$$x] \33[1;31mfail\33[0m\n"; fi; \
 	done
@@ -146,7 +177,27 @@ rv64: verilog
 la32r: lxb
 	
 
-$(LIB_DIR)/librv64spike.so:
+$(LIB_SPIKE):
 	@cd $(pwd)/difftest/difftest && make -j && cd build && ln -sf riscv64-spike-so librv64spike.so
 
-.PHONY: test verilog help compile bsp reformat checkformat ysyxcheck clean clean-all verilate sim simall zmb lxb rv64 la32r $(LIB_DIR)/librv64spike.so
+CORVUS_MODULE_FILES := $(shell seq -f "$(BUILD_DIR)/sim/corvus_comb_P%g.sv" 0 $$(($(REPCUT_NUM)-1))) \
+                       $(shell seq -f "$(BUILD_DIR)/sim/corvus_seq_P%g.sv" 0 $$(($(REPCUT_NUM)-1))) \
+                       $(BUILD_DIR)/sim/corvus_external.sv
+
+define RUN_CORVUS_MODULE
+.corvus.run.$1: $(TOP_FILE_PATH)
+	@echo "Running Corvus on module $(basename $(notdir $1))"
+	$(MAKE) verilate ARCHIVE=1 OBJ_DIR=$(BUILD_DIR)/sim/verilator-compile-$(basename $(notdir $1)) TOP=$(basename $(notdir $1))
+endef
+
+verilate-archive: $(TOP_FILE_PATH) $(CORVUS_MODULE_FILES:%=.corvus.run.%)
+
+$(foreach f,$(CORVUS_MODULE_FILES),$(eval $(call RUN_CORVUS_MODULE,$f)))
+
+corvusitor: verilate-archive
+	mkdir -p $(BUILD_DIR)/sim/corvusitor-compile
+	cp $(simSrcDir)/sim_main_corvus.mk $(BUILD_DIR)/sim/corvusitor-compile/Makefile
+	$(CORVUSITOR_REAL_PATH) -m $(BUILD_DIR)/sim -o $(BUILD_DIR)/sim/corvusitor-compile/VCorvusTopWrapper_generated.cpp
+	@$(MAKE) -C $(BUILD_DIR)/sim/corvusitor-compile all
+
+.PHONY: test verilog help compile bsp reformat checkformat ysyxcheck clean clean-all verilate sim simall zmb lxb rv64 la32r $(LIB_DIR)/librv64spike.so corvusitor
