@@ -198,6 +198,6 @@ corvusitor: verilate-archive
 	mkdir -p $(BUILD_DIR)/sim/corvusitor-compile
 	cp $(simSrcDir)/sim_main_corvus.mk $(BUILD_DIR)/sim/corvusitor-compile/Makefile
 	$(CORVUSITOR_REAL_PATH) -m $(BUILD_DIR)/sim -o $(BUILD_DIR)/sim/corvusitor-compile/VCorvusTopWrapper_generated.cpp
-	@$(MAKE) -C $(BUILD_DIR)/sim/corvusitor-compile all
+	@$(MAKE) -C $(BUILD_DIR)/sim/corvusitor-compile _CORVUS_all
 
 .PHONY: test verilog help compile bsp reformat checkformat ysyxcheck clean clean-all verilate sim simall zmb lxb rv64 la32r $(LIB_DIR)/librv64spike.so corvusitor
